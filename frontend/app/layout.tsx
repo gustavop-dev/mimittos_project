@@ -1,25 +1,30 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 import Providers from './providers';
 
 export const metadata: Metadata = {
-  title: 'Base Django + React + Next Feature Template',
-  description: 'A template for building web applications with Django and React',
+  title: 'MIMITTOS — Más que un peluche, un recuerdo',
+  description: 'Peluches artesanales hechos a mano en Colombia, personalizados para ti.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className="antialiased" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Nunito:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body suppressHydrationWarning>
         <Providers>
           <Header />
           {children}
-          <footer className="border-t mt-16">
-            <div className="max-w-6xl mx-auto px-6 py-10 text-sm text-gray-600">
-              &copy; 2026 Base Django + React + Next Feature Template
-            </div>
-          </footer>
+          <Footer />
         </Providers>
       </body>
     </html>
