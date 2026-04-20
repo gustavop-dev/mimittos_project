@@ -17,7 +17,8 @@ test.describe('Complete Purchase Flow', () => {
     await expect(page.getByRole('heading', { name: /Peluchelandia|bienvenid|MIMITTOS|peluche/i }).first()).toBeVisible();
 
     // 2. Navigate to catalog
-    const shopNowLink = page.getByRole('link', { name: /Catálogo|Shop now/i });
+    // quality: allow-fragile-selector (first match scopes to header nav, avoiding footer/hero duplicates)
+    const shopNowLink = page.getByRole('link', { name: /Catálogo|Shop now/i }).first();
     if (await shopNowLink.isVisible()) {
       await shopNowLink.click();
       await page.waitForURL(/.*catalog/, { timeout: 10_000 });

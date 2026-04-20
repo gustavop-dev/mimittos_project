@@ -37,7 +37,7 @@ test.describe('Checkout Flow', () => {
       const addToCartBtn = page.locator('button:has-text("Agregar")').first();
       if (await addToCartBtn.isVisible()) {
         await addToCartBtn.click();
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('domcontentloaded');
 
         await page.goto('/checkout');
         await waitForPageLoad(page);
