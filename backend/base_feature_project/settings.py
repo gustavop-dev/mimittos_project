@@ -360,3 +360,25 @@ if ENABLE_SILK:
 
 SLOW_QUERY_THRESHOLD_MS = int(os.getenv('SLOW_QUERY_THRESHOLD_MS', '500'))
 N_PLUS_ONE_THRESHOLD = int(os.getenv('N_PLUS_ONE_THRESHOLD', '10'))
+
+# ---------------------------------------------------------------------------
+# Wompi (pasarela de pagos Colombia)
+# ---------------------------------------------------------------------------
+WOMPI_PUBLIC_KEY = os.getenv('WOMPI_PUBLIC_KEY', '')
+WOMPI_PRIVATE_KEY = os.getenv('WOMPI_PRIVATE_KEY', '')
+WOMPI_EVENTS_SECRET = os.getenv('WOMPI_EVENTS_SECRET', '')
+WOMPI_API_URL = os.getenv('WOMPI_API_URL', 'https://production.wompi.co/v1')
+
+# ---------------------------------------------------------------------------
+# Peluchelandia business settings
+# ---------------------------------------------------------------------------
+DEPOSIT_PERCENTAGE = int(os.getenv('DEPOSIT_PERCENTAGE', '50'))
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', '')
+
+# ---------------------------------------------------------------------------
+# Media upload limits
+# ---------------------------------------------------------------------------
+MAX_UPLOAD_IMAGE_MB = int(os.getenv('MAX_UPLOAD_IMAGE_MB', '5'))
+MAX_UPLOAD_AUDIO_MB = int(os.getenv('MAX_UPLOAD_AUDIO_MB', '10'))
+DATA_UPLOAD_MAX_MEMORY_SIZE = max(MAX_UPLOAD_IMAGE_MB, MAX_UPLOAD_AUDIO_MB) * 1024 * 1024
