@@ -1,64 +1,62 @@
-import { describe, it, expect } from '@jest/globals';
-import { render, screen } from '@testing-library/react';
-import ProductCard from '../ProductCard';
-import { mockProducts } from '../../../lib/__tests__/fixtures';
+import { describe, it, expect } from '@jest/globals'
+import { render, screen } from '@testing-library/react'
+import ProductCard from '../ProductCard'
+import { mockPeluches } from '../../../lib/__tests__/fixtures'
 
-// Mock Next.js Image component
 jest.mock('next/image', () => ({
   __esModule: true,
   default: (props: any) => {
-    const { fill: _fill, ...otherProps } = props;
+    const { fill: _fill, ...otherProps } = props
     // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-    return <img {...otherProps} />;
+    return <img {...otherProps} />
   },
-}));
+}))
 
-// Mock Next.js Link component
 jest.mock('next/link', () => ({
   __esModule: true,
   default: ({ children, href }: any) => <a href={href}>{children}</a>,
-}));
+}))
 
 describe('ProductCard', () => {
-  const product = mockProducts[0];
+  const peluch = mockPeluches[0]
 
-  it('should render product title', () => {
-    render(<ProductCard product={product} />);
-    expect(screen.getByText(product.title)).toBeInTheDocument();
-  });
+  it('should render peluch title', () => {
+    render(<ProductCard product={peluch} />)
+    expect(screen.getByText(peluch.title)).toBeInTheDocument()
+  })
 
-  it('should render product price', () => {
-    render(<ProductCard product={product} />);
-    expect(screen.getByText(`$${product.price}`)).toBeInTheDocument();
-  });
+  it('should render peluch price formatted', () => {
+    render(<ProductCard product={peluch} />)
+    expect(screen.getByText(/85\.000/)).toBeInTheDocument()
+  })
 
-  it('should render product category', () => {
-    render(<ProductCard product={product} />);
-    expect(screen.getByText(product.category!)).toBeInTheDocument();
-  });
+  it('should render peluch category', () => {
+    render(<ProductCard product={peluch} />)
+    expect(screen.getByText(peluch.category_name)).toBeInTheDocument()
+  })
 
-  it('should render product image when gallery_urls exists', () => {
-    render(<ProductCard product={product} />);
-    const image = screen.getByAltText(product.title);
-    expect(image).toBeInTheDocument();
-    expect(image).toHaveAttribute('src', product.gallery_urls![0]);
-  });
+  it('should render peluch image when gallery_urls has items', () => {
+    render(<ProductCard product={peluch} />)
+    const image = screen.getByAltText(peluch.title)
+    expect(image).toBeInTheDocument()
+    expect(image).toHaveAttribute('src', peluch.gallery_urls[0])
+  })
 
   it('should not render image when gallery_urls is empty', () => {
-    const productWithoutImage = { ...product, gallery_urls: [] };
-    render(<ProductCard product={productWithoutImage} />);
-    expect(screen.queryByAltText(product.title)).not.toBeInTheDocument();
-  });
+    const peluchWithoutImage = { ...peluch, gallery_urls: [] }
+    render(<ProductCard product={peluchWithoutImage} />)
+    expect(screen.queryByAltText(peluch.title)).not.toBeInTheDocument()
+  })
 
-  it('should link to product detail page', () => {
-    render(<ProductCard product={product} />);
-    const link = screen.getByRole('link');
-    expect(link).toHaveAttribute('href', `/products/${product.id}`);
-  });
+  it('should link to peluches detail page', () => {
+    render(<ProductCard product={peluch} />)
+    const link = screen.getByRole('link')
+    expect(link).toHaveAttribute('href', `/peluches/${peluch.slug}`)
+  })
 
-  it('should render fallback category text when category is not provided', () => {
-    const productWithoutCategory = { ...product, category: undefined };
-    render(<ProductCard product={productWithoutCategory} />);
-    expect(screen.getByText('Product')).toBeInTheDocument();
-  });
-});
+  it('should show null price placeholder when min_price is null', () => {
+    const peluchNoPrice = { ...peluch, min_price: null }
+    render(<ProductCard product={peluchNoPrice} />)
+    expect(screen.getByText('—')).toBeInTheDocument()
+  })
+})

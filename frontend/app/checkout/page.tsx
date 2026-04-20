@@ -2,31 +2,42 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 
-import { api } from '@/lib/services/http'
-import { useCartStore } from '@/lib/stores/cartStore'
-import type { SaleCreatePayload } from '@/lib/types'
+import { orderService } from '@/lib/services/orderService'
+import { calcDeposit, lineTotal, useCartStore } from '@/lib/stores/cartStore'
+
+const DEPARTMENTS = [
+  'Antioquia', 'Cundinamarca', 'Valle del Cauca', 'Atlántico',
+  'Bolívar', 'Santander', 'Nariño', 'Córdoba', 'Boyacá', 'Tolima',
+]
+
+const CITIES = [
+  'Medellín', 'Bogotá', 'Cali', 'Barranquilla', 'Bucaramanga',
+  'Cartagena', 'Cúcuta', 'Pereira', 'Manizales', 'Ibagué',
+]
 
 export default function CheckoutPage() {
+  const router = useRouter()
   const items = useCartStore((s) => s.items)
   const clearCart = useCartStore((s) => s.clearCart)
 
-  const subtotal = useMemo(() => items.reduce((acc, item) => acc + item.price * item.quantity, 0), [items])
-  const deposit = Math.round(subtotal / 2)
+  const subtotal = useMemo(() => items.reduce((acc, item) => acc + lineTotal(item), 0), [items])
+  const deposit = useMemo(() => calcDeposit(subtotal), [subtotal])
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
-  const [city, setCity] = useState('')
+  const [city, setCity] = useState('Medellín')
   const [department, setDepartment] = useState('Antioquia')
-  const [payMethod, setPayMethod] = useState('pse')
+  const [postalCode, setPostalCode] = useState('')
+  const [notes, setNotes] = useState('')
   const [terms, setTerms] = useState(false)
   const [hydrated, setHydrated] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
 
   useEffect(() => { setHydrated(true) }, [])
 
@@ -35,42 +46,33 @@ export default function CheckoutPage() {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!terms) { setError('Debes aceptar los términos y condiciones.'); return }
+    if (items.length === 0) { setError('Tu carrito está vacío.'); return }
     setLoading(true)
     setError('')
     try {
-      const payload: SaleCreatePayload = {
-        email,
+      const result = await orderService.createOrder({
+        customer_name: name,
+        customer_email: email,
+        customer_phone: phone,
         address,
         city,
-        state: department,
-        postal_code: '',
-        sold_products: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
-      }
-      await api.post('create-sale/', payload)
+        department,
+        postal_code: postalCode,
+        notes,
+        items,
+      })
       clearCart()
-      setSuccess(true)
-    } catch {
-      setError('No pudimos completar el pago. Por favor intenta de nuevo.')
+      if (result.checkout_url) {
+        window.location.href = result.checkout_url
+      } else {
+        router.push(`/tracking?order=${result.order_number}`)
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.response?.data?.non_field_errors?.[0] || 'No pudimos completar el pedido. Por favor intenta de nuevo.'
+      setError(msg)
     } finally {
       setLoading(false)
     }
-  }
-
-  if (success) {
-    return (
-      <main style={{ maxWidth: 700, margin: '80px auto', padding: '0 40px', textAlign: 'center' }}>
-        <div style={{ fontSize: 64 }}>🧸</div>
-        <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 40, color: 'var(--navy)', margin: '20px 0 14px' }}>
-          ¡Tu pedido está confirmado!
-        </h1>
-        <p style={{ fontSize: 17, color: 'var(--gray-warm)', lineHeight: 1.6, marginBottom: 32 }}>
-          Hemos recibido tu abono del 50%. En las próximas horas recibirás un correo de confirmación y comenzaremos a crear tu peluche con todo el amor del mundo.
-        </p>
-        <Link href="/tracking" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '16px 28px', borderRadius: 999, fontWeight: 700, fontSize: 15, background: 'var(--coral)', color: '#fff', boxShadow: '0 8px 22px rgba(212,132,138,.35)' }}>
-          Seguir mi pedido →
-        </Link>
-      </main>
-    )
   }
 
   return (
@@ -90,14 +92,14 @@ export default function CheckoutPage() {
           Un abrazo de distancia ♡
         </h1>
         <p style={{ color: 'var(--gray-warm)', fontSize: 16, marginTop: 10, maxWidth: 600, lineHeight: 1.55 }}>
-          Completa tus datos y paga el abono del 50% para iniciar la producción. El saldo lo pagas cuando recibes tu peluche.
+          Completa tus datos y serás redirigido a Wompi para pagar el abono del 50%. El saldo lo pagas cuando recibes tu peluche.
         </p>
       </div>
 
       {/* Steps */}
       <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 30 }}>
-          {[['Carrito', true, true], ['Envío y pago', true, false], ['Abono inicial', false, false], ['Confirmación', false, false]].map(([label, done, passed], i) => (
+          {[['Carrito', true, true], ['Datos y envío', true, false], ['Pago Wompi', false, false], ['Confirmación', false, false]].map(([label, done, passed], i) => (
             <>
               <div key={String(label)} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: done ? 'var(--coral)' : '#fff', color: done ? '#fff' : 'var(--gray-warm)', border: done ? 'none' : '1.5px solid rgba(27,42,74,.1)', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14 }}>
@@ -123,9 +125,6 @@ export default function CheckoutPage() {
                 <div style={fieldWrap}><label style={fieldLabel}>Nombre completo</label><input value={name} onChange={(e) => setName(e.target.value)} style={fieldInput} required /></div>
                 <div style={fieldWrap}><label style={fieldLabel}>Correo electrónico</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={fieldInput} required /></div>
                 <div style={fieldWrap}><label style={fieldLabel}>Celular</label><input value={phone} onChange={(e) => setPhone(e.target.value)} style={fieldInput} required /></div>
-                <div style={fieldWrap}><label style={fieldLabel}>Tipo de documento</label>
-                  <select style={fieldInput}><option>Cédula de ciudadanía</option><option>Cédula de extranjería</option><option>Pasaporte</option></select>
-                </div>
               </div>
             </div>
 
@@ -134,78 +133,43 @@ export default function CheckoutPage() {
               <h3 style={cardHeadStyle}><span style={cardNumStyle}>2</span> Dirección de envío</h3>
               <p style={{ color: 'var(--gray-warm)', fontSize: 14, marginBottom: 20 }}>¿A dónde le llevamos el abrazo?</p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
-                <div style={fieldWrap}><label style={fieldLabel}>País</label><select style={fieldInput}><option>Colombia</option></select></div>
-                <div style={fieldWrap}><label style={fieldLabel}>Departamento</label>
+                <div style={fieldWrap}>
+                  <label style={fieldLabel}>Departamento</label>
                   <select value={department} onChange={(e) => setDepartment(e.target.value)} style={fieldInput}>
-                    {['Antioquia', 'Cundinamarca', 'Valle del Cauca', 'Atlántico', 'Bolívar', 'Santander'].map((d) => <option key={d}>{d}</option>)}
+                    {DEPARTMENTS.map((d) => <option key={d}>{d}</option>)}
                   </select>
                 </div>
-                <div style={fieldWrap}><label style={fieldLabel}>Ciudad</label>
+                <div style={fieldWrap}>
+                  <label style={fieldLabel}>Ciudad</label>
                   <select value={city} onChange={(e) => setCity(e.target.value)} style={fieldInput}>
-                    {['Medellín', 'Bogotá', 'Cali', 'Barranquilla', 'Bucaramanga', 'Cartagena'].map((c) => <option key={c}>{c}</option>)}
+                    {CITIES.map((c) => <option key={c}>{c}</option>)}
                   </select>
+                </div>
+                <div style={fieldWrap}>
+                  <label style={fieldLabel}>Código postal</label>
+                  <input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="050001" style={fieldInput} />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 14 }}>
-                <div style={{ ...fieldWrap, gridColumn: '1/-1' }}><label style={fieldLabel}>Dirección completa</label><input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Calle 50 # 40-20, Apto 301" style={fieldInput} required /></div>
+              <div style={{ marginTop: 14 }}>
+                <div style={fieldWrap}><label style={fieldLabel}>Dirección completa</label><input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Calle 50 # 40-20, Apto 301" style={fieldInput} required /></div>
+              </div>
+              <div style={{ marginTop: 14 }}>
+                <div style={fieldWrap}><label style={fieldLabel}>Notas para el pedido (opcional)</label><input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Instrucciones especiales..." style={fieldInput} /></div>
               </div>
             </div>
 
-            {/* Payment */}
-            <div style={cardStyle}>
-              <h3 style={cardHeadStyle}><span style={cardNumStyle}>3</span> Método de pago del abono</h3>
-              <p style={{ color: 'var(--gray-warm)', fontSize: 14, marginBottom: 20 }}>Recuerda: solo pagas el 50% ahora ({fmt(deposit)})</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 20 }}>
-                {[
-                  { id: 'pse', label: 'PSE', sub: 'Débito bancario' },
-                  { id: 'card', label: 'Tarjeta', sub: 'Crédito / Débito' },
-                  { id: 'nequi', label: 'Nequi', sub: 'Pago móvil' },
-                  { id: 'efecty', label: 'Efecty', sub: 'Pago efectivo' },
-                ].map((m) => (
-                  <div key={m.id} onClick={() => setPayMethod(m.id)} style={{ background: '#fff', border: `1.5px solid ${payMethod === m.id ? 'var(--coral)' : 'rgba(27,42,74,.08)'}`, borderRadius: 14, padding: '18px 14px', cursor: 'pointer', textAlign: 'center', background: payMethod === m.id ? 'var(--pink-melo)' : '#fff' } as React.CSSProperties}>
-                    <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--navy)', marginBottom: 4 }}>{m.label}</div>
-                    <div style={{ fontSize: 11, color: 'var(--gray-warm)' }}>{m.sub}</div>
-                  </div>
-                ))}
-              </div>
-
-              {payMethod === 'pse' && (
-                <div style={{ background: 'var(--cream-peach)', borderRadius: 12, padding: 18 }}>
-                  <p style={{ fontSize: 14, color: 'var(--navy)', marginBottom: 12 }}>Serás redirigido al portal de tu banco para completar el pago de forma segura.</p>
-                  <div style={fieldWrap}><label style={fieldLabel}>Banco</label>
-                    <select style={fieldInput}><option>Bancolombia</option><option>Banco de Bogotá</option><option>Davivienda</option><option>Nequi (PSE)</option><option>BBVA</option></select>
-                  </div>
-                </div>
-              )}
-              {payMethod === 'card' && (
-                <div style={{ background: 'var(--cream-peach)', borderRadius: 12, padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div style={fieldWrap}><label style={fieldLabel}>Número de tarjeta</label><input placeholder="0000 0000 0000 0000" style={fieldInput} /></div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    <div style={fieldWrap}><label style={fieldLabel}>Vencimiento</label><input placeholder="MM / AA" style={fieldInput} /></div>
-                    <div style={fieldWrap}><label style={fieldLabel}>CVV</label><input placeholder="•••" style={fieldInput} /></div>
-                  </div>
-                </div>
-              )}
-              {payMethod === 'nequi' && (
-                <div style={{ background: 'var(--cream-peach)', borderRadius: 12, padding: 18 }}>
-                  <p style={{ fontSize: 14, color: 'var(--navy)' }}>Ingresa tu número de celular registrado en Nequi y recibirás una notificación en la app para aprobar el pago.</p>
-                  <div style={{ ...fieldWrap, marginTop: 12 }}><label style={fieldLabel}>Número celular Nequi</label><input placeholder="+57 300 000 0000" style={fieldInput} /></div>
-                </div>
-              )}
-              {payMethod === 'efecty' && (
-                <div style={{ background: 'var(--cream-peach)', borderRadius: 12, padding: 18 }}>
-                  <p style={{ fontSize: 14, color: 'var(--navy)', marginBottom: 8 }}>Sigue estos pasos:</p>
-                  {['Confirma tu pedido en este formulario', 'Recibirás un código de pago por correo y WhatsApp', 'Dirígete al punto Efecty más cercano y realiza el pago', 'Envíanos el comprobante por WhatsApp para confirmar'].map((s, i) => (
-                    <p key={i} style={{ fontSize: 13, color: 'var(--navy)', marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                      <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--coral)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'grid', placeItems: 'center', flexShrink: 0, marginTop: 1 }}>{i + 1}</span>
-                      {s}
-                    </p>
-                  ))}
-                </div>
-              )}
+            {/* Wompi info */}
+            <div style={{ ...cardStyle, background: 'var(--cream-peach)', border: '1px solid rgba(212,132,138,.2)' }}>
+              <h3 style={{ ...cardHeadStyle, marginBottom: 12 }}><span style={cardNumStyle}>3</span> Pago con Wompi</h3>
+              <p style={{ color: 'var(--navy)', fontSize: 14, lineHeight: 1.6 }}>
+                Al confirmar tu pedido, serás redirigido a <strong>Wompi</strong> para pagar el abono del 50% de forma segura. Wompi acepta tarjetas, PSE, Nequi y más.
+              </p>
+              <p style={{ color: 'var(--gray-warm)', fontSize: 13, marginTop: 10 }}>
+                El saldo restante ({fmt(subtotal - deposit)}) lo pagas al recibir tu peluche.
+              </p>
 
               {/* Terms */}
-              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: 16, background: 'var(--cream-peach)', borderRadius: 12, marginTop: 16 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: 16, background: '#fff', borderRadius: 12, marginTop: 16 }}>
                 <input type="checkbox" id="terms" checked={terms} onChange={(e) => setTerms(e.target.checked)} style={{ marginTop: 3, accentColor: 'var(--coral)', width: 18, height: 18 }} />
                 <label htmlFor="terms" style={{ fontSize: 13, color: 'var(--navy)', lineHeight: 1.5, cursor: 'pointer' }}>
                   He leído y acepto los{' '}
@@ -221,17 +185,18 @@ export default function CheckoutPage() {
             <h3 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 20, color: 'var(--navy)', marginBottom: 16 }}>Tu pedido</h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16, maxHeight: 260, overflowY: 'auto' }}>
-              {items.map((item) => {
+              {items.map((item, idx) => {
                 const cover = item.gallery_urls?.[0]
+                const itemTotal = lineTotal(item)
                 return (
-                  <div key={item.id} style={{ display: 'flex', gap: 12, paddingBottom: 12, borderBottom: '1px dashed rgba(212,132,138,.2)' }}>
-                    <div style={{ width: 54, height: 54, borderRadius: 10, overflow: 'hidden', background: 'var(--pink-melo)', flexShrink: 0, position: 'relative' }}>
+                  <div key={`${item.peluch_id}-${item.size_id}-${item.color_id}-${idx}`} style={{ display: 'flex', gap: 12, paddingBottom: 12, borderBottom: '1px dashed rgba(212,132,138,.2)' }}>
+                    <div style={{ width: 54, height: 54, borderRadius: 10, overflow: 'hidden', background: item.color_hex || 'var(--pink-melo)', flexShrink: 0, position: 'relative' }}>
                       {cover && <Image src={cover} alt={item.title} fill className="object-cover" />}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <strong style={{ display: 'block', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>{item.title}</strong>
-                      <span style={{ fontSize: 11, color: 'var(--gray-warm)', display: 'block' }}>× {item.quantity} · {item.description}</span>
-                      <b style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: 'var(--terracotta)', fontSize: 14 }}>${(item.price * item.quantity).toLocaleString('es-CO')}</b>
+                      <span style={{ fontSize: 11, color: 'var(--gray-warm)', display: 'block' }}>× {item.quantity} · {item.size_label} · {item.color_name}</span>
+                      <b style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: 'var(--terracotta)', fontSize: 14 }}>{fmt(itemTotal)}</b>
                     </div>
                   </div>
                 )
@@ -242,13 +207,13 @@ export default function CheckoutPage() {
             <div style={sumRow}><span>Subtotal</span><b style={{ color: 'var(--navy)' }}>{fmt(subtotal)}</b></div>
             <div style={sumRow}><span>Envío</span><b style={{ color: '#4CAF50' }}>Gratis</b></div>
             <div style={{ height: 1, background: 'rgba(212,132,138,.2)', margin: '10px 0' }} />
-            <div style={{ ...sumRow }}><span style={{ color: 'var(--navy)', fontWeight: 700 }}>Total</span><b style={{ fontFamily: "'Quicksand', sans-serif", fontSize: 22, color: 'var(--terracotta)' }}>{fmt(subtotal)}</b></div>
+            <div style={sumRow}><span style={{ color: 'var(--navy)', fontWeight: 700 }}>Total</span><b style={{ fontFamily: "'Quicksand', sans-serif", fontSize: 22, color: 'var(--terracotta)' }}>{fmt(subtotal)}</b></div>
 
             <div style={{ background: 'var(--cream-peach)', borderRadius: 'var(--radius-md)', padding: 16, margin: '16px 0' }}>
               <div style={sumRow}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, color: 'var(--navy)', fontSize: 13 }}>
                   <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--coral)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 11 }}>1</span>
-                  Abono 50% — hoy
+                  Abono 50% — hoy (Wompi)
                 </div>
                 <b style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--terracotta)' }}>{fmt(deposit)}</b>
               </div>
@@ -262,7 +227,7 @@ export default function CheckoutPage() {
             </div>
 
             <button type="submit" disabled={loading || !hydrated || !items.length || !terms} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'var(--coral)', color: '#fff', width: '100%', padding: 16, borderRadius: 14, fontWeight: 700, fontSize: 15, fontFamily: "'Quicksand', sans-serif", boxShadow: '0 10px 26px rgba(212,132,138,.4)', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? .7 : 1, transition: 'all .2s' }}>
-              {loading ? 'Procesando...' : `Pagar abono · ${fmt(deposit)}`}
+              {loading ? 'Procesando...' : `Ir a pagar · ${fmt(deposit)}`}
               {!loading && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 6l6 6-6 6" /></svg>}
             </button>
 
@@ -270,7 +235,7 @@ export default function CheckoutPage() {
 
             <p style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center', color: 'var(--gray-warm)', fontSize: 12, marginTop: 12 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" strokeWidth="2"><path d="M12 2 4 6v6c0 5 3.5 9.7 8 10 4.5-.3 8-5 8-10V6z" /></svg>
-              Pago 100% seguro y encriptado
+              Pago 100% seguro con Wompi
             </p>
           </aside>
         </div>
