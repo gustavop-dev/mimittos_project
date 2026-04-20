@@ -6,6 +6,12 @@ Tasks:
 - silk_garbage_collection: Daily cleanup of Silk profiling data (4:00 AM)
 - weekly_slow_queries_report: Weekly performance report (Mondays 8:00 AM)
 - silk_reports_cleanup: Monthly cleanup of Silk report files older than 6 months
+- send_order_confirmation_email: Email al cliente al confirmar pago
+- send_production_started_email: Email al cliente al iniciar producción
+- send_order_shipped_email: Email al cliente al despachar
+- send_new_order_admin_alert: Email a Jimmy con nuevo pedido
+- check_unattended_orders: Alerta pedidos sin atender >24h
+- cleanup_unused_media_files: Limpia archivos de personalización sin usar >48h
 """
 
 import logging
@@ -16,9 +22,10 @@ from pathlib import Path
 from django.conf import settings
 from django.utils import timezone
 from huey import crontab
-from huey.contrib.djhuey import db_periodic_task
+from huey.contrib.djhuey import db_periodic_task, db_task
 
 logger = logging.getLogger('backups')
+order_logger = logging.getLogger(__name__)
 
 
 @db_periodic_task(crontab(day_of_week='0', hour='3', minute='0'))
@@ -188,3 +195,91 @@ def silk_reports_cleanup():
 
     if deleted:
         logger.info('Silk reports cleanup: deleted %d file(s) older than %s.', deleted, cutoff)
+
+
+# ============================================================================
+# PELUCHELANDIA — EMAIL NOTIFICATION TASKS
+# ============================================================================
+
+@db_task()
+def send_order_confirmation_email(order_id: int):
+    from base_feature_app.models import Order
+    from base_feature_app.services.notification_service import NotificationService
+    try:
+        order = Order.objects.get(id=order_id)
+        NotificationService.notify_order_confirmation(order)
+    except Order.DoesNotExist:
+        order_logger.warning('Order %s not found for confirmation email.', order_id)
+
+
+@db_task()
+def send_production_started_email(order_id: int):
+    from base_feature_app.models import Order
+    from base_feature_app.services.notification_service import NotificationService
+    try:
+        order = Order.objects.get(id=order_id)
+        NotificationService.notify_production_started(order)
+    except Order.DoesNotExist:
+        order_logger.warning('Order %s not found for production email.', order_id)
+
+
+@db_task()
+def send_order_shipped_email(order_id: int):
+    from base_feature_app.models import Order
+    from base_feature_app.services.notification_service import NotificationService
+    try:
+        order = Order.objects.get(id=order_id)
+        NotificationService.notify_order_shipped(order)
+    except Order.DoesNotExist:
+        order_logger.warning('Order %s not found for shipped email.', order_id)
+
+
+@db_task()
+def send_new_order_admin_alert(order_id: int):
+    from base_feature_app.models import Order
+    from base_feature_app.services.notification_service import NotificationService
+    try:
+        order = Order.objects.get(id=order_id)
+        NotificationService.notify_new_order_admin(order)
+    except Order.DoesNotExist:
+        order_logger.warning('Order %s not found for admin alert.', order_id)
+
+
+@db_periodic_task(crontab(hour='*', minute='0'))
+def check_unattended_orders():
+    """
+    Hourly check: log warning for orders pending >24h without status change.
+    """
+    from base_feature_app.models import Order
+    cutoff = timezone.now() - timedelta(hours=24)
+    unattended = Order.objects.filter(
+        status__in=[Order.Status.PENDING_PAYMENT, Order.Status.PAYMENT_CONFIRMED],
+        updated_at__lt=cutoff,
+    )
+    count = unattended.count()
+    if count:
+        order_logger.warning(
+            'ALERT: %d order(s) have been unattended for >24h. '
+            'Order numbers: %s',
+            count,
+            list(unattended.values_list('order_number', flat=True)[:10]),
+        )
+
+
+@db_periodic_task(crontab(hour='8', minute='0'))
+def cleanup_unused_media_files():
+    """
+    Daily cleanup of PersonalizationMedia files not linked to any order (>48h old).
+    """
+    from base_feature_app.models import PersonalizationMedia
+    cutoff = timezone.now() - timedelta(hours=48)
+    old_unused = PersonalizationMedia.objects.filter(is_used=False, created_at__lt=cutoff)
+    count = old_unused.count()
+    if count:
+        for media in old_unused:
+            try:
+                media.file.delete(save=False)
+            except Exception:
+                pass
+            media.delete()
+        order_logger.info('Cleaned up %d unused personalization media file(s).', count)
