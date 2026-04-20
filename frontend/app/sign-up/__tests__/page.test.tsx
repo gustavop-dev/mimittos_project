@@ -65,6 +65,11 @@ const setAuthStoreState = (state: any) => {
   );
 };
 
+const acceptTerms = () => {
+  const termsCheckbox = screen.getByText(/Términos y Condiciones/i).closest('label')!.firstElementChild as HTMLElement;
+  fireEvent.click(termsCheckbox);
+};
+
 describe('SignUpPage', () => {
   const originalGoogleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
@@ -83,14 +88,14 @@ describe('SignUpPage', () => {
     }
   });
 
-  it('renders missing Google Client ID message when env var not set', () => {
+  it('hides Google Login button when env var is not set', () => {
     delete process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     setAuthStoreState({ signUp: jest.fn(), googleLogin: jest.fn() });
     mockUseRouter.mockReturnValue({ replace: jest.fn() });
 
     render(<SignUpPage />);
 
-    expect(screen.getByText('Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Google Login' })).not.toBeInTheDocument();
   });
 
   it('shows error when passwords do not match', async () => {
@@ -100,14 +105,14 @@ describe('SignUpPage', () => {
 
     render(<SignUpPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('First Name'), { target: { value: 'Test' } });
-    fireEvent.change(screen.getByPlaceholderText('Last Name'), { target: { value: 'User' } });
-    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password123' } });
-    fireEvent.change(screen.getByPlaceholderText('Confirm Password'), { target: { value: 'password456' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
+    fireEvent.change(screen.getByPlaceholderText('Sofía'), { target: { value: 'Test' } });
+    fireEvent.change(screen.getByPlaceholderText('Martínez'), { target: { value: 'User' } });
+    fireEvent.change(screen.getByPlaceholderText('sofia@ejemplo.com'), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('Mínimo 8 caracteres'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByPlaceholderText('Repite la contraseña'), { target: { value: 'password456' } });
+    fireEvent.click(screen.getByRole('button', { name: /Crear mi cuenta/i }));
 
-    expect(await screen.findByText('Passwords do not match')).toBeInTheDocument();
+    expect(await screen.findByText('Las contraseñas no coinciden')).toBeInTheDocument();
     expect(signUp).not.toHaveBeenCalled();
   });
 
@@ -118,12 +123,12 @@ describe('SignUpPage', () => {
 
     render(<SignUpPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'short' } });
-    fireEvent.change(screen.getByPlaceholderText('Confirm Password'), { target: { value: 'short' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
+    fireEvent.change(screen.getByPlaceholderText('sofia@ejemplo.com'), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('Mínimo 8 caracteres'), { target: { value: 'short' } });
+    fireEvent.change(screen.getByPlaceholderText('Repite la contraseña'), { target: { value: 'short' } });
+    fireEvent.click(screen.getByRole('button', { name: /Crear mi cuenta/i }));
 
-    expect(await screen.findByText('Password must be at least 8 characters')).toBeInTheDocument();
+    expect(await screen.findByText('La contraseña debe tener al menos 8 caracteres')).toBeInTheDocument();
     expect(signUp).not.toHaveBeenCalled();
   });
 
@@ -135,12 +140,13 @@ describe('SignUpPage', () => {
 
     render(<SignUpPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('First Name'), { target: { value: 'Test' } });
-    fireEvent.change(screen.getByPlaceholderText('Last Name'), { target: { value: 'User' } });
-    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password123' } });
-    fireEvent.change(screen.getByPlaceholderText('Confirm Password'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
+    fireEvent.change(screen.getByPlaceholderText('Sofía'), { target: { value: 'Test' } });
+    fireEvent.change(screen.getByPlaceholderText('Martínez'), { target: { value: 'User' } });
+    fireEvent.change(screen.getByPlaceholderText('sofia@ejemplo.com'), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('Mínimo 8 caracteres'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByPlaceholderText('Repite la contraseña'), { target: { value: 'password123' } });
+    acceptTerms();
+    fireEvent.click(screen.getByRole('button', { name: /Crear mi cuenta/i }));
 
     await waitFor(() => {
       expect(signUp).toHaveBeenCalledWith({
@@ -190,7 +196,7 @@ describe('SignUpPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Google Login' }));
 
-    expect(await screen.findByText('Google registration failed')).toBeInTheDocument();
+    expect(await screen.findByText('Error al registrarse con Google')).toBeInTheDocument();
   });
 
   it('shows an error when sign up fails', async () => {
@@ -200,10 +206,11 @@ describe('SignUpPage', () => {
 
     render(<SignUpPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password123' } });
-    fireEvent.change(screen.getByPlaceholderText('Confirm Password'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
+    fireEvent.change(screen.getByPlaceholderText('sofia@ejemplo.com'), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('Mínimo 8 caracteres'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByPlaceholderText('Repite la contraseña'), { target: { value: 'password123' } });
+    acceptTerms();
+    fireEvent.click(screen.getByRole('button', { name: /Crear mi cuenta/i }));
 
     expect(await screen.findByText('Registration failed')).toBeInTheDocument();
   });
@@ -215,12 +222,13 @@ describe('SignUpPage', () => {
 
     render(<SignUpPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password123' } });
-    fireEvent.change(screen.getByPlaceholderText('Confirm Password'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
+    fireEvent.change(screen.getByPlaceholderText('sofia@ejemplo.com'), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('Mínimo 8 caracteres'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByPlaceholderText('Repite la contraseña'), { target: { value: 'password123' } });
+    acceptTerms();
+    fireEvent.click(screen.getByRole('button', { name: /Crear mi cuenta/i }));
 
-    expect(await screen.findByText('Registration failed')).toBeInTheDocument();
+    expect(await screen.findByText('Error al crear la cuenta')).toBeInTheDocument();
   });
 
   it('handles Google registration success', async () => {
@@ -260,7 +268,7 @@ describe('SignUpPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Google Login' }));
 
-    expect(await screen.findByText('Google registration failed')).toBeInTheDocument();
+    expect(await screen.findByText('Error con Google')).toBeInTheDocument();
   });
 
   it('handles Google login error callback', async () => {
@@ -272,7 +280,7 @@ describe('SignUpPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Google Login' }));
 
-    expect(await screen.findByText('Google registration failed')).toBeInTheDocument();
+    expect(await screen.findByText('Error al registrarse con Google')).toBeInTheDocument();
   });
 
   it('continues when jwt decode fails', async () => {
