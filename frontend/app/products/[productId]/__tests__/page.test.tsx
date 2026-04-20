@@ -1,135 +1,40 @@
-import { describe, it, expect, beforeEach } from '@jest/globals';
-import { act, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { useParams } from 'next/navigation';
+import { describe, it, expect } from '@jest/globals'
+import { render, screen } from '@testing-library/react'
 
-import ProductDetailPage from '../page';
-import { useCartStore } from '../../../../lib/stores/cartStore';
-import { useProductStore } from '../../../../lib/stores/productStore';
+import ProductDetailPage from '../page'
+import { useCartStore } from '../../../../lib/stores/cartStore'
 
 jest.mock('../../../../lib/stores/cartStore', () => ({
   useCartStore: jest.fn(),
-}));
-
-jest.mock('../../../../lib/stores/productStore', () => ({
-  useProductStore: jest.fn(),
-}));
+}))
 
 jest.mock('next/navigation', () => ({
-  useParams: jest.fn(),
-}));
+  useParams: jest.fn(() => ({ productId: '1' })),
+}))
 
-const mockUseCartStore = useCartStore as unknown as jest.Mock;
-const mockUseProductStore = useProductStore as unknown as jest.Mock;
-const mockUseParams = useParams as unknown as jest.Mock;
+const mockUseCartStore = useCartStore as unknown as jest.Mock
 
-describe('ProductDetailPage', () => {
+describe('ProductDetailPage (legacy static page)', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockUseParams.mockReturnValue({ productId: '1' });
-  });
+    jest.clearAllMocks()
+    mockUseCartStore.mockImplementation((selector: (s: any) => unknown) =>
+      selector({ addToCart: jest.fn(), items: [] })
+    )
+  })
 
-  it('shows product not found when productId is invalid', async () => {
-    const fetchProduct = jest.fn();
-    mockUseProductStore.mockImplementation((selector: (state: any) => unknown) => selector({ fetchProduct }));
-    mockUseCartStore.mockImplementation((selector: (state: any) => unknown) => selector({ addToCart: jest.fn() }));
+  it('renders the page without crashing', () => {
+    const { container } = render(<ProductDetailPage />)
+    expect(container).not.toBeEmptyDOMElement()
+  })
 
-    mockUseParams.mockReturnValue({ productId: 'nope' });
+  it('renders size options', () => {
+    render(<ProductDetailPage />)
+    expect(screen.getByText('Pequeño')).toBeInTheDocument()
+    expect(screen.getByText('Mediano')).toBeInTheDocument()
+  })
 
-    render(<ProductDetailPage />);
-
-    expect(await screen.findByText('Product not found.')).toBeInTheDocument();
-    expect(await screen.findByRole('link', { name: 'Back to catalog' })).toBeInTheDocument();
-    expect(fetchProduct).not.toHaveBeenCalled();
-  });
-
-  it('shows loading state while fetching product', async () => {
-    let resolveProduct: (value: any) => void;
-    const fetchProduct = jest.fn().mockReturnValue(
-      new Promise((resolve) => { resolveProduct = resolve; })
-    );
-    mockUseProductStore.mockImplementation((selector: (state: any) => unknown) => selector({ fetchProduct }));
-    mockUseCartStore.mockImplementation((selector: (state: any) => unknown) => selector({ addToCart: jest.fn() }));
-
-    render(<ProductDetailPage />);
-
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
-
-    await act(async () => { resolveProduct!(null); });
-  });
-
-  it('shows product not found when fetchProduct returns null', async () => {
-    const fetchProduct = jest.fn().mockResolvedValue(null);
-    mockUseProductStore.mockImplementation((selector: (state: any) => unknown) => selector({ fetchProduct }));
-    mockUseCartStore.mockImplementation((selector: (state: any) => unknown) => selector({ addToCart: jest.fn() }));
-
-    render(<ProductDetailPage />);
-
-    expect(await screen.findByText('Product not found.')).toBeInTheDocument();
-    expect(await screen.findByRole('link', { name: 'Back to catalog' })).toBeInTheDocument();
-  });
-
-  it('renders product details and adds to cart', async () => {
-    const product = {
-      id: 1,
-      title: 'Test Product',
-      category: 'Category',
-      description: 'Product description',
-      price: 99,
-      gallery_urls: ['http://example.com/p1.jpg'],
-    };
-    const fetchProduct = jest.fn().mockResolvedValue(product);
-    const addToCart = jest.fn();
-
-    mockUseProductStore.mockImplementation((selector: (state: any) => unknown) => selector({ fetchProduct }));
-    mockUseCartStore.mockImplementation((selector: (state: any) => unknown) => selector({ addToCart }));
-
-    render(<ProductDetailPage />);
-
-    await waitFor(() => {
-      expect(fetchProduct).toHaveBeenCalledWith(1);
-    });
-
-    await act(async () => {
-      await Promise.all(fetchProduct.mock.results.map((result) => result.value));
-    });
-
-    expect(await screen.findByRole('heading', { name: 'Test Product' })).toBeInTheDocument();
-    expect(await screen.findByText('$99')).toBeInTheDocument();
-    expect(await screen.findByText('Product description')).toBeInTheDocument();
-    expect(await screen.findByRole('img', { name: 'Test Product' })).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Add to cart' }));
-    expect(addToCart).toHaveBeenCalledWith(product, 1);
-  });
-
-  it('handles products without gallery or description', async () => {
-    const product = {
-      id: 2,
-      title: 'Minimal Product',
-      category: '',
-      description: '',
-      price: 10,
-    };
-    const fetchProduct = jest.fn().mockResolvedValue(product);
-
-    mockUseProductStore.mockImplementation((selector: (state: any) => unknown) => selector({ fetchProduct }));
-    mockUseCartStore.mockImplementation((selector: (state: any) => unknown) => selector({ addToCart: jest.fn() }));
-
-    mockUseParams.mockReturnValue({ productId: ['2'] });
-
-    render(<ProductDetailPage />);
-
-    await waitFor(() => {
-      expect(fetchProduct).toHaveBeenCalledWith(2);
-    });
-
-    await act(async () => {
-      await Promise.all(fetchProduct.mock.results.map((result) => result.value));
-    });
-
-    expect(await screen.findByRole('heading', { name: 'Minimal Product' })).toBeInTheDocument();
-    expect(screen.queryByRole('img')).not.toBeInTheDocument();
-    expect(screen.getByText('Product')).toBeInTheDocument();
-  });
-});
+  it('renders add to cart button', () => {
+    render(<ProductDetailPage />)
+    expect(screen.getByRole('button', { name: /Agregar/i })).toBeInTheDocument()
+  })
+})

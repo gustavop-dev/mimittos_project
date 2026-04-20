@@ -56,3 +56,17 @@ export const PURCHASE_COMPLETE_FLOW = ['@flow:purchase-complete-flow', '@module:
 export const PURCHASE_MULTIPLE_ITEMS = ['@flow:purchase-multiple-items', '@module:purchase', '@priority:P2'];
 export const PURCHASE_DISABLED_EMPTY_CART = ['@flow:purchase-disabled-empty-cart', '@module:purchase', '@priority:P2'];
 export const PURCHASE_LOADING_STATE = ['@flow:purchase-loading-state', '@module:purchase', '@priority:P3'];
+
+// ── Peluch Detail (Personalization) ──
+export const PELUCH_DETAIL_SIZE_COLOR = ['@flow:peluch-detail-size-color-selection', '@module:catalog', '@priority:P2'];
+export const PELUCH_DETAIL_HUELLA = ['@flow:peluch-detail-personalization-huella', '@module:catalog', '@priority:P2'];
+export const PELUCH_DETAIL_CORAZON = ['@flow:peluch-detail-personalization-corazon', '@module:catalog', '@priority:P2'];
+export const PELUCH_DETAIL_AUDIO = ['@flow:peluch-detail-personalization-audio', '@module:catalog', '@priority:P3'];
+
+// ── Checkout (Wompi) ──
+export const CHECKOUT_WOMPI_REDIRECT = ['@flow:checkout-wompi-redirect', '@module:checkout', '@priority:P1'];
+
+// ── Orders & Tracking ──
+export const ORDERS_LIST_VIEW = ['@flow:orders-list-view', '@module:orders', '@priority:P2'];
+export const TRACKING_BY_ORDER_NUMBER = ['@flow:tracking-by-order-number', '@module:orders', '@priority:P2'];
+export const TRACKING_AUTO_FROM_WOMPI = ['@flow:tracking-auto-from-wompi', '@module:orders', '@priority:P3'];
