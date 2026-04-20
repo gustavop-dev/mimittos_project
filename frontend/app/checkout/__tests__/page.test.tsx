@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from '@jest/globals'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 
 import CheckoutPage from '../page'
 import { useCartStore } from '../../../lib/stores/cartStore'

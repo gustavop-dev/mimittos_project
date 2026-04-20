@@ -135,6 +135,7 @@ def test_process_event_does_not_update_order_for_declined(wompi_tx, existing_ord
     with patch('base_feature_app.services.order_service.OrderService.update_status') as mock_update:
         WompiService.process_event(event_data)
         mock_update.assert_not_called()
+        assert mock_update.call_count == 0
 
 
 @pytest.mark.django_db
@@ -235,5 +236,6 @@ def test_create_checkout_raises_on_request_failure(mock_post, wompi_tx, settings
     settings.WOMPI_PRIVATE_KEY = 'prv_test_key'
     settings.FRONTEND_URL = 'http://localhost:3000'
 
-    with pytest.raises(Exception):
+    with pytest.raises(Exception) as exc_info:
         WompiService.create_checkout(wompi_tx)
+    assert exc_info.value is not None

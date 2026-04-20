@@ -33,7 +33,7 @@ test.describe('Shopping Cart', () => {
       const addBtn = page.locator('button:has-text("Agregar")').first();
       if (await addBtn.isVisible()) {
         await addBtn.click();
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('domcontentloaded');
       }
 
       await page.goto('/cart');
@@ -65,7 +65,7 @@ test.describe('Shopping Cart', () => {
       const addBtn = page.locator('button:has-text("Agregar")').first();
       if (await addBtn.isVisible()) {
         await addBtn.click();
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('domcontentloaded');
       }
 
       await page.goto('/cart');
@@ -96,7 +96,7 @@ test.describe('Shopping Cart', () => {
       const addBtn = page.locator('button:has-text("Agregar")').first();
       if (await addBtn.isVisible()) {
         await addBtn.click();
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('domcontentloaded');
       }
 
       await page.goto('/cart');
@@ -126,7 +126,7 @@ test.describe('Shopping Cart', () => {
       const addBtn = page.locator('button:has-text("Agregar")').first();
       if (await addBtn.isVisible()) {
         await addBtn.click();
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('domcontentloaded');
       }
 
       await page.goto('/cart');
@@ -152,7 +152,7 @@ test.describe('Shopping Cart', () => {
       const addBtn = page.locator('button:has-text("Agregar")').first();
       if (await addBtn.isVisible()) {
         await addBtn.click();
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('domcontentloaded');
       }
 
       await page.reload();
@@ -177,7 +177,7 @@ test.describe('Shopping Cart', () => {
       await peluchCards.nth(0).click();
       await waitForPageLoad(page);
       const addBtn0 = page.locator('button:has-text("Agregar")').first();
-      if (await addBtn0.isVisible()) { await addBtn0.click(); await page.waitForTimeout(500); }
+      if (await addBtn0.isVisible()) { await addBtn0.click(); await page.waitForLoadState('domcontentloaded'); }
 
       await page.goto('/catalog');
       await waitForPageLoad(page);
@@ -185,7 +185,7 @@ test.describe('Shopping Cart', () => {
       await peluchCards.nth(1).click();
       await waitForPageLoad(page);
       const addBtn1 = page.locator('button:has-text("Agregar")').first();
-      if (await addBtn1.isVisible()) { await addBtn1.click(); await page.waitForTimeout(500); }
+      if (await addBtn1.isVisible()) { await addBtn1.click(); await page.waitForLoadState('domcontentloaded'); }
 
       await page.goto('/cart');
       await waitForPageLoad(page);
