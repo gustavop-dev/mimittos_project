@@ -276,6 +276,7 @@ export default function SignUpPage() {
           ¿Ya tienes cuenta? <Link href="/sign-in" style={{ color: 'var(--coral)', fontWeight: 700 }}>Inicia sesión</Link>
         </p>
       </div>
+      </div>
 
       <style>{`@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}`}</style>
     </main>
@@ -295,4 +296,5 @@ const inputStyle: React.CSSProperties = {
 
 const iconStyle: React.CSSProperties = {
   position: 'absolute', left: 15, top: '50%', transform: 'translateY(-50%)',
-  color: 'var(--gray-warm)', width: 16, hei
+  color: 'var(--gray-warm)', width: 16, height: 16,
+}

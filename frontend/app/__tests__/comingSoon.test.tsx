@@ -14,8 +14,10 @@ jest.mock('../../components/product/ProductCarousel', () => ({
 }));
 
 describe('HomePage', () => {
-  it('renders template heading', () => {
+  it('renders main heading', () => {
     render(<HomePage />);
-    expect(screen.getByRole('heading', { name: 'Everything you need, in one place' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /Cada abrazo guarda un recuerdo único/i })
+    ).toBeInTheDocument();
   });
 });
