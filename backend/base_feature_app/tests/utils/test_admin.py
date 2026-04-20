@@ -99,4 +99,4 @@ def test_admin_site_custom_sections():
 
     object_names = {model['object_name'] for section in app_list for model in section['models']}
 
-    assert {'User', 'PasswordCode', 'Blog', 'Product', 'Sale', 'SoldProduct'}.issubset(object_names)
+    assert {'User', 'PasswordCode', 'Blog', 'Peluch', 'Category', 'GlobalSize', 'GlobalColor', 'Order'}.issubset(object_names)
