@@ -84,8 +84,9 @@ def test_optimize_image_converts_rgba_to_rgb(mock_image_module):
 def test_optimize_image_raises_for_invalid_image_file(mock_image_module):
     mock_image_module.open.side_effect = Exception('Not an image')
     file = _make_fake_file()
-    with pytest.raises(ValidationError, match='imagen válida'):
+    with pytest.raises(ValidationError) as exc_info:
         MediaOptimizationService.optimize_image(file)
+    assert 'imagen válida' in str(exc_info.value)
 
 
 # ---------------------------------------------------------------------------
@@ -144,8 +145,9 @@ def test_optimize_audio_output_name_has_mp3_extension(mock_audio_segment):
 @pytest.mark.django_db
 def test_optimize_audio_raises_for_unsupported_format():
     file = _make_fake_file(name='video.mp4')
-    with pytest.raises(ValidationError, match='Formato de audio no soportado'):
+    with pytest.raises(ValidationError) as exc_info:
         MediaOptimizationService.optimize_audio(file)
+    assert 'Formato de audio no soportado' in str(exc_info.value)
 
 
 @pytest.mark.django_db
@@ -153,5 +155,6 @@ def test_optimize_audio_raises_for_unsupported_format():
 def test_optimize_audio_raises_when_audio_processing_fails(mock_audio_segment):
     mock_audio_segment.from_file.side_effect = Exception('Decode error')
     file = _make_fake_file(name='bad.mp3')
-    with pytest.raises(ValidationError, match='No se pudo procesar'):
+    with pytest.raises(ValidationError) as exc_info:
         MediaOptimizationService.optimize_audio(file)
+    assert 'No se pudo procesar' in str(exc_info.value)

@@ -1,0 +1,498 @@
+'use client'
+
+import Image from 'next/image'
+import Link from 'next/link'
+import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
+
+import { mediaService } from '@/lib/services/mediaService'
+import { peluchService } from '@/lib/services/peluchService'
+import { useCartStore } from '@/lib/stores/cartStore'
+import type { CartItem, PeluchDetail, PeluchSizePrice, Review } from '@/lib/types'
+
+const BADGE_LABELS: Record<string, string> = {
+  bestseller: 'Más vendido',
+  new: 'Nuevo',
+  limited_edition: 'Edición limitada',
+}
+
+const HUELLA_TYPES = [
+  { id: 'name', label: 'Nombre', placeholder: 'Escribe el nombre aquí...' },
+  { id: 'date', label: 'Fecha', placeholder: 'Ej: 14/04/2026' },
+  { id: 'letter', label: 'Inicial', placeholder: 'Una letra...' },
+  { id: 'image', label: 'Imagen', placeholder: '' },
+]
+
+function fmt(n: number) {
+  return '$' + n.toLocaleString('es-CO')
+}
+
+export default function PeluchDetailPage() {
+  const { slug } = useParams() as { slug: string }
+  const router = useRouter()
+  const addToCart = useCartStore((s) => s.addToCart)
+
+  const [peluch, setPeluch] = useState<PeluchDetail | null>(null)
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const [activeSizeIdx, setActiveSizeIdx] = useState(0)
+  const [activeColorIdx, setActiveColorIdx] = useState(0)
+  const [qty, setQty] = useState(1)
+  const [activeTab, setActiveTab] = useState(0)
+  const [activeImg, setActiveImg] = useState(0)
+  const [addedToast, setAddedToast] = useState(false)
+
+  // Huella
+  const [huellaType, setHuellaType] = useState<'name' | 'date' | 'letter' | 'image'>('name')
+  const [huellaText, setHuellaText] = useState('')
+  const [huellaMediaId, setHuellaMediaId] = useState<number | null>(null)
+  const [huellaUploading, setHuellaUploading] = useState(false)
+  const huellaInputRef = useRef<HTMLInputElement>(null)
+
+  // Corazón
+  const [corazonPhrase, setCorazonPhrase] = useState('')
+
+  // Audio
+  const [audioMediaId, setAudioMediaId] = useState<number | null>(null)
+  const [audioUploading, setAudioUploading] = useState(false)
+  const [audioFileName, setAudioFileName] = useState('')
+  const audioInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!slug) return
+    Promise.all([
+      peluchService.getPeluchBySlug(slug),
+      peluchService.getReviews(slug),
+    ])
+      .then(([p, r]) => {
+        setPeluch(p)
+        setReviews(r)
+      })
+      .catch(() => setError('No encontramos este peluche.'))
+      .finally(() => setLoading(false))
+  }, [slug])
+
+  if (loading) {
+    return (
+      <main style={{ maxWidth: 1360, margin: '100px auto', padding: '0 40px', textAlign: 'center', color: 'var(--gray-warm)' }}>
+        Cargando...
+      </main>
+    )
+  }
+
+  if (error || !peluch) {
+    return (
+      <main style={{ maxWidth: 1360, margin: '100px auto', padding: '0 40px', textAlign: 'center' }}>
+        <div style={{ fontSize: 48 }}>🧸</div>
+        <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: 'var(--navy)', marginTop: 16 }}>
+          {error || 'Peluche no encontrado'}
+        </h2>
+        <Link href="/catalog" style={{ color: 'var(--coral)', fontWeight: 700, marginTop: 12, display: 'inline-block' }}>
+          Ver catálogo →
+        </Link>
+      </main>
+    )
+  }
+
+  const activeSizePrice: PeluchSizePrice | undefined = peluch.size_prices[activeSizeIdx]
+  const activeColor = peluch.available_colors[activeColorIdx]
+  const gallery = peluch.gallery_urls.length > 0 ? peluch.gallery_urls : ['/mimittos/prod-01.svg']
+
+  const personalizationCost =
+    (peluch.has_huella ? peluch.huella_extra_cost : 0) +
+    (peluch.has_corazon ? peluch.corazon_extra_cost : 0) +
+    (peluch.has_audio ? peluch.audio_extra_cost : 0)
+
+  const unitPrice = activeSizePrice?.price ?? peluch.min_price ?? 0
+  const total = (unitPrice + personalizationCost) * qty
+  const deposit = Math.round((total * 0.5) / 100) * 100
+
+  async function handleHuellaImageUpload(file: File) {
+    setHuellaUploading(true)
+    try {
+      const result = await mediaService.uploadImage(file)
+      setHuellaMediaId(result.media_id)
+    } catch {
+      // silently fail, user can retry
+    } finally {
+      setHuellaUploading(false)
+    }
+  }
+
+  async function handleAudioUpload(file: File) {
+    setAudioUploading(true)
+    setAudioFileName(file.name)
+    try {
+      const result = await mediaService.uploadAudio(file)
+      setAudioMediaId(result.media_id)
+    } catch {
+      setAudioFileName('')
+    } finally {
+      setAudioUploading(false)
+    }
+  }
+
+  function handleAdd() {
+    if (!activeSizePrice || !activeColor) return
+
+    const cartItem: CartItem = {
+      peluch_id: peluch.id,
+      peluch_slug: peluch.slug,
+      title: peluch.title,
+      size_id: activeSizePrice.size.id,
+      size_label: activeSizePrice.size.label,
+      color_id: activeColor.id,
+      color_name: activeColor.name,
+      color_hex: activeColor.hex_code,
+      unit_price: unitPrice,
+      personalization_cost: personalizationCost,
+      quantity: qty,
+      gallery_urls: gallery,
+      has_huella: peluch.has_huella,
+      huella_type: peluch.has_huella ? huellaType : '',
+      huella_text: peluch.has_huella ? huellaText : '',
+      huella_media_id: peluch.has_huella && huellaType === 'image' ? huellaMediaId : null,
+      has_corazon: peluch.has_corazon,
+      corazon_phrase: peluch.has_corazon ? corazonPhrase : '',
+      has_audio: peluch.has_audio,
+      audio_media_id: peluch.has_audio ? audioMediaId : null,
+    }
+
+    addToCart(cartItem)
+    setAddedToast(true)
+    setTimeout(() => setAddedToast(false), 2500)
+  }
+
+  const TABS = ['Descripción', 'Especificaciones', 'Cuidados']
+  const specEntries = Object.entries(peluch.specifications ?? {})
+
+  return (
+    <main>
+      {/* Breadcrumb */}
+      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '20px 40px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-warm)' }}>
+        <Link href="/" style={{ color: 'var(--gray-warm)' }}>Inicio</Link>
+        <span style={{ opacity: .5 }}>/</span>
+        <Link href="/catalog" style={{ color: 'var(--gray-warm)' }}>Catálogo</Link>
+        <span style={{ opacity: .5 }}>/</span>
+        <b style={{ color: 'var(--navy)', fontWeight: 700 }}>{peluch.title}</b>
+      </div>
+
+      {/* Product wrap */}
+      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px 60px', display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: 56, alignItems: 'flex-start' }}>
+
+        {/* Gallery */}
+        <div style={{ position: 'sticky', top: 110 }}>
+          <div style={{ aspectRatio: '1/1', borderRadius: 'var(--radius-xl)', overflow: 'hidden', background: activeColor ? activeColor.hex_code + '22' : 'var(--pink-melo)', boxShadow: 'var(--shadow-md)', position: 'relative', transition: 'background .3s' }}>
+            {peluch.badge !== 'none' && (
+              <span style={{ position: 'absolute', top: 20, right: 20, background: peluch.badge === 'limited_edition' ? 'var(--navy)' : 'var(--coral)', color: '#fff', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 12, padding: '8px 14px', borderRadius: 999, letterSpacing: '.08em', textTransform: 'uppercase', zIndex: 1 }}>
+                {BADGE_LABELS[peluch.badge]}
+              </span>
+            )}
+            <Image src={gallery[activeImg]} alt={peluch.title} fill className="object-cover" />
+          </div>
+          {gallery.length > 1 && (
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(gallery.length, 4)},1fr)`, gap: 10, marginTop: 14 }}>
+              {gallery.slice(0, 4).map((src, i) => (
+                <div key={i} onClick={() => setActiveImg(i)} style={{ aspectRatio: '1/1', borderRadius: 'var(--radius-sm)', overflow: 'hidden', cursor: 'pointer', border: `2.5px solid ${i === activeImg ? 'var(--coral)' : 'transparent'}`, transition: 'border-color .2s', position: 'relative' }}>
+                  <Image src={src} alt="" fill className="object-cover" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Info + config */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <span style={{ background: 'var(--pink-melo)', color: 'var(--terracotta)', fontSize: 11, fontWeight: 700, padding: '6px 12px', borderRadius: 999, letterSpacing: '.1em', textTransform: 'uppercase' }}>
+              {peluch.category_name}
+            </span>
+            {peluch.review_count > 0 && (
+              <>
+                <span style={{ color: 'var(--coral)', fontSize: 14, letterSpacing: 2 }}>{'★'.repeat(Math.round(peluch.average_rating))}</span>
+                <span style={{ color: 'var(--gray-warm)', fontSize: 13 }}>{peluch.average_rating.toFixed(1)} · {peluch.review_count} reseñas</span>
+              </>
+            )}
+          </div>
+
+          <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 44, color: 'var(--navy)', lineHeight: 1.08, letterSpacing: '-.02em', marginBottom: 14 }}>
+            {peluch.title}
+          </h1>
+          <p style={{ color: 'var(--gray-warm)', fontSize: 16, lineHeight: 1.6, marginBottom: 20 }}>
+            {peluch.lead_description}
+          </p>
+
+          {/* Price */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, padding: '18px 0', borderTop: '1px dashed rgba(212,132,138,.3)', borderBottom: '1px dashed rgba(212,132,138,.3)', marginBottom: 24 }}>
+            <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 38, color: 'var(--terracotta)', lineHeight: 1 }}>
+              {fmt(total)}
+            </div>
+          </div>
+
+          {/* Size */}
+          {peluch.size_prices.length > 0 && (
+            <div style={{ marginBottom: 22 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div style={configLblStyle}>Tamaño</div>
+                {activeSizePrice && (
+                  <div style={{ fontSize: 14, color: 'var(--terracotta)', fontWeight: 700 }}>
+                    {activeSizePrice.size.label} · {activeSizePrice.size.cm}
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(peluch.size_prices.length, 4)},1fr)`, gap: 8 }}>
+                {peluch.size_prices.map((sp, i) => (
+                  <div
+                    key={sp.id}
+                    onClick={() => sp.is_available && setActiveSizeIdx(i)}
+                    style={{ border: `1.5px solid ${i === activeSizeIdx ? 'var(--coral)' : 'rgba(27,42,74,.08)'}`, padding: '14px 10px', borderRadius: 14, background: i === activeSizeIdx ? 'var(--pink-melo)' : '#fff', textAlign: 'center', cursor: sp.is_available ? 'pointer' : 'not-allowed', opacity: sp.is_available ? 1 : .5, transition: 'all .2s' }}
+                  >
+                    <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--navy)', marginBottom: 2 }}>{sp.size.label}</div>
+                    <div style={{ fontSize: 11, color: i === activeSizeIdx ? 'var(--terracotta)' : 'var(--gray-warm)', fontWeight: i === activeSizeIdx ? 700 : 400 }}>{sp.size.cm} · {fmt(sp.price)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Color */}
+          {peluch.available_colors.length > 0 && (
+            <div style={{ marginBottom: 22 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div style={configLblStyle}>Color del peluche</div>
+                {activeColor && <div style={{ fontSize: 14, color: 'var(--terracotta)', fontWeight: 700 }}>{activeColor.name}</div>}
+              </div>
+              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                {peluch.available_colors.map((c, i) => (
+                  <div key={c.id} onClick={() => setActiveColorIdx(i)} style={{ cursor: 'pointer', transition: 'transform .2s', transform: i === activeColorIdx ? 'translateY(-2px)' : 'none' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: c.hex_code, border: '3px solid #fff', boxShadow: i === activeColorIdx ? '0 0 0 2.5px var(--coral)' : '0 0 0 1.5px rgba(27,42,74,.1)', transition: 'box-shadow .2s' }} />
+                    <span style={{ display: 'block', textAlign: 'center', fontSize: 11, color: i === activeColorIdx ? 'var(--terracotta)' : 'var(--gray-warm)', fontWeight: 600, marginTop: 6 }}>{c.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Personalizaciones */}
+          {(peluch.has_huella || peluch.has_corazon || peluch.has_audio) && (
+            <div style={{ background: 'var(--cream-peach)', borderRadius: 'var(--radius-md)', padding: 18, marginBottom: 22 }}>
+              <div style={{ ...configLblStyle, marginBottom: 14 }}>Personalización</div>
+
+              {/* Huella */}
+              {peluch.has_huella && (
+                <div style={{ paddingBottom: 14, borderBottom: '1px dashed rgba(212,132,138,.25)', marginBottom: 14 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 10 }}>
+                    🐾 Huella <span style={{ color: 'var(--terracotta)', fontWeight: 400, fontSize: 13 }}>+{fmt(peluch.huella_extra_cost)}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                    {HUELLA_TYPES.map(({ id, label }) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setHuellaType(id as typeof huellaType)}
+                        style={{ padding: '7px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600, border: `1.5px solid ${huellaType === id ? 'var(--coral)' : 'rgba(27,42,74,.1)'}`, background: huellaType === id ? 'var(--coral)' : '#fff', color: huellaType === id ? '#fff' : 'var(--navy)', cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {huellaType !== 'image' && (
+                    <input
+                      value={huellaText}
+                      onChange={(e) => setHuellaText(e.target.value)}
+                      placeholder={HUELLA_TYPES.find((h) => h.id === huellaType)?.placeholder}
+                      maxLength={30}
+                      style={{ width: '100%', background: '#fff', border: '1.5px solid rgba(27,42,74,.08)', borderRadius: 10, padding: '10px 14px', fontFamily: 'inherit', fontSize: 13, color: 'var(--navy)' }}
+                    />
+                  )}
+                  {huellaType === 'image' && (
+                    <div>
+                      <input ref={huellaInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && handleHuellaImageUpload(e.target.files[0])} />
+                      <button
+                        type="button"
+                        onClick={() => huellaInputRef.current?.click()}
+                        style={{ padding: '10px 18px', borderRadius: 10, border: '1.5px dashed rgba(27,42,74,.2)', background: '#fff', color: 'var(--navy)', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+                      >
+                        {huellaUploading ? 'Subiendo...' : huellaMediaId ? '✓ Imagen subida' : 'Subir imagen'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Corazón */}
+              {peluch.has_corazon && (
+                <div style={{ paddingBottom: 14, borderBottom: peluch.has_audio ? '1px dashed rgba(212,132,138,.25)' : 'none', marginBottom: peluch.has_audio ? 14 : 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 10 }}>
+                    💖 Corazón personalizado <span style={{ color: 'var(--terracotta)', fontWeight: 400, fontSize: 13 }}>+{fmt(peluch.corazon_extra_cost)}</span>
+                  </div>
+                  <input
+                    value={corazonPhrase}
+                    onChange={(e) => setCorazonPhrase(e.target.value.slice(0, 50))}
+                    placeholder="Una frase especial (máx. 50 caracteres)"
+                    style={{ width: '100%', background: '#fff', border: '1.5px solid rgba(27,42,74,.08)', borderRadius: 10, padding: '10px 14px', fontFamily: 'inherit', fontSize: 13, color: 'var(--navy)' }}
+                  />
+                  <div style={{ fontSize: 11, color: 'var(--gray-warm)', marginTop: 4, textAlign: 'right' }}>{corazonPhrase.length}/50</div>
+                </div>
+              )}
+
+              {/* Audio */}
+              {peluch.has_audio && (
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 10 }}>
+                    🔊 Audio personalizado <span style={{ color: 'var(--terracotta)', fontWeight: 400, fontSize: 13 }}>+{fmt(peluch.audio_extra_cost)}</span>
+                  </div>
+                  <input ref={audioInputRef} type="file" accept="audio/*" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && handleAudioUpload(e.target.files[0])} />
+                  <button
+                    type="button"
+                    onClick={() => audioInputRef.current?.click()}
+                    style={{ padding: '10px 18px', borderRadius: 10, border: '1.5px dashed rgba(27,42,74,.2)', background: '#fff', color: 'var(--navy)', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    {audioUploading ? 'Subiendo...' : audioMediaId ? `✓ ${audioFileName}` : 'Subir audio (máx. 30s)'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Qty + Add */}
+          <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1.5px solid rgba(27,42,74,.08)', borderRadius: 12, padding: 4 }}>
+              <button onClick={() => setQty(Math.max(1, qty - 1))} style={{ width: 36, height: 36, borderRadius: 8, color: 'var(--navy)', fontSize: 18, fontWeight: 700, display: 'grid', placeItems: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>−</button>
+              <span style={{ width: 40, textAlign: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 16, color: 'var(--navy)' }}>{qty}</span>
+              <button onClick={() => setQty(qty + 1)} style={{ width: 36, height: 36, borderRadius: 8, color: 'var(--navy)', fontSize: 18, fontWeight: 700, display: 'grid', placeItems: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>+</button>
+            </div>
+            <button
+              onClick={handleAdd}
+              disabled={!activeSizePrice || !activeColor}
+              style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'var(--coral)', color: '#fff', borderRadius: 12, fontWeight: 700, fontSize: 15, boxShadow: '0 8px 22px rgba(212,132,138,.35)', transition: 'all .2s', border: 'none', cursor: 'pointer', padding: '0 24px' }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" /></svg>
+              Agregar · {fmt(total)}
+            </button>
+          </div>
+
+          {/* Pay info */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 22 }}>
+            {[
+              { icon: 'M2 5h20v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5zM2 10h20', title: 'Abono 50%', sub: `Pagas ${fmt(deposit)} hoy vía Wompi` },
+              { icon: 'M5 12V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4M21 15a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3h18z', title: 'Saldo contraentrega', sub: `Paga ${fmt(total - deposit)} al recibir` },
+            ].map(({ icon, title, sub }) => (
+              <div key={title} style={{ background: '#fff', border: '1px solid rgba(212,132,138,.2)', borderRadius: 14, padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <div style={{ width: 32, height: 32, background: 'var(--pink-melo)', color: 'var(--coral)', borderRadius: 10, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d={icon} /></svg>
+                </div>
+                <div>
+                  <strong style={{ display: 'block', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>{title}</strong>
+                  <span style={{ fontSize: 12, color: 'var(--gray-warm)' }}>{sub}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, color: 'var(--gray-warm)', paddingTop: 12, borderTop: '1px dashed rgba(212,132,138,.3)' }}>
+            {['Producción 4-6 días', 'Envío a toda Colombia', '100% artesanal'].map((t) => (
+              <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--coral)" strokeWidth="1.8"><path d="M20 6 9 17l-5-5" /></svg>
+                {t}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <section style={{ maxWidth: 1360, margin: '40px auto 0', padding: '0 40px' }}>
+        <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid rgba(212,132,138,.2)', marginBottom: 30 }}>
+          {TABS.map((tab, i) => (
+            <button key={tab} onClick={() => setActiveTab(i)} style={{ padding: '14px 22px', fontSize: 15, fontWeight: 700, fontFamily: "'Quicksand', sans-serif", color: i === activeTab ? 'var(--coral)' : 'var(--gray-warm)', position: 'relative', background: 'none', border: 'none', cursor: 'pointer', borderBottom: i === activeTab ? '3px solid var(--coral)' : '3px solid transparent', transition: 'color .2s' }}>
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 0 && (
+          <div style={{ marginBottom: 60 }}>
+            <p style={{ color: 'var(--gray-warm)', fontSize: 15, lineHeight: 1.7, maxWidth: 640 }}>{peluch.description}</p>
+          </div>
+        )}
+
+        {activeTab === 1 && (
+          <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 26, boxShadow: 'var(--shadow-sm)', maxWidth: 600, marginBottom: 60 }}>
+            {specEntries.length > 0 ? specEntries.map(([k, v]) => (
+              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed rgba(212,132,138,.2)', fontSize: 14 }}>
+                <span style={{ color: 'var(--gray-warm)' }}>{k}</span>
+                <b style={{ color: 'var(--navy)', fontWeight: 700 }}>{v}</b>
+              </div>
+            )) : <p style={{ color: 'var(--gray-warm)', fontSize: 14 }}>Sin especificaciones disponibles.</p>}
+          </div>
+        )}
+
+        {activeTab === 2 && (
+          <div style={{ marginBottom: 60 }}>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 500 }}>
+              {(peluch.care_instructions ?? []).length > 0
+                ? peluch.care_instructions.map((f) => (
+                    <li key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, color: 'var(--navy)', fontWeight: 500 }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--coral)" strokeWidth="2.5"><path d="M20 6 9 17l-5-5" /></svg>
+                      {f}
+                    </li>
+                  ))
+                : <li style={{ color: 'var(--gray-warm)', fontSize: 14 }}>Sin instrucciones disponibles.</li>}
+            </ul>
+          </div>
+        )}
+      </section>
+
+      {/* Reviews */}
+      {reviews.length > 0 && (
+        <section style={{ maxWidth: 1360, margin: '0 auto 60px', padding: '0 40px' }}>
+          <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--navy)', marginBottom: 20 }}>
+            Reseñas ({reviews.length})
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>
+            {reviews.map((r) => (
+              <div key={r.id} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 20, boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--coral)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14 }}>
+                    {r.user_name?.[0]?.toUpperCase() ?? 'U'}
+                  </div>
+                  <div>
+                    <strong style={{ display: 'block', fontSize: 14, color: 'var(--navy)' }}>{r.user_name}</strong>
+                    <span style={{ color: 'var(--coral)', fontSize: 13 }}>{'★'.repeat(r.rating)}</span>
+                  </div>
+                </div>
+                <p style={{ fontSize: 13, color: 'var(--gray-warm)', lineHeight: 1.6 }}>{r.comment}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Toast */}
+      {addedToast && (
+        <div style={{ position: 'fixed', top: 90, left: '50%', transform: 'translateX(-50%)', background: '#fff', borderRadius: 14, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow-lg)', zIndex: 100, borderLeft: '4px solid #4CAF50' }}>
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#E8F5E9', color: '#4CAF50', display: 'grid', placeItems: 'center' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5" /></svg>
+          </div>
+          <div>
+            <strong style={{ display: 'block', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>¡Agregado al carrito!</strong>
+            <span style={{ fontSize: 12, color: 'var(--gray-warm)' }}>{peluch.title} · {activeSizePrice?.size.label} · {activeColor?.name}</span>
+          </div>
+          <Link href="/cart" style={{ background: 'var(--coral)', color: '#fff', padding: '8px 14px', borderRadius: 999, fontSize: 13, fontWeight: 700, marginLeft: 8 }}>Ver carrito</Link>
+        </div>
+      )}
+    </main>
+  )
+}
+
+const configLblStyle: React.CSSProperties = {
+  fontFamily: "'Quicksand', sans-serif",
+  fontWeight: 700,
+  fontSize: 14,
+  color: 'var(--navy)',
+  textTransform: 'uppercase',
+  letterSpacing: '.08em',
+}

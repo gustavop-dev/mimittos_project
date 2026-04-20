@@ -237,3 +237,4 @@ def test_update_status_records_previous_status(mock_notify, existing_order):
 def test_update_status_calls_notify(mock_notify, existing_order):
     OrderService.update_status(existing_order, Order.Status.SHIPPED)
     mock_notify.assert_called_once_with(existing_order, Order.Status.SHIPPED)
+    assert mock_notify.call_count == 1

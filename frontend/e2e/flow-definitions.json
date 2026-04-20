@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "lastUpdated": "2026-02-24",
+  "version": "1.1.0",
+  "lastUpdated": "2026-04-20",
   "flows": {
     "home-loads": {
       "name": "Home page loads",
@@ -151,7 +151,7 @@
       "module": "cart",
       "roles": ["shared"],
       "priority": "P2",
-      "description": "Checkout page shows 'Your cart is empty' when no items are in cart",
+      "description": "Cart page shows 'Tu carrito está vacío' when no items are in cart",
       "expectedSpecs": 1
     },
     "cart-update-qty": {
@@ -265,6 +265,70 @@
       "priority": "P2",
       "description": "User navigates to /forgot-password and sees email input and send code button",
       "expectedSpecs": 1
+    },
+    "peluch-detail-size-color-selection": {
+      "name": "Select size and color on peluch detail",
+      "module": "catalog",
+      "roles": ["shared"],
+      "priority": "P2",
+      "description": "User picks a size from size_prices and a color from available_colors; price updates accordingly",
+      "expectedSpecs": 0
+    },
+    "peluch-detail-personalization-huella": {
+      "name": "Configure huella personalization",
+      "module": "catalog",
+      "roles": ["shared"],
+      "priority": "P2",
+      "description": "User opens huella section, selects type (name/date/letter/image), fills text or uploads image, extra cost shown",
+      "expectedSpecs": 0
+    },
+    "peluch-detail-personalization-corazon": {
+      "name": "Configure corazón personalization",
+      "module": "catalog",
+      "roles": ["shared"],
+      "priority": "P2",
+      "description": "User opens corazón section, enters phrase (max 50 chars), extra cost added to total",
+      "expectedSpecs": 0
+    },
+    "peluch-detail-personalization-audio": {
+      "name": "Upload audio personalization",
+      "module": "catalog",
+      "roles": ["shared"],
+      "priority": "P3",
+      "description": "User opens audio section and uploads an audio file; media_id stored before adding to cart",
+      "expectedSpecs": 0
+    },
+    "checkout-wompi-redirect": {
+      "name": "Checkout redirects to Wompi",
+      "module": "checkout",
+      "roles": ["shared"],
+      "priority": "P1",
+      "description": "After POST /api/orders/ succeeds, frontend clears cart and redirects browser to checkout_url from response",
+      "expectedSpecs": 0
+    },
+    "orders-list-view": {
+      "name": "View my orders list",
+      "module": "orders",
+      "roles": ["user"],
+      "priority": "P2",
+      "description": "Authenticated user navigates to /orders and sees their order cards with status badges",
+      "expectedSpecs": 0
+    },
+    "tracking-by-order-number": {
+      "name": "Track order by number",
+      "module": "orders",
+      "roles": ["shared"],
+      "priority": "P2",
+      "description": "User enters order number on /tracking, fetches GET /api/orders/track/:number/, timeline updates to current status",
+      "expectedSpecs": 0
+    },
+    "tracking-auto-from-wompi": {
+      "name": "Auto-load tracking after Wompi redirect",
+      "module": "orders",
+      "roles": ["shared"],
+      "priority": "P3",
+      "description": "Wompi redirects to /tracking?order=PELUCH-XXXX; page auto-searches that order number and shows timeline",
+      "expectedSpecs": 0
     }
   }
 }

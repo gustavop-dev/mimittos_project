@@ -176,6 +176,7 @@ def test_notify_new_order_admin_returns_false_on_smtp_error(mock_mail, base_orde
 def test_notify_status_change_dispatches_task_for_payment_confirmed(mock_task, base_order):
     NotificationService.notify_status_change(base_order, Order.Status.PAYMENT_CONFIRMED)
     mock_task.assert_called_once_with(base_order.id)
+    assert mock_task.call_count == 1
 
 
 @pytest.mark.django_db
@@ -183,6 +184,7 @@ def test_notify_status_change_dispatches_task_for_payment_confirmed(mock_task, b
 def test_notify_status_change_dispatches_task_for_in_production(mock_task, base_order):
     NotificationService.notify_status_change(base_order, Order.Status.IN_PRODUCTION)
     mock_task.assert_called_once_with(base_order.id)
+    assert mock_task.call_count == 1
 
 
 @pytest.mark.django_db
@@ -190,8 +192,15 @@ def test_notify_status_change_dispatches_task_for_in_production(mock_task, base_
 def test_notify_status_change_dispatches_task_for_shipped(mock_task, base_order):
     NotificationService.notify_status_change(base_order, Order.Status.SHIPPED)
     mock_task.assert_called_once_with(base_order.id)
+    assert mock_task.call_count == 1
 
 
 @pytest.mark.django_db
-def test_notify_status_change_does_nothing_for_unmapped_status(base_order):
+@patch('base_feature_project.tasks.send_order_confirmation_email')
+@patch('base_feature_project.tasks.send_production_started_email')
+@patch('base_feature_project.tasks.send_order_shipped_email')
+def test_notify_status_change_does_nothing_for_unmapped_status(mock_shipped, mock_prod, mock_confirm, base_order):
     NotificationService.notify_status_change(base_order, Order.Status.CANCELLED)
+    assert mock_confirm.call_count == 0
+    assert mock_prod.call_count == 0
+    assert mock_shipped.call_count == 0

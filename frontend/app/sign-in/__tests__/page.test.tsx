@@ -86,14 +86,14 @@ describe('SignInPage', () => {
     }
   });
 
-  it('renders missing Google Client ID message when env var not set', () => {
+  it('hides Google login button when env var not set', () => {
     delete process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     setAuthStoreState({ signIn: jest.fn(), googleLogin: jest.fn() });
     mockUseRouter.mockReturnValue({ replace: jest.fn() });
 
     render(<SignInPage />);
 
-    expect(screen.getByText('Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Google Login' })).not.toBeInTheDocument();
   });
 
   it('signs in successfully and redirects', async () => {
@@ -104,9 +104,9 @@ describe('SignInPage', () => {
 
     render(<SignInPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    fireEvent.change(screen.getByPlaceholderText('sofia@ejemplo.com'), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByRole('button', { name: /Entrar/i }));
 
     await waitFor(() => {
       expect(signIn).toHaveBeenCalledWith({ email: 'user@example.com', password: 'password123', captcha_token: undefined });
@@ -121,11 +121,11 @@ describe('SignInPage', () => {
 
     render(<SignInPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    fireEvent.change(screen.getByPlaceholderText('sofia@ejemplo.com'), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByRole('button', { name: /Entrar/i }));
 
-    expect(await screen.findByText('Invalid')).toBeInTheDocument();
+    expect(await screen.findByText('Invalid')).toBeInTheDocument(); // backend error passed through
   });
 
   it('shows default error when sign in fails without response', async () => {
@@ -135,11 +135,11 @@ describe('SignInPage', () => {
 
     render(<SignInPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    fireEvent.change(screen.getByPlaceholderText('sofia@ejemplo.com'), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByRole('button', { name: /Entrar/i }));
 
-    expect(await screen.findByText('Invalid credentials')).toBeInTheDocument();
+    expect(await screen.findByText('Correo o contraseña incorrectos')).toBeInTheDocument();
   });
 
   it('shows default error when sign in error payload is missing', async () => {
@@ -149,11 +149,11 @@ describe('SignInPage', () => {
 
     render(<SignInPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+    fireEvent.change(screen.getByPlaceholderText('sofia@ejemplo.com'), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByRole('button', { name: /Entrar/i }));
 
-    expect(await screen.findByText('Invalid credentials')).toBeInTheDocument();
+    expect(await screen.findByText('Correo o contraseña incorrectos')).toBeInTheDocument();
   });
 
   it('handles Google login success', async () => {
@@ -193,7 +193,7 @@ describe('SignInPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Google Login' }));
 
-    expect(await screen.findByText('Google login failed')).toBeInTheDocument();
+    expect(await screen.findByText('Error con Google')).toBeInTheDocument();
   });
 
   it('shows error when Google login fails with response error', async () => {
@@ -231,7 +231,7 @@ describe('SignInPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Google Login' }));
 
-    expect(await screen.findByText('Google login failed')).toBeInTheDocument();
+    expect(await screen.findByText('Error al iniciar sesión con Google')).toBeInTheDocument();
   });
 
   it('handles Google login error callback', async () => {
@@ -243,7 +243,7 @@ describe('SignInPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Google Login' }));
 
-    expect(await screen.findByText('Google login failed')).toBeInTheDocument();
+    expect(await screen.findByText('Error al iniciar sesión con Google')).toBeInTheDocument();
   });
 
   it('continues when jwt decode fails', async () => {

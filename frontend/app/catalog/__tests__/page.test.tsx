@@ -1,67 +1,83 @@
-import { describe, it, expect, beforeEach } from '@jest/globals';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { describe, it, expect, beforeEach } from '@jest/globals'
+import { render, screen, waitFor } from '@testing-library/react'
 
-import CatalogPage from '../page';
-import { useProductStore } from '../../../lib/stores/productStore';
-import { mockProducts } from '../../../lib/__tests__/fixtures';
+import CatalogPage from '../page'
+import { peluchService } from '../../../lib/services/peluchService'
 
-jest.mock('../../../lib/stores/productStore', () => ({
-  useProductStore: jest.fn(),
-}));
+jest.mock('../../../lib/services/peluchService', () => ({
+  peluchService: {
+    listPeluches: jest.fn(),
+    getCategories: jest.fn(),
+    getSizes: jest.fn(),
+  },
+}))
 
-const mockUseProductStore = useProductStore as unknown as jest.Mock;
+const mockPeluchService = peluchService as jest.Mocked<typeof peluchService>
 
-const setProductStoreState = (state: any) => {
-  mockUseProductStore.mockImplementation((selector: (store: any) => unknown) => selector(state));
-};
+const mockPeluches = [
+  {
+    id: 1, title: 'Osito Coral', slug: 'osito-coral',
+    category_name: 'Ositos', category_slug: 'ositos',
+    lead_description: '', badge: 'bestseller' as const,
+    is_featured: true, min_price: 85000,
+    available_colors: [], gallery_urls: [],
+    average_rating: 4.9, review_count: 10,
+    has_huella: true, has_corazon: true, has_audio: false,
+  },
+  {
+    id: 2, title: 'Conejito Lucía', slug: 'conejito-lucia',
+    category_name: 'Conejitos', category_slug: 'conejitos',
+    lead_description: '', badge: 'new' as const,
+    is_featured: false, min_price: 95000,
+    available_colors: [], gallery_urls: [],
+    average_rating: 4.7, review_count: 5,
+    has_huella: false, has_corazon: true, has_audio: false,
+  },
+]
 
 describe('CatalogPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-  });
+    jest.clearAllMocks()
+    mockPeluchService.getCategories.mockResolvedValue([])
+    mockPeluchService.getSizes.mockResolvedValue([])
+  })
 
-  it('renders loading state and triggers fetch', async () => {
-    const fetchProducts = jest.fn();
-    setProductStoreState({ products: [], loading: true, error: null, fetchProducts });
-
-    const { container } = render(<CatalogPage />);
-
+  it('renders catalog heading', async () => {
+    mockPeluchService.listPeluches.mockResolvedValue([])
+    render(<CatalogPage />)
     await waitFor(() => {
-      expect(fetchProducts).toHaveBeenCalledTimes(1);
-    });
-    expect(screen.getByText('Catalog')).toBeInTheDocument();
-    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
-  });
+      expect(screen.getByRole('heading', { name: /Encuentra al peluche/i })).toBeInTheDocument()
+    })
+  })
 
-  it('renders error state and retries', async () => {
-    const fetchProducts = jest.fn();
-    setProductStoreState({ products: [], loading: false, error: 'Network error', fetchProducts });
+  it('shows loading state before fetch resolves', () => {
+    mockPeluchService.listPeluches.mockReturnValue(new Promise(() => {}))
+    render(<CatalogPage />)
+    expect(screen.getByText('Cargando peluches...')).toBeInTheDocument()
+  })
 
-    render(<CatalogPage />);
+  it('calls listPeluches on mount', async () => {
+    mockPeluchService.listPeluches.mockResolvedValue([])
+    render(<CatalogPage />)
+    await waitFor(() => {
+      expect(mockPeluchService.listPeluches).toHaveBeenCalledTimes(1)
+    })
+  })
 
-    expect(screen.getByText('Catalog unavailable')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+  it('renders empty state when no peluches match', async () => {
+    mockPeluchService.listPeluches.mockResolvedValue([])
+    render(<CatalogPage />)
+    await waitFor(() => {
+      expect(screen.getByText('Sin peluches en esta búsqueda')).toBeInTheDocument()
+    })
+  })
 
-    expect(fetchProducts).toHaveBeenCalledTimes(2);
-  });
-
-  it('renders empty state', () => {
-    const fetchProducts = jest.fn();
-    setProductStoreState({ products: [], loading: false, error: null, fetchProducts });
-
-    render(<CatalogPage />);
-
-    expect(screen.getByText('No products yet')).toBeInTheDocument();
-  });
-
-  it('renders product cards when available', () => {
-    const fetchProducts = jest.fn();
-    setProductStoreState({ products: mockProducts, loading: false, error: null, fetchProducts });
-
-    render(<CatalogPage />);
-
-    expect(screen.getByText(mockProducts[0].title)).toBeInTheDocument();
-    expect(screen.getByText(mockProducts[1].title)).toBeInTheDocument();
-  });
-});
+  it('renders peluch cards when data is available', async () => {
+    mockPeluchService.listPeluches.mockResolvedValue(mockPeluches)
+    render(<CatalogPage />)
+    await waitFor(() => {
+      expect(screen.getByText('Osito Coral')).toBeInTheDocument()
+      expect(screen.getByText('Conejito Lucía')).toBeInTheDocument()
+    })
+  })
+})

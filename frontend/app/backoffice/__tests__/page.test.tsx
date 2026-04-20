@@ -1,135 +1,122 @@
-import { describe, it, expect, beforeEach } from '@jest/globals';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { describe, it, expect, beforeEach } from '@jest/globals'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 
-import BackofficePage from '../page';
-import { useRequireAuth } from '../../../lib/hooks/useRequireAuth';
-import { api } from '../../../lib/services/http';
+import BackofficePage from '../page'
+import { useRequireAuth } from '../../../lib/hooks/useRequireAuth'
+import { api } from '../../../lib/services/http'
+import { orderService } from '../../../lib/services/orderService'
 
 jest.mock('../../../lib/hooks/useRequireAuth', () => ({
   useRequireAuth: jest.fn(),
-}));
+}))
 
 jest.mock('../../../lib/services/http', () => ({
-  api: {
-    get: jest.fn(),
-  },
-}));
+  api: { get: jest.fn() },
+}))
 
-const mockUseRequireAuth = useRequireAuth as unknown as jest.Mock;
-const mockApi = api as jest.Mocked<typeof api>;
+jest.mock('../../../lib/services/orderService', () => ({
+  orderService: {
+    listOrders: jest.fn(),
+    updateStatus: jest.fn(),
+    updateTracking: jest.fn(),
+  },
+}))
+
+const mockUseRequireAuth = useRequireAuth as unknown as jest.Mock
+const mockApi = api as jest.Mocked<typeof api>
+const mockOrderService = orderService as jest.Mocked<typeof orderService>
 
 describe('BackofficePage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-  });
+    jest.clearAllMocks()
+    mockOrderService.listOrders.mockResolvedValue([])
+    mockApi.get.mockResolvedValue({ data: null })
+  })
 
   it('renders nothing when unauthenticated', () => {
-    mockUseRequireAuth.mockReturnValue({ isAuthenticated: false });
+    mockUseRequireAuth.mockReturnValue({ isAuthenticated: false })
+    const { container } = render(<BackofficePage />)
+    expect(container).toBeEmptyDOMElement()
+  })
 
-    const { container } = render(<BackofficePage />);
+  it('renders loading state while fetching', () => {
+    mockUseRequireAuth.mockReturnValue({ isAuthenticated: true })
+    mockOrderService.listOrders.mockReturnValue(new Promise(() => {}))
 
-    expect(container).toBeEmptyDOMElement();
-  });
+    render(<BackofficePage />)
+    expect(screen.getByText('Cargando...')).toBeInTheDocument()
+  })
 
-  it('renders loading state and data', async () => {
-    mockUseRequireAuth.mockReturnValue({ isAuthenticated: true });
+  it('renders order table after loading', async () => {
+    mockUseRequireAuth.mockReturnValue({ isAuthenticated: true })
+    mockOrderService.listOrders.mockResolvedValue([
+      {
+        id: 1,
+        order_number: 'PELUCH-20260420-XXXX',
+        customer_name: 'María López',
+        customer_email: 'maria@example.com',
+        city: 'Medellín',
+        department: 'Antioquia',
+        status: 'payment_confirmed',
+        total_amount: 120000,
+        deposit_amount: 60000,
+        balance_amount: 60000,
+        created_at: '2026-04-20T10:00:00Z',
+      },
+    ])
+    mockApi.get.mockResolvedValue({ data: [] })
 
-    const users = [
-      { id: 1, email: 'staff@example.com', role: 'admin', is_staff: true, is_active: true },
-    ];
-    const sales = [
-      { id: 10, email: 'buyer@example.com', city: 'Madrid', state: 'MD', postal_code: '28001' },
-    ];
-
-    let resolveUsers: (value: any) => void = () => {};
-    let resolveSales: (value: any) => void = () => {};
-
-    const usersPromise = new Promise((resolve) => {
-      resolveUsers = resolve;
-    });
-    const salesPromise = new Promise((resolve) => {
-      resolveSales = resolve;
-    });
-
-    mockApi.get.mockImplementationOnce(() => usersPromise as any);
-    mockApi.get.mockImplementationOnce(() => salesPromise as any);
-
-    render(<BackofficePage />);
-
-    expect(await screen.findByText('Loading...')).toBeInTheDocument();
-
-    await act(async () => {
-      resolveUsers({ data: users });
-      resolveSales({ data: sales });
-    });
+    render(<BackofficePage />)
 
     await waitFor(() => {
-      expect(screen.getByText('staff@example.com')).toBeInTheDocument();
-    });
+      expect(screen.getByText('PELUCH-20260420-XXXX')).toBeInTheDocument()
+    })
+    expect(screen.getByText('María López')).toBeInTheDocument()
+  })
 
-    expect(screen.getByText('buyer@example.com')).toBeInTheDocument();
-    expect(screen.queryByText('No data')).not.toBeInTheDocument();
-  });
+  it('renders user table in users tab after clicking tab', async () => {
+    mockUseRequireAuth.mockReturnValue({ isAuthenticated: true })
+    mockOrderService.listOrders.mockResolvedValue([])
+    mockApi.get.mockImplementation((url: string) => {
+      if (url === '/users/') return Promise.resolve({ data: [{ id: 1, email: 'admin@example.com', role: 'admin', is_staff: true, is_active: true }] })
+      return Promise.resolve({ data: null })
+    })
 
-  it('renders fallback values when role or status fields are missing', async () => {
-    mockUseRequireAuth.mockReturnValue({ isAuthenticated: true });
+    render(<BackofficePage />)
 
-    const users = [
-      { id: 2, email: 'viewer@example.com', role: '', is_staff: false, is_active: false },
-    ];
-    const sales = [
-      { id: 11, email: 'buyer@example.com', city: 'Madrid', state: 'MD', postal_code: '28001' },
-    ];
+    // Wait for initial load to finish, then switch to users tab
+    await waitFor(() => {
+      expect(screen.getByText(/Pedidos/)).toBeInTheDocument()
+    })
 
-    mockApi.get.mockResolvedValueOnce({ data: users });
-    mockApi.get.mockResolvedValueOnce({ data: sales });
-
-    render(<BackofficePage />);
-
-    const row = (await screen.findByText('viewer@example.com')).closest('tr');
-    expect(row).not.toBeNull();
-
-    const rowScope = within(row as HTMLElement);
-    expect(rowScope.getByText('-')).toBeInTheDocument();
-    expect(rowScope.getAllByText('no')).toHaveLength(2);
-  });
-
-  it('shows an error when loading fails', async () => {
-    mockUseRequireAuth.mockReturnValue({ isAuthenticated: true });
-
-    mockApi.get.mockRejectedValueOnce(new Error('Fail'));
-    mockApi.get.mockResolvedValueOnce({ data: [] });
-
-    render(<BackofficePage />);
-
-    expect(
-      await screen.findByText('Could not load backoffice data. Make sure you are signed in.')
-    ).toBeInTheDocument();
-  });
-
-  it('shows empty tables when no data exists', async () => {
-    mockUseRequireAuth.mockReturnValue({ isAuthenticated: true });
-
-    mockApi.get.mockResolvedValueOnce({ data: [] });
-    mockApi.get.mockResolvedValueOnce({ data: [] });
-
-    render(<BackofficePage />);
+    const usersTab = screen.getByText(/Usuarios/)
+    fireEvent.click(usersTab)
 
     await waitFor(() => {
-      expect(screen.getAllByText('No data')).toHaveLength(2);
-    });
-  });
+      expect(screen.getByText('admin@example.com')).toBeInTheDocument()
+    })
+  })
 
-  it('handles non-array API responses', async () => {
-    mockUseRequireAuth.mockReturnValue({ isAuthenticated: true });
+  it('shows error message when loading fails', async () => {
+    mockUseRequireAuth.mockReturnValue({ isAuthenticated: true })
+    mockOrderService.listOrders.mockRejectedValue(new Error('Network error'))
 
-    mockApi.get.mockResolvedValueOnce({ data: { items: [] } });
-    mockApi.get.mockResolvedValueOnce({ data: { items: [] } });
-
-    render(<BackofficePage />);
+    render(<BackofficePage />)
 
     await waitFor(() => {
-      expect(screen.getAllByText('No data')).toHaveLength(2);
-    });
-  });
-});
+      expect(screen.getByText('No se pudo cargar la información del backoffice.')).toBeInTheDocument()
+    })
+  })
+
+  it('shows empty state when no orders exist', async () => {
+    mockUseRequireAuth.mockReturnValue({ isAuthenticated: true })
+    mockOrderService.listOrders.mockResolvedValue([])
+    mockApi.get.mockResolvedValue({ data: [] })
+
+    render(<BackofficePage />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Sin pedidos')).toBeInTheDocument()
+    })
+  })
+})

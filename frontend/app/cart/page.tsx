@@ -4,15 +4,15 @@ import Image from 'next/image'
 import Link from 'next/link'
 import React, { useMemo } from 'react'
 
-import { useCartStore } from '@/lib/stores/cartStore'
+import { calcDeposit, lineTotal, useCartStore } from '@/lib/stores/cartStore'
 
 export default function CartPage() {
   const items = useCartStore((s) => s.items)
   const removeFromCart = useCartStore((s) => s.removeFromCart)
   const updateQuantity = useCartStore((s) => s.updateQuantity)
 
-  const subtotal = useMemo(() => items.reduce((acc, item) => acc + item.price * item.quantity, 0), [items])
-  const deposit = Math.round(subtotal / 2)
+  const subtotal = useMemo(() => items.reduce((acc, item) => acc + lineTotal(item), 0), [items])
+  const deposit = useMemo(() => calcDeposit(subtotal), [subtotal])
 
   function fmt(n: number) { return '$' + n.toLocaleString('es-CO') }
 
@@ -39,7 +39,7 @@ export default function CartPage() {
       {/* Steps */}
       <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 30, flexWrap: 'wrap' }}>
-          {['Carrito', 'Envío', 'Pago del abono', 'Confirmación'].map((s, i) => (
+          {['Carrito', 'Datos y envío', 'Pago Wompi', 'Confirmación'].map((s, i) => (
             <React.Fragment key={s}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: i === 0 ? 'var(--coral)' : '#fff', color: i === 0 ? '#fff' : 'var(--gray-warm)', border: i === 0 ? 'none' : '1.5px solid rgba(27,42,74,.1)', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14 }}>
@@ -69,21 +69,32 @@ export default function CartPage() {
           ) : (
             items.map((item) => {
               const cover = item.gallery_urls?.[0]
+              const itemTotal = lineTotal(item)
+              const itemKey = `${item.peluch_id}-${item.size_id}-${item.color_id}`
               return (
-                <div key={item.id} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 20, display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: 20, boxShadow: 'var(--shadow-sm)' }}>
-                  <div style={{ width: 120, height: 120, borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--pink-melo)', position: 'relative' }}>
+                <div key={itemKey} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 20, display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: 20, boxShadow: 'var(--shadow-sm)' }}>
+                  <div style={{ width: 120, height: 120, borderRadius: 'var(--radius-md)', overflow: 'hidden', background: item.color_hex || 'var(--pink-melo)', position: 'relative' }}>
                     {cover && <Image src={cover} alt={item.title} fill className="object-cover" />}
                   </div>
                   <div>
-                    <div style={{ fontSize: 11, color: 'var(--coral)', fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 4 }}>{item.category}</div>
-                    <h3 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 20, color: 'var(--navy)', marginBottom: 10 }}>{item.title}</h3>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--pink-melo)', color: 'var(--terracotta)', fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 999 }}>
-                        {item.description}
+                    <h3 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 20, color: 'var(--navy)', marginBottom: 6 }}>{item.title}</h3>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                      <span style={{ background: 'var(--pink-melo)', color: 'var(--terracotta)', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999 }}>
+                        {item.size_label}
                       </span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--cream-peach)', color: 'var(--navy)', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: item.color_hex, display: 'inline-block', border: '1px solid rgba(0,0,0,.1)' }} />
+                        {item.color_name}
+                      </span>
+                      {item.has_huella && <span style={{ background: '#FFF0E8', color: '#B8696F', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999 }}>🐾 Huella</span>}
+                      {item.has_corazon && <span style={{ background: '#FFF0E8', color: '#B8696F', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999 }}>💖 Corazón</span>}
+                      {item.has_audio && <span style={{ background: '#FFF0E8', color: '#B8696F', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999 }}>🔊 Audio</span>}
                     </div>
-                    <div style={{ display: 'flex', gap: 14, alignItems: 'center', fontSize: 13, color: 'var(--gray-warm)', marginTop: 14 }}>
-                      <button onClick={() => removeFromCart(item.id)} style={{ color: '#c23b3b', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13 }}>
+                    <div style={{ fontSize: 12, color: 'var(--gray-warm)' }}>
+                      Precio base: {fmt(item.unit_price)} {item.personalization_cost > 0 && `+ ${fmt(item.personalization_cost)} personalización`}
+                    </div>
+                    <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginTop: 10 }}>
+                      <button onClick={() => removeFromCart(item.peluch_id, item.size_id, item.color_id)} style={{ color: '#c23b3b', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13 }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>
                         Eliminar
                       </button>
@@ -91,13 +102,13 @@ export default function CartPage() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 14, justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', background: 'var(--cream-warm)', border: '1.5px solid rgba(27,42,74,.08)', borderRadius: 12, padding: 4 }}>
-                      <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))} style={{ width: 30, height: 30, borderRadius: 8, color: 'var(--navy)', fontSize: 16, fontWeight: 700, display: 'grid', placeItems: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>−</button>
+                      <button onClick={() => updateQuantity(item.peluch_id, item.size_id, item.color_id, Math.max(1, item.quantity - 1))} style={{ width: 30, height: 30, borderRadius: 8, color: 'var(--navy)', fontSize: 16, fontWeight: 700, display: 'grid', placeItems: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>−</button>
                       <span style={{ width: 34, textAlign: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--navy)' }}>{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.id, item.quantity + 1)} style={{ width: 30, height: 30, borderRadius: 8, color: 'var(--navy)', fontSize: 16, fontWeight: 700, display: 'grid', placeItems: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>+</button>
+                      <button onClick={() => updateQuantity(item.peluch_id, item.size_id, item.color_id, item.quantity + 1)} style={{ width: 30, height: 30, borderRadius: 8, color: 'var(--navy)', fontSize: 16, fontWeight: 700, display: 'grid', placeItems: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>+</button>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 12, color: 'var(--gray-warm)' }}>{fmt(item.price)} c/u</div>
-                      <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 22, color: 'var(--terracotta)' }}>{fmt(item.price * item.quantity)}</div>
+                      <div style={{ fontSize: 12, color: 'var(--gray-warm)' }}>{fmt(item.unit_price + item.personalization_cost)} c/u</div>
+                      <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 22, color: 'var(--terracotta)' }}>{fmt(itemTotal)}</div>
                     </div>
                   </div>
                 </div>
@@ -128,7 +139,7 @@ export default function CartPage() {
             </h3>
 
             <div style={sumRowStyle}><span>Subtotal</span><b style={{ color: 'var(--navy)' }}>{fmt(subtotal)}</b></div>
-            <div style={sumRowStyle}><span>Envío</span><b style={{ color: '#4CAF50' }}>Gratis sobre $300.000</b></div>
+            <div style={sumRowStyle}><span>Envío</span><b style={{ color: '#4CAF50' }}>Gratis</b></div>
             <div style={{ height: 1, background: 'rgba(212,132,138,.2)', margin: '12px 0' }} />
             <div style={{ ...sumRowStyle, paddingTop: 16 }}>
               <span style={{ fontSize: 15, color: 'var(--navy)', fontWeight: 700 }}>Total del pedido</span>
@@ -140,7 +151,7 @@ export default function CartPage() {
               <div style={sumRowStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--navy)', fontWeight: 600, fontSize: 13 }}>
                   <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--coral)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 11 }}>1</span>
-                  Abono 50% <span style={{ fontSize: 11, color: 'var(--gray-warm)', fontWeight: 500 }}>— pagas hoy</span>
+                  Abono 50% vía Wompi <span style={{ fontSize: 11, color: 'var(--gray-warm)', fontWeight: 500 }}>— hoy</span>
                 </div>
                 <b style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 16, color: 'var(--terracotta)' }}>{fmt(deposit)}</b>
               </div>
@@ -161,24 +172,6 @@ export default function CartPage() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
               Seguir comprando
             </Link>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 18 }}>
-              {[['Pago seguro', 'Datos encriptados'], ['Producción', '4-6 días hábiles'], ['Envío nacional', '2-5 días'], ['Hecho a mano', 'Con mucho cariño']].map(([title, sub]) => (
-                <div key={title} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: 'var(--gray-warm)' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--coral)" strokeWidth="1.8" style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 2 4 6v6c0 5 3.5 9.7 8 10 4.5-.3 8-5 8-10V6z" /></svg>
-                  <div><b style={{ color: 'var(--navy)', display: 'block', fontWeight: 700, fontSize: 13 }}>{title}</b>{sub}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px dashed rgba(212,132,138,.2)' }}>
-              <div style={{ fontSize: 11, color: 'var(--gray-warm)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>Métodos de pago aceptados</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {['PSE', 'Nequi', 'VISA', 'MasterCard', 'Efecty'].map((m) => (
-                  <span key={m} style={{ background: 'var(--cream-peach)', color: 'var(--navy)', fontSize: 11, fontWeight: 700, padding: '6px 10px', borderRadius: 8 }}>{m}</span>
-                ))}
-              </div>
-            </div>
           </aside>
         )}
       </div>

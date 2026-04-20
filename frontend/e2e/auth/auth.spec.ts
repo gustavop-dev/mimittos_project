@@ -13,16 +13,13 @@ test.describe('Authentication', () => {
   test('should display sign-in form', { tag: [...AUTH_SIGN_IN_FORM] }, async ({ page }) => {
     await page.goto('/sign-in');
     await waitForPageLoad(page);
-    
-    // Check for email input (by placeholder since it doesn't have type="email")
-    const emailInput = page.getByPlaceholder('Email');
+
+    const emailInput = page.locator('input[type="email"]');
     await expect(emailInput).toBeVisible();
-    
-    // Check for password input
+
     const passwordInput = page.locator('input[type="password"]');
     await expect(passwordInput).toBeVisible();
-    
-    // Check for submit button
+
     const submitBtn = page.locator('button[type="submit"]');
     await expect(submitBtn).toBeVisible();
   });
@@ -42,13 +39,11 @@ test.describe('Authentication', () => {
   test('should accept input in form fields', { tag: [...AUTH_SIGN_IN_FORM] }, async ({ page }) => {
     await page.goto('/sign-in');
     await waitForPageLoad(page);
-    
-    // Fill email (using placeholder)
-    const emailInput = page.getByPlaceholder('Email');
+
+    const emailInput = page.locator('input[type="email"]');
     await emailInput.fill('test@example.com');
     await expect(emailInput).toHaveValue('test@example.com');
-    
-    // Fill password
+
     const passwordInput = page.locator('input[type="password"]');
     await passwordInput.fill('password123');
     await expect(passwordInput).toHaveValue('password123');
@@ -57,19 +52,16 @@ test.describe('Authentication', () => {
   test('should handle invalid credentials gracefully', { tag: [...AUTH_LOGIN_INVALID] }, async ({ page }) => {
     await page.goto('/sign-in');
     await waitForPageLoad(page);
-    
-    // Fill with invalid credentials (using placeholder)
-    const emailInput = page.getByPlaceholder('Email');
+
+    const emailInput = page.locator('input[type="email"]');
     await emailInput.fill('invalid@example.com');
-    
+
     const passwordInput = page.locator('input[type="password"]');
     await passwordInput.fill('wrongpassword');
-    
-    // Submit
+
     const submitBtn = page.locator('button[type="submit"]');
     await submitBtn.click();
-    
-    // Should show error or stay on sign-in page
+
     await expect(page).toHaveURL(/.*sign-in/);
   });
 
@@ -102,36 +94,34 @@ test.describe('Authentication', () => {
     await waitForPageLoad(page);
 
     await expect(page).toHaveURL(/.*sign-up/);
-    await expect(page.getByRole('heading', { name: 'Create account' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2 })).toBeVisible();
   });
 
   test('should show all required sign-up form fields', { tag: [...AUTH_SIGN_UP_FORM] }, async ({ page }) => {
     await page.goto('/sign-up');
     await waitForPageLoad(page);
 
-    await expect(page.getByPlaceholder('First Name')).toBeVisible();
-    await expect(page.getByPlaceholder('Last Name')).toBeVisible();
-    await expect(page.getByPlaceholder('Email')).toBeVisible();
-    await expect(page.getByPlaceholder('Password', { exact: true })).toBeVisible();
-    await expect(page.getByPlaceholder('Confirm Password')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Create account' })).toBeVisible();
+    await expect(page.getByPlaceholder('Sofía')).toBeVisible();
+    await expect(page.getByPlaceholder('Martínez')).toBeVisible();
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.getByPlaceholder('Mínimo 8 caracteres')).toBeVisible();
+    await expect(page.getByPlaceholder('Repite la contraseña')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Crear mi cuenta/i })).toBeVisible();
   });
 
   test('should validate password mismatch on sign-up', { tag: [...AUTH_SIGN_UP_FORM] }, async ({ page }) => {
     await page.goto('/sign-up');
     await waitForPageLoad(page);
 
-    // Fill form with mismatched passwords
-    await page.getByPlaceholder('First Name').fill('Test');
-    await page.getByPlaceholder('Last Name').fill('User');
-    await page.getByPlaceholder('Email').fill('test@example.com');
-    await page.getByPlaceholder('Password', { exact: true }).fill('password123');
-    await page.getByPlaceholder('Confirm Password').fill('different456');
+    await page.getByPlaceholder('Sofía').fill('Test');
+    await page.getByPlaceholder('Martínez').fill('User');
+    await page.locator('input[type="email"]').fill('test@example.com');
+    await page.getByPlaceholder('Mínimo 8 caracteres').fill('password123');
+    await page.getByPlaceholder('Repite la contraseña').fill('different456');
 
-    await page.getByRole('button', { name: 'Create account' }).click();
+    await page.getByRole('button', { name: /Crear mi cuenta/i }).click();
 
-    // Should show password mismatch error and stay on sign-up page
-    await expect(page.getByText('Passwords do not match')).toBeVisible();
+    await expect(page.getByText('Las contraseñas no coinciden')).toBeVisible();
     await expect(page).toHaveURL(/.*sign-up/);
   });
 
@@ -154,8 +144,7 @@ test.describe('Authentication', () => {
     await page.goto('/sign-in');
     await waitForPageLoad(page);
 
-    // Click forgot password link
-    const forgotLink = page.getByRole('link', { name: 'Forgot password?' });
+    const forgotLink = page.getByRole('link', { name: /Olvidaste tu contraseña/i });
     await expect(forgotLink).toBeVisible();
     await forgotLink.click();
     await page.waitForURL(/.*forgot-password/, { timeout: 10_000 });

@@ -9,69 +9,59 @@ test.describe('Product Pages', () => {
   });
 
   test('should display products catalog page', { tag: [...CATALOG_BROWSE] }, async ({ page }) => {
-    // Check if the page loaded
     await expect(page).toHaveURL(/.*catalog/);
-    
-    // Check for product cards (if any exist)
-    const productCards = page.locator('a[href^="/products/"]');
+
+    // quality: allow-fragile-selector (product list links uniquely scoped by href pattern)
+    const productCards = page.locator('a[href^="/peluches/"]');
     const count = await productCards.count();
-    
+
     if (count > 0) {
-      // Verify first product card is visible
-      // quality: allow-fragile-selector (product list links uniquely scoped by href pattern)
       await expect(productCards.first()).toBeVisible();
     }
   });
 
-  test('should navigate to product detail page', { tag: [...CATALOG_PRODUCT_DETAIL] }, async ({ page }) => {
-    // Find and click the first product card
+  test('should navigate to peluch detail page', { tag: [...CATALOG_PRODUCT_DETAIL] }, async ({ page }) => {
     // quality: allow-fragile-selector (product list links uniquely scoped by href pattern)
-    const firstProductCard = page.locator('a[href^="/products/"]').first();
-    const count = await page.locator('a[href^="/products/"]').count();
-    
+    const firstProductCard = page.locator('a[href^="/peluches/"]').first();
+    const count = await page.locator('a[href^="/peluches/"]').count();
+
     if (count > 0) {
       await firstProductCard.click();
       await waitForPageLoad(page);
-      
-      // Verify we're on a product detail page
-      await expect(page).toHaveURL(/.*products\/\d+/);
+      await expect(page).toHaveURL(/.*peluches\/.+/);
     }
   });
 
-  test('should show product details including price', { tag: [...CATALOG_PRODUCT_DETAIL] }, async ({ page }) => {
-    const productCards = page.locator('a[href^="/products/"]');
+  test('should show peluch details including price', { tag: [...CATALOG_PRODUCT_DETAIL] }, async ({ page }) => {
+    const productCards = page.locator('a[href^="/peluches/"]');
     const count = await productCards.count();
-    
+
     if (count > 0) {
-      // Get product info from list
       // quality: allow-fragile-selector (product list links uniquely scoped by href pattern)
       const firstCard = productCards.first();
-      const titleInList = await firstCard.locator('h3').textContent();
-      
-      // Click to go to detail
+      const titleInList = await firstCard.locator('h3, [class*="title"]').first().textContent();
+
       await firstCard.click();
       await waitForPageLoad(page);
-      
-      // Verify title appears on detail page
+
       if (titleInList) {
         await expect(page.locator(`text=${titleInList}`)).toBeVisible();
       }
-      
-      // Verify price is shown (starts with $)
+
+      // Price formatted in COP ($XX.XXX)
       await expect(page.locator('text=/\\$\\d+/')).toBeVisible();
     }
   });
 
-  test('should display product gallery images', { tag: [...CATALOG_PRODUCT_GALLERY] }, async ({ page }) => {
-    const productCards = page.locator('a[href^="/products/"]');
+  test('should display peluch gallery images', { tag: [...CATALOG_PRODUCT_GALLERY] }, async ({ page }) => {
+    const productCards = page.locator('a[href^="/peluches/"]');
     const count = await productCards.count();
-    
+
     if (count > 0) {
       // quality: allow-fragile-selector (product list links uniquely scoped by href pattern)
       await productCards.first().click();
       await waitForPageLoad(page);
-      
-      // Check if images are present
+
       const images = page.locator('img');
       const imageCount = await images.count();
       expect(imageCount).toBeGreaterThan(0);
@@ -79,19 +69,17 @@ test.describe('Product Pages', () => {
   });
 
   test('should navigate back to catalog from detail', { tag: [...CATALOG_BACK_NAVIGATION] }, async ({ page }) => {
-    const productCards = page.locator('a[href^="/products/"]');
+    const productCards = page.locator('a[href^="/peluches/"]');
     const count = await productCards.count();
-    
+
     if (count > 0) {
       // quality: allow-fragile-selector (product list links uniquely scoped by href pattern)
       await productCards.first().click();
       await waitForPageLoad(page);
-      
-      // Go back
+
       await page.goBack();
       await waitForPageLoad(page);
-      
-      // Verify we're back on catalog
+
       await expect(page).toHaveURL(/.*catalog/);
     }
   });

@@ -8,7 +8,7 @@ test.describe('Navigation', () => {
     await waitForPageLoad(page);
     
     await expect(page).toHaveURL('/');
-    await expect(page.getByRole('heading', { name: 'Everything you need, in one place' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Cada abrazo|Peluchelandia|peluche/i }).first()).toBeVisible();
   });
 
   test('should navigate to blogs page', { tag: [...NAVIGATION_BETWEEN_PAGES] }, async ({ page }) => {

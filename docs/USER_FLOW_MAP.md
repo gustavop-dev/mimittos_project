@@ -4,8 +4,8 @@
 
 Use this document to understand each flow's steps, branching conditions, role restrictions, and API contracts before writing or reviewing E2E tests.
 
-**Version:** 1.0.0
-**Last Updated:** 2026-02-24
+**Version:** 1.1.0
+**Last Updated:** 2026-04-20
 
 ---
 
@@ -33,16 +33,23 @@ Use this document to understand each flow's steps, branching conditions, role re
 | `public-home` | Home Page | public | P2 | guest | `/` |
 | `public-navigation` | Site Navigation | public | P3 | guest | all pages |
 | `public-catalog-browse` | Browse Catalog | public | P2 | guest | `/catalog` |
-| `public-product-detail` | Product Detail | public | P2 | guest | `/products/[productId]` |
+| `public-peluch-detail` | Peluch Detail | public | P2 | guest | `/peluches/[slug]` |
 | `public-blogs-browse` | Browse Blogs | public | P3 | guest | `/blogs` |
 | `public-blog-detail` | Blog Detail | public | P3 | guest | `/blogs/[blogId]` |
-| `app-cart-add` | Add to Cart | app | P1 | guest | `/products/[productId]` |
-| `app-cart-manage` | Manage Cart | app | P1 | guest | `/checkout` |
-| `app-cart-persistence` | Cart Persistence | app | P2 | guest | `/checkout` |
-| `app-checkout-complete` | Complete Checkout | app | P1 | guest | `/checkout` |
+| `app-cart-add` | Add Peluch to Cart | app | P1 | guest | `/peluches/[slug]` |
+| `app-cart-manage` | Manage Cart | app | P1 | guest | `/cart` |
+| `app-cart-persistence` | Cart Persistence | app | P2 | guest | `/cart` |
+| `app-checkout-complete` | Complete Checkout (Wompi) | app | P1 | guest | `/checkout` |
+| `app-peluch-size-color` | Select Size and Color | app | P2 | guest | `/peluches/[slug]` |
+| `app-peluch-huella` | Configure Huella | app | P2 | guest | `/peluches/[slug]` |
+| `app-peluch-corazon` | Configure Corazón | app | P2 | guest | `/peluches/[slug]` |
+| `app-peluch-audio` | Upload Audio | app | P3 | guest | `/peluches/[slug]` |
+| `app-orders-list` | My Orders | app | P2 | user | `/orders` |
+| `app-tracking` | Track Order | app | P2 | shared | `/tracking` |
+| `app-tracking-wompi` | Auto-Track from Wompi | app | P3 | shared | `/tracking?order=...` |
 | `app-dashboard` | Dashboard | app | P2 | user | `/dashboard` |
 | `backoffice-users-list` | Users List | backoffice | P2 | staff | `/backoffice` |
-| `backoffice-sales-list` | Sales List | backoffice | P2 | staff | `/backoffice` |
+| `backoffice-orders-list` | Orders List | backoffice | P2 | staff | `/backoffice` |
 
 ---
 
@@ -251,24 +258,23 @@ Use this document to understand each flow's steps, branching conditions, role re
 | **Priority** | P2 |
 | **Roles** | guest |
 | **Frontend route** | `/` |
-| **API endpoints** | `GET /api/products-data/`, `GET /api/blogs-data/` |
+| **API endpoints** | `GET /api/peluches/featured/` |
 
 **Preconditions:** None.
 
 **Steps:**
 
 1. User navigates to `/`.
-2. Page renders hero section with heading "Everything you need, in one place".
-3. CTA buttons: **Shop now** (→ `/catalog`), **Read blogs** (→ `/blogs`), **Go to cart** (→ `/checkout`).
-4. **ProductCarousel** component loads products from API and displays cards.
-5. **BlogCarousel** component loads blogs from API and displays cards.
+2. Page renders hero section with heading "Cada abrazo guarda un recuerdo único."
+3. CTA links: **Explorar catálogo** (→ `/catalog`), **Ver catálogo completo** (→ `/catalog`).
+4. Featured peluches carousel loads from `GET /api/peluches/featured/`.
+5. Category grid, testimonials, and FAQ sections rendered statically.
 
 **Branching conditions:**
 
 | Condition | Behavior |
 |-----------|----------|
-| Products API unavailable | Carousel shows empty or error state |
-| Blogs API unavailable | Carousel shows empty or error state |
+| Featured API unavailable | Carousel shows empty state |
 
 ---
 
@@ -302,53 +308,61 @@ Use this document to understand each flow's steps, branching conditions, role re
 | **Priority** | P2 |
 | **Roles** | guest |
 | **Frontend route** | `/catalog` |
-| **API endpoints** | `GET /api/products-data/` |
+| **API endpoints** | `GET /api/peluches/`, `GET /api/categories/`, `GET /api/sizes/` |
 
 **Preconditions:** None.
 
 **Steps:**
 
 1. User navigates to `/catalog`.
-2. Page displays heading "Catalog" with loading skeleton.
-3. Frontend fetches `GET /api/products-data/` via `productStore.fetchProducts()`.
-4. Products render as a grid of `ProductCard` components (image, title, price).
-5. Each card links to `/products/[productId]`.
+2. Page fetches categories and sizes for filter sidebar.
+3. Frontend fetches `GET /api/peluches/` with optional query params (category, size, min_price, max_price, sort).
+4. Peluches render as a grid of `ProductCard` components (gallery_urls[0], title, min_price, badge, available_colors).
+5. Each card links to `/peluches/[slug]`.
+6. Changing filter controls re-fetches the list.
 
 **Branching conditions:**
 
 | Condition | Behavior |
 |-----------|----------|
-| API loading | Skeleton grid (12 placeholders) shown |
-| API error | "Catalog unavailable" message with **Retry** button |
-| No products in DB | "No products yet" dashed-border message |
+| API loading | Skeleton grid shown |
+| API error | Error state with retry option |
+| No peluches match filters | Empty state message |
 
 ---
 
-### public-product-detail
+### public-peluch-detail
 
 | Field | Value |
 |-------|-------|
 | **Priority** | P2 |
 | **Roles** | guest |
-| **Frontend route** | `/products/[productId]` |
-| **API endpoints** | `GET /api/products-data/` (single product fetch) |
+| **Frontend route** | `/peluches/[slug]` |
+| **API endpoints** | `GET /api/peluches/[slug]/`, `GET /api/peluches/[slug]/reviews/` |
 
-**Preconditions:** Product with given ID exists.
+**Preconditions:** Peluch with given slug exists.
 
 **Steps:**
 
-1. User navigates to `/products/[productId]`.
-2. Page shows "Loading..." while fetching.
-3. Frontend fetches product data via `productStore.fetchProduct(id)`.
-4. Page renders: image gallery (up to 4 images), category label, title, price, description, **Add to cart** button.
-5. User can click **Add to cart** (see `app-cart-add` flow).
+1. User navigates to `/peluches/[slug]`.
+2. Page shows "Cargando..." while fetching.
+3. Frontend fetches `peluchService.getPeluchBySlug(slug)`.
+4. Page renders: gallery, title, lead_description, badge, rating.
+5. Size selector from `size_prices`; price updates on selection.
+6. Color selector from `available_colors`.
+7. Personalization sections shown conditionally: Huella (if `has_huella`), Corazón (if `has_corazon`), Audio (if `has_audio`).
+8. Total price = `size_price + personalization_costs`.
+9. **Agregar** button adds `CartItem` to cart store.
+10. Tabs: Descripción, Especificaciones, Cuidados.
+11. Reviews loaded from `getReviews(slug)`.
 
 **Branching conditions:**
 
 | Condition | Behavior |
 |-----------|----------|
-| Invalid product ID | "Loading..." remains or redirects |
-| No gallery images | Single gray placeholder square |
+| Slug not found | Shows "No encontramos este peluche." |
+| No size selected | Agregar button disabled |
+| No color selected | Agregar button disabled |
 
 ---
 
@@ -415,25 +429,26 @@ Use this document to understand each flow's steps, branching conditions, role re
 |-------|-------|
 | **Priority** | P1 |
 | **Roles** | guest |
-| **Frontend route** | `/products/[productId]` |
+| **Frontend route** | `/peluches/[slug]` |
 | **API endpoints** | None (client-side state via Zustand + localStorage) |
 
-**Preconditions:** User is on a product detail page.
+**Preconditions:** User is on a peluch detail page with a size and color selected.
 
 **Steps:**
 
-1. User views a product on `/products/[productId]`.
-2. User clicks **Add to cart** button.
-3. `cartStore.addToCart(product, 1)` adds the product with quantity 1 to local state.
-4. Cart state persists to `localStorage`.
-5. User can navigate to `/checkout` to see the item.
+1. User views a peluch on `/peluches/[slug]`.
+2. User selects size and color.
+3. User clicks **Agregar** button.
+4. `cartStore.addToCart(cartItem)` adds a `CartItem` keyed by `peluch_id+size_id+color_id`.
+5. Cart state persists to `localStorage`.
+6. User can navigate to `/cart` to see the item.
 
 **Branching conditions:**
 
 | Condition | Behavior |
 |-----------|----------|
-| Product already in cart | Quantity incremented |
-| Product not in cart | New entry added with quantity 1 |
+| Same peluch+size+color already in cart | Quantity incremented |
+| Same peluch but different size or color | New separate entry added |
 
 ---
 
@@ -443,24 +458,24 @@ Use this document to understand each flow's steps, branching conditions, role re
 |-------|-------|
 | **Priority** | P1 |
 | **Roles** | guest |
-| **Frontend route** | `/checkout` |
+| **Frontend route** | `/cart` |
 | **API endpoints** | None (client-side state) |
 
 **Preconditions:** User has at least one item in cart.
 
 **Steps:**
 
-1. User navigates to `/checkout`.
-2. Cart section displays each item: image, title, price, quantity input, **Remove** button, line total.
-3. **Update quantity:** User changes the number input → `cartStore.updateQuantity(id, qty)`.
-4. **Remove item:** User clicks **Remove** → `cartStore.removeFromCart(id)`.
-5. **Subtotal** recalculates automatically: `items.reduce((acc, item) => acc + item.price * item.quantity, 0)`.
+1. User navigates to `/cart`.
+2. Cart displays each item: image, title, size/color, quantity input, **Eliminar** button, line total.
+3. **Update quantity:** User changes the number input → `cartStore.updateQuantity(key, qty)`.
+4. **Remove item:** User clicks **Eliminar** → `cartStore.removeFromCart(key)`.
+5. **Subtotal** recalculates: `sum of (unit_price + personalization_cost) * quantity` per item.
 
 **Branching conditions:**
 
 | Condition | Behavior |
 |-----------|----------|
-| Cart is empty | "Your cart is empty." message; checkout button disabled |
+| Cart is empty | "Tu carrito está vacío." message |
 | Single item removed | If last item, shows empty cart message |
 | Quantity set to 0 or negative | Minimum enforced by `min={1}` on input |
 
@@ -472,7 +487,7 @@ Use this document to understand each flow's steps, branching conditions, role re
 |-------|-------|
 | **Priority** | P2 |
 | **Roles** | guest |
-| **Frontend route** | `/checkout` |
+| **Frontend route** | `/cart` |
 | **API endpoints** | None |
 
 **Preconditions:** User has items in cart.
@@ -500,41 +515,33 @@ Use this document to understand each flow's steps, branching conditions, role re
 | **Priority** | P1 |
 | **Roles** | guest |
 | **Frontend route** | `/checkout` |
-| **API endpoints** | `POST /api/create-sale/` |
+| **API endpoints** | `POST /api/orders/` |
 
 **Preconditions:** User has at least one item in cart.
 
 **Steps:**
 
 1. User navigates to `/checkout` with items in cart.
-2. Shipping form displays: **Email**, **Address**, **City**, **State**, **Postal code** fields.
-3. User fills in all shipping fields.
-4. **Complete checkout** button becomes enabled (requires non-empty cart).
-5. User clicks **Complete checkout**.
-6. Frontend builds payload:
-   ```json
-   {
-     "email": "...",
-     "address": "...",
-     "city": "...",
-     "state": "...",
-     "postal_code": "...",
-     "sold_products": [{ "product_id": 1, "quantity": 2 }, ...]
-   }
-   ```
-7. Frontend sends `POST /api/create-sale/` with payload.
-8. Backend creates `Sale` + associated `SoldProduct` records (HTTP 201).
-9. Frontend clears cart via `cartStore.clearCart()`.
-10. Success message: "Checkout completed."
+2. Form shows: **Nombre completo**, **Correo electrónico**, **Celular**, **Departamento** (select), **Ciudad** (select), **Código postal**, **Dirección completa**, **Notas** (optional).
+3. Wompi info panel: "Serás redirigido a Wompi para pagar el abono del 50%."
+4. Order summary shows items + Subtotal + Abono (50%) + Saldo al recibir.
+5. User accepts terms checkbox.
+6. **Ir a pagar** button becomes enabled (requires non-empty cart + terms accepted).
+7. User clicks **Ir a pagar**.
+8. Frontend sends `POST /api/orders/` with `{ customer_name, customer_email, customer_phone, address, city, department, postal_code, notes, items[] }`.
+9. Backend creates order + Wompi payment link. Returns `{ order_number, checkout_url, deposit_amount, balance_amount, total_amount }`.
+10. Frontend calls `clearCart()`.
+11. Frontend sets `window.location.href = checkout_url` (Wompi redirect).
 
 **Branching conditions:**
 
 | Condition | Behavior |
 |-----------|----------|
-| Cart is empty | **Complete checkout** button disabled (`disabled={!items.length}`) |
-| API failure | Error message: "Could not complete checkout." |
-| Button shows loading state | Text changes to "..." during submission |
-| Invalid product ID in payload | `400` with serializer errors |
+| Cart is empty | **Ir a pagar** button disabled |
+| Terms not accepted | **Ir a pagar** button disabled |
+| API failure | Error message from `err.response.data.detail` |
+| Button loading | Shows "Procesando..." during submission |
+| No `checkout_url` in response | Router pushes to `/orders/track/[order_number]` |
 
 ---
 
@@ -597,30 +604,160 @@ Use this document to understand each flow's steps, branching conditions, role re
 
 ---
 
-### backoffice-sales-list
+### backoffice-orders-list
 
 | Field | Value |
 |-------|-------|
 | **Priority** | P2 |
 | **Roles** | staff |
 | **Frontend route** | `/backoffice` |
-| **API endpoints** | `GET /api/sales/` |
+| **API endpoints** | `GET /api/orders/list/` |
 
 **Preconditions:** User is authenticated with `is_staff = true`.
 
 **Steps:**
 
-1. User navigates to `/backoffice` (loaded together with users).
-2. Frontend fetches `GET /api/sales/` with Bearer token.
-3. Sales table renders columns: **Id**, **Email**, **City**, **State**, **Postal**.
-4. Each row shows sale data.
+1. User navigates to `/backoffice`.
+2. Frontend fetches `GET /api/orders/list/` with Bearer token.
+3. Orders table renders: **order_number**, **customer_name**, **status** (badge), **total_amount**, **deposit_amount**, **created_at**.
+4. Admin can change order status via dropdown → `PATCH /api/orders/[number]/status/`.
+5. Admin can enter tracking number → `PATCH /api/orders/[number]/tracking/`.
 
 **Branching conditions:**
 
 | Condition | Behavior |
 |-----------|----------|
-| Not staff | Same error as `backoffice-users-list` (both fetched in parallel) |
-| No sales | "No data" row shown |
+| Not staff | `403` error |
+| No orders | "No data" row shown |
+
+---
+
+## App Module — Peluchelandia Extensions
+
+### app-peluch-size-color
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | guest |
+| **Frontend route** | `/peluches/[slug]` |
+| **API endpoints** | None (data from peluch detail response) |
+
+**Steps:**
+
+1. User is on peluch detail page.
+2. User clicks a size button from `size_prices` → price updates to that size's price.
+3. User clicks a color swatch from `available_colors`.
+4. Total price display updates immediately.
+
+---
+
+### app-peluch-huella
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | guest |
+| **Frontend route** | `/peluches/[slug]` |
+| **API endpoints** | `POST /api/media/upload/` (if image type) |
+
+**Preconditions:** Peluch has `has_huella = true`.
+
+**Steps:**
+
+1. Huella section rendered with `huella_extra_cost` shown.
+2. User selects huella type: `name` | `date` | `letter` | `image`.
+3. For text types: user enters text in input.
+4. For image type: user uploads file → `mediaService.uploadImage()` → `media_id` stored.
+5. `personalization_cost` increases by `huella_extra_cost`.
+
+---
+
+### app-peluch-corazon
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | guest |
+| **Frontend route** | `/peluches/[slug]` |
+| **API endpoints** | None |
+
+**Preconditions:** Peluch has `has_corazon = true`.
+
+**Steps:**
+
+1. Corazón section rendered with `corazon_extra_cost` shown.
+2. User enters a phrase (max 50 characters).
+3. `personalization_cost` increases by `corazon_extra_cost`.
+
+---
+
+### app-orders-list
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | user |
+| **Frontend route** | `/orders` |
+| **API endpoints** | `GET /api/orders/my/` |
+
+**Preconditions:** User is authenticated.
+
+**Steps:**
+
+1. User navigates to `/orders`.
+2. If not authenticated → redirect to `/sign-in`.
+3. Frontend fetches `GET /api/orders/my/`.
+4. Orders render as expandable cards: order_number, status badge, total_amount, created_at.
+5. Expanding card shows items with title, size, color, quantity, line_total.
+
+**Status badge mapping:**
+
+| Status | Label | Color |
+|--------|-------|-------|
+| `pending_payment` | Pendiente de pago | yellow |
+| `payment_confirmed` | Pago confirmado | blue |
+| `in_production` | En producción | purple |
+| `shipped` | Despachado | orange |
+| `delivered` | Entregado | green |
+| `cancelled` | Cancelado | red |
+
+---
+
+### app-tracking
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | shared |
+| **Frontend route** | `/tracking` |
+| **API endpoints** | `GET /api/orders/track/[order_number]/` |
+
+**Steps:**
+
+1. User navigates to `/tracking`.
+2. User enters order number in input and clicks **Buscar**.
+3. Frontend fetches `GET /api/orders/track/[order_number]/`.
+4. Timeline renders with current status highlighted.
+5. If `tracking_number` available, carrier and guide shown.
+
+---
+
+### app-tracking-wompi
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | shared |
+| **Frontend route** | `/tracking?order=PELUCH-XXXX-XXXX` |
+| **API endpoints** | `GET /api/orders/track/[order_number]/` |
+
+**Steps:**
+
+1. Wompi redirects user to `/tracking?order=PELUCH-XXXX-XXXX` after payment.
+2. Page reads `?order` query param on mount.
+3. Auto-calls `orderService.trackOrder(orderNumber)`.
+4. Timeline shown immediately without manual search.
 
 ---
 
