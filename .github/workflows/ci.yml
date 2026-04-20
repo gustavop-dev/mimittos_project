@@ -123,11 +123,28 @@ jobs:
           retention-days: 5
 
   # ───────────────────────────────────────────
-  # Frontend — Playwright E2E tests
+  # Frontend — Playwright E2E tests (4 grupos en paralelo)
   # ───────────────────────────────────────────
   frontend-e2e-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - part: 1
+            label: public
+            files: "e2e/public/smoke.spec.ts e2e/public/navigation.spec.ts e2e/public/blogs.spec.ts"
+          - part: 2
+            label: catalog
+            files: "e2e/public/products.spec.ts e2e/app/user-flows.spec.ts"
+          - part: 3
+            label: auth
+            files: "e2e/auth/auth.spec.ts"
+          - part: 4
+            label: purchase
+            files: "e2e/app/cart.spec.ts e2e/app/checkout.spec.ts e2e/app/complete-purchase.spec.ts"
+    name: E2E ${{ matrix.part }}/4 — ${{ matrix.label }}
     defaults:
       run:
         working-directory: frontend
@@ -173,17 +190,17 @@ jobs:
       - name: Install Playwright browsers with system deps
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright E2E tests
-        run: npx playwright test --reporter='json,./e2e/reporters/flow-coverage-reporter.mjs'
+      - name: Run Playwright E2E tests (${{ matrix.label }})
+        run: npx playwright test ${{ matrix.files }} --reporter='json,./e2e/reporters/flow-coverage-reporter.mjs'
         env:
           CI: 'true'
           PLAYWRIGHT_JSON_OUTPUT_NAME: e2e-results/playwright-results.json
 
-      - name: Upload E2E flow coverage
+      - name: Upload E2E results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-frontend-e2e
+          name: coverage-frontend-e2e-${{ matrix.part }}
           path: |
             frontend/e2e-results/flow-coverage.json
             frontend/e2e-results/playwright-results.json
@@ -193,7 +210,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-traces
+          name: playwright-traces-${{ matrix.part }}
           path: frontend/test-results/
           retention-days: 7
 
@@ -234,8 +251,9 @@ jobs:
       - name: Download frontend-e2e coverage
         uses: actions/download-artifact@v4
         with:
-          name: coverage-frontend-e2e
+          pattern: coverage-frontend-e2e-*
           path: coverage-artifacts/frontend-e2e
+          merge-multiple: true
         continue-on-error: true
 
       - name: Generate coverage summary
