@@ -7,6 +7,15 @@ import { Suspense, useEffect, useState } from 'react'
 import { orderService } from '@/lib/services/orderService'
 import type { OrderStatus, OrderTrackingInfo } from '@/lib/types'
 
+const STATUS_LABELS: Record<string, string> = {
+  pending_payment: 'Pago pendiente',
+  payment_confirmed: 'Pago confirmado',
+  in_production: 'En producción',
+  shipped: 'Enviado',
+  delivered: 'Entregado',
+  cancelled: 'Cancelado',
+}
+
 const TIMELINE_STEPS: { label: string; desc: string; statuses: OrderStatus[] }[] = [
   { label: 'Pedido recibido', desc: 'Confirmamos tu pedido y el abono.', statuses: ['pending_payment', 'payment_confirmed', 'in_production', 'shipped', 'delivered'] },
   { label: 'Pago confirmado', desc: 'El abono fue procesado exitosamente.', statuses: ['payment_confirmed', 'in_production', 'shipped', 'delivered'] },
@@ -161,7 +170,7 @@ function TrackingContent() {
                 <h3 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 20, color: 'var(--navy)' }}>{tracking.order_number}</h3>
               </div>
               <span style={{ background: 'var(--pink-melo)', color: 'var(--terracotta)', fontSize: 12, fontWeight: 700, padding: '6px 14px', borderRadius: 999, textTransform: 'uppercase', letterSpacing: '.08em' }}>
-                {tracking.status.replace(/_/g, ' ')}
+                {STATUS_LABELS[tracking.status] ?? tracking.status.replace(/_/g, ' ')}
               </span>
             </div>
 

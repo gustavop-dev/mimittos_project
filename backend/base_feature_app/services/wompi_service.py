@@ -87,8 +87,10 @@ class WompiService:
 
         if new_status == WompiTransaction.Status.APPROVED:
             from base_feature_app.services.order_service import OrderService
+            from base_feature_app.services.notification_service import NotificationService
             if order.status == Order.Status.PENDING_PAYMENT:
                 OrderService.update_status(order, Order.Status.PAYMENT_CONFIRMED)
+                NotificationService.notify_new_order_admin(order)
 
         redirect_url = ''
         pm_data = data.get('payment_method') or {}
@@ -237,3 +239,5 @@ class WompiService:
             order = wompi_tx.order
             if order.status == Order.Status.PENDING_PAYMENT:
                 OrderService.update_status(order, Order.Status.PAYMENT_CONFIRMED)
+                from base_feature_app.services.notification_service import NotificationService
+                NotificationService.notify_new_order_admin(order)

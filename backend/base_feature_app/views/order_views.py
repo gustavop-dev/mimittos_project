@@ -69,8 +69,6 @@ def create_order(request):
             login_url=f'{frontend_url}/auth/login',
         )
 
-    NotificationService.notify_new_order_admin(order)
-
     return Response(
         {
             'order_number': order.order_number,

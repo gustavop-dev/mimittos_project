@@ -90,6 +90,7 @@ function PaymentContent() {
   const searchParams = useSearchParams()
   const orderNumber = searchParams.get('order') ?? ''
   const depositParam = parseInt(searchParams.get('deposit') ?? '0', 10) || 0
+  const isNew = searchParams.get('new') === '1'
 
   const [info, setInfo] = useState<PaymentInfo | null>(null)
   const [acceptance, setAcceptance] = useState<AcceptanceTokens | null>(null)
@@ -157,7 +158,7 @@ function PaymentContent() {
         const data = await paymentService.pollStatus(orderNumber)
         if (data.status === 'approved') {
           clearInterval(pollRef.current!)
-          router.push(`/tracking?order=${orderNumber}`)
+          router.push(`/order-confirmed?order=${orderNumber}&confirmed=1${isNew ? '&new=1' : ''}`)
         } else if (data.status === 'declined' || data.status === 'error') {
           clearInterval(pollRef.current!)
           setNequiPending(false)
@@ -207,16 +208,17 @@ function PaymentContent() {
         result = await paymentService.processBancolombia(orderNumber, userType, idType, idNumber.trim(), accToken, authToken)
       }
 
-      if (result.status === 'APPROVED') {
-        router.push(`/tracking?order=${orderNumber}`)
+      const confirmedParam = result.status === 'APPROVED' ? '&confirmed=1' : ''
+      const newParam = isNew ? '&new=1' : ''
+
+      if (result.status === 'APPROVED' || (result.status === 'PENDING' && selected !== 'NEQUI' && !result.redirect_url)) {
+        router.push(`/order-confirmed?order=${orderNumber}${confirmedParam}${newParam}`)
       } else if (result.status === 'PENDING') {
         if (selected === 'NEQUI') {
           setNequiPending(true)
           startNequiPolling()
         } else if (result.redirect_url) {
           window.location.href = result.redirect_url
-        } else {
-          router.push(`/tracking?order=${orderNumber}`)
         }
       } else {
         setError('Pago rechazado. Verifica tus datos e intenta con otro método.')

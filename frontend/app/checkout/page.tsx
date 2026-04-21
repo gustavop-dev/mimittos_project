@@ -76,13 +76,8 @@ export default function CheckoutPage() {
         items: validItems,
       })
       clearCart()
-      if (result.checkout_url) {
-        router.push(
-          `/payment?order=${result.order_number}&deposit=${result.deposit_amount}&url=${encodeURIComponent(result.checkout_url)}`
-        )
-      } else {
-        router.push(`/tracking?order=${result.order_number}`)
-      }
+      const newParam = result.is_new_account ? '&new=1' : ''
+      router.push(`/payment?order=${result.order_number}&deposit=${result.deposit_amount}${newParam}`)
     } catch (err: any) {
       const msg = err?.response?.data?.detail || err?.response?.data?.non_field_errors?.[0] || 'No pudimos completar el pedido. Por favor intenta de nuevo.'
       setError(msg)
