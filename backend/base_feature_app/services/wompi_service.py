@@ -32,6 +32,89 @@ class WompiService:
         return getattr(settings, 'WOMPI_INTEGRITY_SECRET', '')
 
     @staticmethod
+    def _integrity_signature(reference: str, amount_in_cents: int, currency: str = 'COP') -> str:
+        secret = WompiService._integrity_secret()
+        raw = f'{reference}{amount_in_cents}{currency}{secret}'
+        return hashlib.sha256(raw.encode()).hexdigest()
+
+    @staticmethod
+    def process_transaction(tx: WompiTransaction, method_data: dict) -> dict:
+        """Create a direct Wompi transaction (no hosted checkout page)."""
+        order = tx.order
+        integrity = WompiService._integrity_signature(tx.reference, tx.amount_in_cents, tx.currency)
+
+        payload = {
+            'amount_in_cents': tx.amount_in_cents,
+            'currency': tx.currency,
+            'customer_email': order.customer_email,
+            'reference': tx.reference,
+            'signature': {'integrity': integrity},
+            'customer_data': {
+                'phone_number': order.customer_phone or '',
+                'full_name': order.customer_name,
+            },
+            'payment_method': method_data,
+        }
+
+        resp = requests.post(
+            f'{WompiService._api_url()}/transactions',
+            json=payload,
+            headers={
+                'Authorization': f'Bearer {WompiService._private_key()}',
+                'Content-Type': 'application/json',
+            },
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json().get('data', {})
+
+        wompi_status_raw = data.get('status', 'ERROR').upper()
+        status_map = {
+            'APPROVED': WompiTransaction.Status.APPROVED,
+            'DECLINED': WompiTransaction.Status.DECLINED,
+            'VOIDED': WompiTransaction.Status.VOIDED,
+            'ERROR': WompiTransaction.Status.ERROR,
+        }
+        new_status = status_map.get(wompi_status_raw, WompiTransaction.Status.PENDING)
+
+        tx.wompi_id = data.get('id', '')
+        tx.status = new_status
+        tx.payment_method_type = data.get('payment_method_type', method_data.get('type', ''))
+        tx.raw_response = data
+        tx.save(update_fields=['wompi_id', 'status', 'payment_method_type', 'raw_response', 'updated_at'])
+
+        if new_status == WompiTransaction.Status.APPROVED:
+            from base_feature_app.services.order_service import OrderService
+            if order.status == Order.Status.PENDING_PAYMENT:
+                OrderService.update_status(order, Order.Status.PAYMENT_CONFIRMED)
+
+        redirect_url = ''
+        pm_data = data.get('payment_method') or {}
+        if isinstance(pm_data, dict):
+            extra = pm_data.get('extra') or {}
+            redirect_url = extra.get('async_payment_url') or extra.get('redirect_url') or ''
+
+        return {
+            'status': wompi_status_raw,
+            'redirect_url': redirect_url,
+            'wompi_id': data.get('id', ''),
+        }
+
+    @staticmethod
+    def get_pse_banks() -> list:
+        try:
+            resp = requests.get(
+                f'{WompiService._api_url()}/pse/financial_institutions',
+                headers={'Authorization': f'Bearer {WompiService._public_key()}'},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            return resp.json().get('data', [])
+        except requests.RequestException as exc:
+            logger.warning('Could not fetch PSE banks: %s', exc)
+            return []
+
+    @staticmethod
     def create_checkout(wompi_transaction: WompiTransaction, new_account: bool = False) -> str:
         order = wompi_transaction.order
         frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
