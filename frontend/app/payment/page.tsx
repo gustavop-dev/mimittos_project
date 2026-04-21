@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useRef, useState } from 'react'
 
-import { paymentService, type PaymentInfo, type PseBank } from '@/lib/services/paymentService'
+import { paymentService, type AcceptanceTokens, type PaymentInfo, type PseBank } from '@/lib/services/paymentService'
 
 type Method = 'CARD' | 'NEQUI' | 'PSE' | 'BANCOLOMBIA_TRANSFER'
 
@@ -92,6 +92,7 @@ function PaymentContent() {
   const depositParam = parseInt(searchParams.get('deposit') ?? '0', 10) || 0
 
   const [info, setInfo] = useState<PaymentInfo | null>(null)
+  const [acceptance, setAcceptance] = useState<AcceptanceTokens | null>(null)
   const [selected, setSelected] = useState<Method | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -125,6 +126,7 @@ function PaymentContent() {
       if (data.customer_name) setCardHolder(data.customer_name)
       if (data.customer_phone) setNequiPhone(data.customer_phone)
     }).catch(() => {})
+    paymentService.getAcceptanceTokens().then(setAcceptance).catch(() => {})
   }, [orderNumber, router])
 
   useEffect(() => {
@@ -170,6 +172,9 @@ function PaymentContent() {
     setLoading(true)
     setError('')
 
+    const accToken = acceptance?.acceptance_token ?? ''
+    const authToken = acceptance?.personal_auth_token ?? ''
+
     try {
       let result
 
@@ -187,19 +192,19 @@ function PaymentContent() {
           exp_year: expY ?? '',
           card_holder: cardHolder,
         })
-        result = await paymentService.processCard(orderNumber, token)
+        result = await paymentService.processCard(orderNumber, token, accToken, authToken)
 
       } else if (selected === 'NEQUI') {
         if (!nequiPhone.trim()) { setError('Ingresa tu número de celular Nequi.'); setLoading(false); return }
-        result = await paymentService.processNequi(orderNumber, nequiPhone.trim())
+        result = await paymentService.processNequi(orderNumber, nequiPhone.trim(), accToken, authToken)
 
       } else if (selected === 'PSE') {
         if (!bankCode || !idNumber.trim()) { setError('Completa todos los campos.'); setLoading(false); return }
-        result = await paymentService.processPse(orderNumber, bankCode, userType, idType, idNumber.trim())
+        result = await paymentService.processPse(orderNumber, bankCode, userType, idType, idNumber.trim(), accToken, authToken)
 
       } else {
         if (!idNumber.trim()) { setError('Ingresa tu número de documento.'); setLoading(false); return }
-        result = await paymentService.processBancolombia(orderNumber, userType, idType, idNumber.trim())
+        result = await paymentService.processBancolombia(orderNumber, userType, idType, idNumber.trim(), accToken, authToken)
       }
 
       if (result.status === 'APPROVED') {
@@ -439,6 +444,16 @@ function PaymentContent() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Terms acceptance */}
+        {acceptance?.acceptance_permalink && (
+          <p style={{ fontSize: 11, color: 'var(--gray-warm)', textAlign: 'center', marginBottom: 10, lineHeight: 1.5 }}>
+            Al pagar aceptas los{' '}
+            <a href={acceptance.acceptance_permalink} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--coral)', textDecoration: 'underline' }}>
+              términos y condiciones de Wompi
+            </a>
+          </p>
         )}
 
         {/* Error */}

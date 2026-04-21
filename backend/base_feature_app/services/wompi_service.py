@@ -38,7 +38,7 @@ class WompiService:
         return hashlib.sha256(raw.encode()).hexdigest()
 
     @staticmethod
-    def process_transaction(tx: WompiTransaction, method_data: dict) -> dict:
+    def process_transaction(tx: WompiTransaction, method_data: dict, acceptance_token: str = '', personal_auth_token: str = '') -> dict:
         """Create a direct Wompi transaction (no hosted checkout page)."""
         order = tx.order
         integrity = WompiService._integrity_signature(tx.reference, tx.amount_in_cents, tx.currency)
@@ -48,7 +48,9 @@ class WompiService:
             'currency': tx.currency,
             'customer_email': order.customer_email,
             'reference': tx.reference,
-            'signature': {'integrity': integrity},
+            'signature': integrity,
+            'acceptance_token': acceptance_token,
+            'accept_personal_auth': personal_auth_token,
             'customer_data': {
                 'phone_number': order.customer_phone or '',
                 'full_name': order.customer_name,
@@ -91,8 +93,8 @@ class WompiService:
         redirect_url = ''
         pm_data = data.get('payment_method') or {}
         if isinstance(pm_data, dict):
-            extra = pm_data.get('extra') or {}
-            redirect_url = extra.get('async_payment_url') or extra.get('redirect_url') or ''
+            pm_extra = pm_data.get('extra') or {}
+            redirect_url = pm_extra.get('async_payment_url') or pm_extra.get('redirect_url') or ''
 
         return {
             'status': wompi_status_raw,

@@ -34,6 +34,12 @@ export type CardTokenData = {
   card_holder: string
 }
 
+export type AcceptanceTokens = {
+  acceptance_token: string
+  acceptance_permalink: string
+  personal_auth_token: string
+}
+
 export const paymentService = {
   getInfo: (orderNumber: string) =>
     api.get<PaymentInfo>(`/payment/info/${orderNumber}/`).then((r) => r.data),
@@ -44,22 +50,37 @@ export const paymentService = {
   pollStatus: (orderNumber: string) =>
     api.get<PaymentInfo>(`/payment/info/${orderNumber}/`).then((r) => r.data),
 
-  processCard: (orderNumber: string, cardToken: string) =>
+  getAcceptanceTokens: async (): Promise<AcceptanceTokens> => {
+    const resp = await fetch(`${WOMPI_API_URL}/merchants/${WOMPI_PUBLIC_KEY}`)
+    const json = await resp.json()
+    const data = json.data ?? {}
+    return {
+      acceptance_token: data.presigned_acceptance?.acceptance_token ?? '',
+      acceptance_permalink: data.presigned_acceptance?.permalink ?? '',
+      personal_auth_token: data.presigned_personal_data_auth?.acceptance_token ?? '',
+    }
+  },
+
+  processCard: (orderNumber: string, cardToken: string, acceptanceToken: string, personalAuthToken: string) =>
     api
       .post<PaymentResult>('/payment/process/', {
         order_number: orderNumber,
         method: 'CARD',
         card_token: cardToken,
         installments: 1,
+        acceptance_token: acceptanceToken,
+        acceptance_personal_auth_token: personalAuthToken,
       })
       .then((r) => r.data),
 
-  processNequi: (orderNumber: string, phoneNumber: string) =>
+  processNequi: (orderNumber: string, phoneNumber: string, acceptanceToken: string, personalAuthToken: string) =>
     api
       .post<PaymentResult>('/payment/process/', {
         order_number: orderNumber,
         method: 'NEQUI',
         phone_number: phoneNumber,
+        acceptance_token: acceptanceToken,
+        acceptance_personal_auth_token: personalAuthToken,
       })
       .then((r) => r.data),
 
@@ -69,6 +90,8 @@ export const paymentService = {
     userType: number,
     userLegalIdType: string,
     userLegalId: string,
+    acceptanceToken: string,
+    personalAuthToken: string,
   ) =>
     api
       .post<PaymentResult>('/payment/process/', {
@@ -78,6 +101,8 @@ export const paymentService = {
         user_type: userType,
         user_legal_id_type: userLegalIdType,
         user_legal_id: userLegalId,
+        acceptance_token: acceptanceToken,
+        acceptance_personal_auth_token: personalAuthToken,
       })
       .then((r) => r.data),
 
@@ -86,6 +111,8 @@ export const paymentService = {
     userType: number,
     userLegalIdType: string,
     userLegalId: string,
+    acceptanceToken: string,
+    personalAuthToken: string,
   ) =>
     api
       .post<PaymentResult>('/payment/process/', {
@@ -94,6 +121,8 @@ export const paymentService = {
         user_type: userType,
         user_legal_id_type: userLegalIdType,
         user_legal_id: userLegalId,
+        acceptance_token: acceptanceToken,
+        acceptance_personal_auth_token: personalAuthToken,
       })
       .then((r) => r.data),
 
@@ -108,11 +137,8 @@ export const paymentService = {
     })
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}))
-      const msg =
-        err?.error?.messages?.number?.[0] ||
-        err?.error?.messages?.cvc?.[0] ||
-        err?.error?.messages?.exp_month?.[0] ||
-        'Datos de tarjeta inválidos.'
+      const msgs = err?.error?.messages ?? {}
+      const msg = msgs.number?.[0] || msgs.cvc?.[0] || msgs.exp_month?.[0] || 'Datos de tarjeta inválidos.'
       throw new Error(msg)
     }
     const json = await resp.json()

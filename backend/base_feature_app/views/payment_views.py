@@ -91,7 +91,7 @@ def process_payment(request):
         method_data = {
             'type': 'CARD',
             'installments': int(request.data.get('installments', 1)),
-            'token': {'id': card_token},
+            'token': card_token,
         }
 
     elif method == 'NEQUI':
@@ -132,8 +132,11 @@ def process_payment(request):
     else:
         return Response({'detail': f'Método no soportado: {method}'}, status=status.HTTP_400_BAD_REQUEST)
 
+    acceptance_token = request.data.get('acceptance_token', '')
+    personal_auth_token = request.data.get('acceptance_personal_auth_token', '')
+
     try:
-        result = WompiService.process_transaction(tx, method_data)
+        result = WompiService.process_transaction(tx, method_data, acceptance_token, personal_auth_token)
     except Exception as exc:
         logger.error('process_payment failed for %s: %s', order_number, exc)
         return Response(
