@@ -10,7 +10,7 @@ function cartKey(item: CartItem) {
 }
 
 export function lineTotal(item: CartItem) {
-  return (item.unit_price + item.personalization_cost) * item.quantity
+  return ((item.unit_price ?? 0) + (item.personalization_cost ?? 0)) * (item.quantity ?? 1)
 }
 
 export function calcDeposit(subtotal: number) {
@@ -70,6 +70,15 @@ export const useCartStore = create<CartState>()(
     {
       name: 'cart',
       partialize: (state) => ({ items: state.items }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return
+        state.items = state.items.filter(
+          (item) =>
+            typeof item.peluch_id === 'number' && item.peluch_id > 0 &&
+            typeof item.size_id === 'number' && item.size_id > 0 &&
+            typeof item.color_id === 'number' && item.color_id > 0
+        )
+      },
     }
   )
 )

@@ -48,6 +48,19 @@ export default function CheckoutPage() {
     e.preventDefault()
     if (!terms) { setError('Debes aceptar los términos y condiciones.'); return }
     if (items.length === 0) { setError('Tu carrito está vacío.'); return }
+
+    const validItems = items.filter(
+      (item) =>
+        typeof item.peluch_id === 'number' && item.peluch_id > 0 &&
+        typeof item.size_id === 'number' && item.size_id > 0 &&
+        typeof item.color_id === 'number' && item.color_id > 0
+    )
+    if (validItems.length !== items.length) {
+      clearCart()
+      setError('Algunos productos de tu carrito estaban desactualizados y fueron eliminados. Por favor agrégalos de nuevo.')
+      return
+    }
+
     setLoading(true)
     setError('')
     try {
@@ -60,7 +73,7 @@ export default function CheckoutPage() {
         department,
         postal_code: postalCode,
         notes,
-        items,
+        items: validItems,
       })
       clearCart()
       if (result.checkout_url) {

@@ -14,7 +14,7 @@ export default function CartPage() {
   const subtotal = useMemo(() => items.reduce((acc, item) => acc + lineTotal(item), 0), [items])
   const deposit = useMemo(() => calcDeposit(subtotal), [subtotal])
 
-  function fmt(n: number) { return '$' + n.toLocaleString('es-CO') }
+  function fmt(n: number | undefined | null) { return '$' + (n ?? 0).toLocaleString('es-CO') }
 
   return (
     <main>
