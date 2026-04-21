@@ -100,10 +100,16 @@ export default function PeluchDetailPage() {
   const activeColor = peluch.available_colors[activeColorIdx]
   const gallery = peluch.gallery_urls.length > 0 ? peluch.gallery_urls : ['/mimittos/prod-01.svg']
 
+  const userHasHuella = peluch.has_huella && (
+    huellaType !== 'image' ? huellaText.trim() !== '' : huellaMediaId !== null
+  )
+  const userHasCorazon = peluch.has_corazon && corazonPhrase.trim() !== ''
+  const userHasAudio = peluch.has_audio && audioMediaId !== null
+
   const personalizationCost =
-    (peluch.has_huella ? peluch.huella_extra_cost : 0) +
-    (peluch.has_corazon ? peluch.corazon_extra_cost : 0) +
-    (peluch.has_audio ? peluch.audio_extra_cost : 0)
+    (userHasHuella ? peluch.huella_extra_cost : 0) +
+    (userHasCorazon ? peluch.corazon_extra_cost : 0) +
+    (userHasAudio ? peluch.audio_extra_cost : 0)
 
   const unitPrice = activeSizePrice?.price ?? peluch.min_price ?? 0
   const total = (unitPrice + personalizationCost) * qty
@@ -137,12 +143,6 @@ export default function PeluchDetailPage() {
   function handleAdd() {
     if (!activeSizePrice || !activeColor) return
 
-    const userAddedHuella = peluch.has_huella && (
-      huellaType !== 'image' ? huellaText.trim() !== '' : huellaMediaId !== null
-    )
-    const userAddedCorazon = peluch.has_corazon && corazonPhrase.trim() !== ''
-    const userAddedAudio = peluch.has_audio && audioMediaId !== null
-
     const cartItem: CartItem = {
       peluch_id: peluch.id,
       peluch_slug: peluch.slug,
@@ -156,14 +156,14 @@ export default function PeluchDetailPage() {
       personalization_cost: personalizationCost,
       quantity: qty,
       gallery_urls: gallery,
-      has_huella: userAddedHuella,
-      huella_type: userAddedHuella ? huellaType : '',
-      huella_text: userAddedHuella && huellaType !== 'image' ? huellaText : '',
-      huella_media_id: userAddedHuella && huellaType === 'image' ? huellaMediaId : null,
-      has_corazon: userAddedCorazon,
-      corazon_phrase: userAddedCorazon ? corazonPhrase : '',
-      has_audio: userAddedAudio,
-      audio_media_id: userAddedAudio ? audioMediaId : null,
+      has_huella: userHasHuella,
+      huella_type: userHasHuella ? huellaType : '',
+      huella_text: userHasHuella && huellaType !== 'image' ? huellaText : '',
+      huella_media_id: userHasHuella && huellaType === 'image' ? huellaMediaId : null,
+      has_corazon: userHasCorazon,
+      corazon_phrase: userHasCorazon ? corazonPhrase : '',
+      has_audio: userHasAudio,
+      audio_media_id: userHasAudio ? audioMediaId : null,
     }
 
     addToCart(cartItem)

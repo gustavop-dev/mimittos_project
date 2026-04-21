@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -12,6 +13,8 @@ export default function Header() {
   const signOut = useAuthStore((s) => s.signOut)
   const cartCount = useCartStore((s) => s.items.reduce((acc, item) => acc + item.quantity, 0))
   const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   const navLinks = [
     { href: '/', label: 'Inicio' },
@@ -77,16 +80,11 @@ export default function Header() {
             )}
           </Link>
 
-          {isAuthenticated ? (
-            <>
-              <Link href="/orders" style={loginBtnStyle}>Mis pedidos</Link>
-              <button style={{ ...loginBtnStyle, background: 'transparent', color: 'var(--navy)', border: '1.5px solid rgba(27,42,74,.15)' } as React.CSSProperties} onClick={signOut}>
-                Salir
-              </button>
-            </>
+          {mounted && (isAuthenticated ? (
+            <Link href="/orders" style={loginBtnStyle}>Mis pedidos</Link>
           ) : (
             <Link href="/sign-in" style={loginBtnStyle}>Ingresar</Link>
-          )}
+          ))}
         </div>
       </div>
     </header>

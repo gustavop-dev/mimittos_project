@@ -172,15 +172,21 @@ export type OrderTrackingInfo = {
   updated_at: string
   payment_status: string | null
   checkout_url: string | null
+  customer_name: string
+  customer_phone: string
+  address: string
+  city: string
+  department: string
+  postal_code: string
+  items: OrderItemRead[]
 }
 
 export type OrderCreateResponse = {
   order_number: string
-  checkout_url: string
   deposit_amount: number
   balance_amount: number
   total_amount: number
-  is_new_account: boolean
+  is_guest: boolean
 }
 
 // ── Reseñas ───────────────────────────────────────────────────────────────────

@@ -15,7 +15,7 @@ import requests
 
 from base_feature_app.models import PasswordCode
 from base_feature_app.utils.auth_utils import (
-    generate_auth_tokens, 
+    generate_auth_tokens,
     send_password_reset_code,
     send_verification_code
 )
@@ -29,19 +29,10 @@ logger = logging.getLogger(__name__)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def sign_up(request):
-    """
-    User registration endpoint.
-    
-    Expected data:
-    - email: str
-    - password: str
-    - first_name: str (optional)
-    - last_name: str (optional)
-    """
     captcha_token = request.data.get('captcha_token', '')
     if not verify_recaptcha(captcha_token):
         return Response(
-            {'captcha_token': ['reCAPTCHA verification failed.']},
+            {'captcha_token': ['La verificación reCAPTCHA falló.']},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -49,108 +40,173 @@ def sign_up(request):
     password = request.data.get('password')
     first_name = request.data.get('first_name', '').strip()
     last_name = request.data.get('last_name', '').strip()
-    
+
     if not email or not password:
         return Response(
-            {'error': 'Email and password are required'},
+            {'error': 'El correo y la contraseña son obligatorios'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+
     if len(password) < 8:
         return Response(
-            {'error': 'Password must be at least 8 characters'},
+            {'error': 'La contraseña debe tener al menos 8 caracteres'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
-    if User.objects.filter(email=email).exists():
+
+    existing = User.objects.filter(email=email).first()
+    if existing:
+        if not existing.is_active:
+            password_code = PasswordCode.generate_code(existing)
+            send_verification_code(email, password_code.code)
+            return Response(
+                {'detail': 'Ya existe una cuenta pendiente de verificación. Te reenviamos el código a tu correo.', 'email': email},
+                status=status.HTTP_200_OK
+            )
+        if not existing.has_usable_password():
+            return Response(
+                {'error': 'Este correo ya tiene una cuenta creada con Google. Inicia sesión con Google.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         return Response(
-            {'error': 'User with this email already exists'},
+            {'error': 'Este correo ya está registrado. ¿Olvidaste tu contraseña?'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
-    # Create user
+
     user = User.objects.create(
         email=email,
         first_name=first_name,
         last_name=last_name,
         password=make_password(password),
-        is_active=True
+        is_active=False
     )
-    
-    # Generate tokens
+
+    password_code = PasswordCode.generate_code(user)
+    send_verification_code(email, password_code.code)
+
+    return Response(
+        {'detail': 'Cuenta creada. Te enviamos un código de verificación a tu correo.', 'email': email},
+        status=status.HTTP_201_CREATED
+    )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_registration(request):
+    email = request.data.get('email', '').strip().lower()
+    code = request.data.get('code', '').strip()
+
+    if not email or not code:
+        return Response(
+            {'error': 'El correo y el código son obligatorios'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response(
+            {'error': 'Código inválido o expirado'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    password_code = user.password_codes.filter(code=code, used=False).first()
+    if not password_code or not password_code.is_valid():
+        return Response(
+            {'error': 'El código es inválido o ha expirado'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    user.is_active = True
+    user.save(update_fields=['is_active'])
+
+    password_code.used = True
+    password_code.save(update_fields=['used'])
+
+    from base_feature_app.models import Order
+    Order.objects.filter(customer_email=email, customer=None).update(customer=user)
+
     tokens = generate_auth_tokens(user)
-    
-    return Response(tokens, status=status.HTTP_201_CREATED)
+    return Response(tokens, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def resend_verification(request):
+    email = request.data.get('email', '').strip().lower()
+
+    if not email:
+        return Response(
+            {'error': 'El correo es obligatorio'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        user = User.objects.get(email=email, is_active=False)
+    except User.DoesNotExist:
+        return Response(
+            {'detail': 'Si existe una cuenta pendiente, te reenviamos el código.'},
+            status=status.HTTP_200_OK
+        )
+
+    password_code = PasswordCode.generate_code(user)
+    send_verification_code(email, password_code.code)
+
+    return Response(
+        {'detail': 'Código reenviado a tu correo.'},
+        status=status.HTTP_200_OK
+    )
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def sign_in(request):
-    """
-    User sign in endpoint.
-    
-    Expected data:
-    - email: str
-    - password: str
-    """
     captcha_token = request.data.get('captcha_token', '')
     if not verify_recaptcha(captcha_token):
         return Response(
-            {'captcha_token': ['reCAPTCHA verification failed.']},
+            {'captcha_token': ['La verificación reCAPTCHA falló.']},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     email = request.data.get('email', '').strip().lower()
     password = request.data.get('password')
-    
+
     if not email or not password:
         return Response(
-            {'error': 'Email and password are required'},
+            {'error': 'El correo y la contraseña son obligatorios'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
         return Response(
-            {'error': 'Invalid credentials'},
+            {'error': 'Credenciales incorrectas'},
             status=status.HTTP_401_UNAUTHORIZED
         )
-    
+
     if not check_password(password, user.password):
         return Response(
-            {'error': 'Invalid credentials'},
+            {'error': 'Credenciales incorrectas'},
             status=status.HTTP_401_UNAUTHORIZED
         )
-    
+
     if not user.is_active:
         return Response(
-            {'error': 'Account is inactive'},
+            {'error': 'Tu cuenta aún no está verificada. Revisa tu correo o regístrate de nuevo para recibir un nuevo código.', 'needs_verification': True, 'email': email},
             status=status.HTTP_403_FORBIDDEN
         )
-    
-    # Generate tokens
+
     tokens = generate_auth_tokens(user)
-    
     return Response(tokens, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def google_login(request):
-    """
-    Google OAuth login endpoint.
-    
-    Expected data:
-    - email: str
-    - given_name: str (optional)
-    - family_name: str (optional)
-    - picture: str (optional)
-    """
     credential = request.data.get('credential') or request.data.get('id_token')
 
     if not credential:
-        return Response({'error': 'Google credential is required'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Se requiere la credencial de Google'}, status=status.HTTP_400_BAD_REQUEST)
 
     email = request.data.get('email', '').strip().lower()
     given_name = request.data.get('given_name', '').strip()
@@ -182,8 +238,8 @@ def google_login(request):
 
     if payload is None and not settings.DEBUG:
         if aud_mismatch:
-            return Response({'error': 'Invalid Google client'}, status=status.HTTP_401_UNAUTHORIZED)
-        return Response({'error': 'Invalid Google credential'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'error': 'Cliente de Google inválido'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({'error': 'Credencial de Google inválida'}, status=status.HTTP_401_UNAUTHORIZED)
 
     if payload is not None:
         token_email = (payload.get('email') or '').strip().lower()
@@ -200,14 +256,13 @@ def google_login(request):
             family_name = token_family
         if token_picture:
             picture_url = token_picture
-    
+
     if not email:
         return Response(
-            {'error': 'Email is required'},
+            {'error': 'Se requiere el correo electrónico'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
-    # Get or create user
+
     user, created = User.objects.get_or_create(
         email=email,
         defaults={
@@ -220,8 +275,7 @@ def google_login(request):
     if created:
         user.set_unusable_password()
         user.save(update_fields=['password'])
-    
-    # Update names if user exists but doesn't have them
+
     if not created:
         if not user.first_name and given_name:
             user.first_name = given_name
@@ -229,55 +283,44 @@ def google_login(request):
             user.last_name = family_name
         if user.first_name or user.last_name:
             user.save()
-    
-    # Generate tokens
+
     tokens = generate_auth_tokens(user)
     tokens['created'] = created
     tokens['google_validated'] = payload is not None
-    
+
     return Response(tokens, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def send_passcode(request):
-    """
-    Send password reset code to user's email.
-    
-    Expected data:
-    - email: str
-    """
     email = request.data.get('email', '').strip().lower()
-    
+
     if not email:
         return Response(
-            {'error': 'Email is required'},
+            {'error': 'El correo es obligatorio'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
-        # Don't reveal if user exists
         return Response(
-            {'message': 'If the email exists, a code has been sent'},
+            {'message': 'Si el correo existe en nuestro sistema, recibirás el código pronto'},
             status=status.HTTP_200_OK
         )
-    
-    # Generate and save code
+
     password_code = PasswordCode.generate_code(user)
-    
-    # Send email
     success = send_password_reset_code(user, password_code.code)
-    
+
     if not success:
         return Response(
-            {'error': 'Failed to send email'},
+            {'error': 'Error al enviar el correo. Inténtalo de nuevo.'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
-    
+
     return Response(
-        {'message': 'Code sent successfully'},
+        {'message': 'Código enviado a tu correo'},
         status=status.HTTP_200_OK
     )
 
@@ -285,60 +328,53 @@ def send_passcode(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def verify_passcode_and_reset_password(request):
-    """
-    Verify passcode and reset password.
-    
-    Expected data:
-    - email: str
-    - code: str
-    - new_password: str
-    """
     email = request.data.get('email', '').strip().lower()
     code = request.data.get('code', '').strip()
     new_password = request.data.get('new_password')
-    
+
     if not email or not code or not new_password:
         return Response(
-            {'error': 'Email, code, and new password are required'},
+            {'error': 'El correo, el código y la nueva contraseña son obligatorios'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+
+    if len(new_password) < 8:
+        return Response(
+            {'error': 'La contraseña debe tener al menos 8 caracteres'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     try:
         user = User.objects.get(email=email)
     except User.DoesNotExist:
         return Response(
-            {'error': 'Invalid email or code'},
+            {'error': 'Código inválido o expirado'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
-    # Find valid code
+
     try:
-        password_code = user.password_codes.filter(
-            code=code,
-            used=False
-        ).first()
-        
+        password_code = user.password_codes.filter(code=code, used=False).first()
         if not password_code or not password_code.is_valid():
             return Response(
-                {'error': 'Invalid or expired code'},
+                {'error': 'El código es inválido o ha expirado'},
                 status=status.HTTP_400_BAD_REQUEST
             )
     except Exception:
         return Response(
-            {'error': 'Invalid or expired code'},
+            {'error': 'El código es inválido o ha expirado'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
-    # Update password
+
     user.password = make_password(new_password)
+    if not user.is_active:
+        user.is_active = True
     user.save()
-    
-    # Mark code as used
+
     password_code.used = True
     password_code.save()
-    
+
     return Response(
-        {'message': 'Password reset successfully'},
+        {'message': 'Contraseña actualizada exitosamente'},
         status=status.HTTP_200_OK
     )
 
@@ -346,35 +382,34 @@ def verify_passcode_and_reset_password(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def update_password(request):
-    """
-    Update user password (requires authentication).
-    
-    Expected data:
-    - current_password: str
-    - new_password: str
-    """
     current_password = request.data.get('current_password')
     new_password = request.data.get('new_password')
-    
+
     if not current_password or not new_password:
         return Response(
-            {'error': 'Current password and new password are required'},
+            {'error': 'La contraseña actual y la nueva son obligatorias'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+
     user = request.user
-    
+
     if not check_password(current_password, user.password):
         return Response(
-            {'error': 'Current password is incorrect'},
+            {'error': 'La contraseña actual es incorrecta'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+
+    if len(new_password) < 8:
+        return Response(
+            {'error': 'La contraseña debe tener al menos 8 caracteres'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     user.password = make_password(new_password)
     user.save()
-    
+
     return Response(
-        {'message': 'Password updated successfully'},
+        {'message': 'Contraseña actualizada exitosamente'},
         status=status.HTTP_200_OK
     )
 
@@ -382,9 +417,6 @@ def update_password(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def validate_token(request):
-    """
-    Validate JWT token and return user info.
-    """
     user = request.user
     return Response({
         'valid': True,

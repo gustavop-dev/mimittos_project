@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 
 import { orderService } from '@/lib/services/orderService'
-import type { OrderStatus, OrderTrackingInfo } from '@/lib/types'
+import type { OrderItemRead, OrderStatus, OrderTrackingInfo } from '@/lib/types'
 
 const STATUS_LABELS: Record<string, string> = {
   pending_payment: 'Pago pendiente',
@@ -35,6 +35,55 @@ function currentStepCount(status: OrderStatus) {
 
 function fmtDate(s: string) {
   return new Date(s).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function fmt(n: number) { return '$' + n.toLocaleString('es-CO') }
+
+function ItemCard({ item }: { item: OrderItemRead }) {
+  const personalizaciones: string[] = []
+  if (item.has_huella) {
+    const txt = item.huella_text ? `"${item.huella_text}"` : item.huella_type || 'imagen'
+    personalizaciones.push(`Huella: ${txt}`)
+  }
+  if (item.has_corazon && item.corazon_phrase) personalizaciones.push(`Corazón: "${item.corazon_phrase}"`)
+  if (item.has_audio) personalizaciones.push('Audio personalizado')
+
+  return (
+    <div style={{ border: '1.5px solid rgba(212,132,138,.2)', borderRadius: 14, padding: '14px 16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--navy)', margin: '0 0 4px' }}>
+            {item.peluch_title}
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--gray-warm)', margin: '0 0 2px' }}>
+            Talla: <strong>{item.size.label}</strong> ({item.size.cm}) · Color: <strong>{item.color.name}</strong>
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--gray-warm)', margin: 0 }}>
+            Cantidad: <strong>{item.quantity}</strong>
+          </p>
+          {personalizaciones.length > 0 && (
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {personalizaciones.map((p) => (
+                <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--terracotta)', background: 'var(--pink-melo)', padding: '3px 10px', borderRadius: 999, width: 'fit-content' }}>
+                  ✦ {p}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <p style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--terracotta)', margin: '0 0 2px' }}>
+            {fmt(item.line_total)}
+          </p>
+          {item.personalization_cost > 0 && (
+            <p style={{ fontSize: 11, color: 'var(--gray-warm)', margin: 0 }}>
+              incl. {fmt(item.personalization_cost)} personaliz.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function TrackingContent() {
@@ -238,6 +287,38 @@ function TrackingContent() {
               </div>
             ))}
           </div>
+
+          {/* Datos de entrega */}
+          <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 28, boxShadow: 'var(--shadow-sm)' }}>
+            <h3 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 18, color: 'var(--navy)', marginBottom: 18 }}>Datos de entrega</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              {[
+                ['Destinatario', tracking.customer_name],
+                ...(tracking.customer_phone ? [['Teléfono', tracking.customer_phone]] : []),
+                ['Dirección', tracking.address],
+                ['Ciudad', `${tracking.city}, ${tracking.department}${tracking.postal_code ? ` · CP ${tracking.postal_code}` : ''}`],
+              ].map(([k, v]) => (
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed rgba(212,132,138,.2)', fontSize: 14 }}>
+                  <span style={{ color: 'var(--gray-warm)' }}>{k}</span>
+                  <b style={{ color: 'var(--navy)', fontWeight: 600, textAlign: 'right', maxWidth: 260 }}>{v}</b>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Items */}
+          {tracking.items && tracking.items.length > 0 && (
+            <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 28, boxShadow: 'var(--shadow-sm)' }}>
+              <h3 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 18, color: 'var(--navy)', marginBottom: 18 }}>
+                Lo que pediste 🧸
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {tracking.items.map((item) => (
+                  <ItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Help */}
           <div style={{ background: 'linear-gradient(135deg,var(--cream-peach),var(--pink-melo))', borderRadius: 'var(--radius-lg)', padding: 24 }}>

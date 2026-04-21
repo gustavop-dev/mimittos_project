@@ -1,6 +1,3 @@
-import secrets
-
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -13,7 +10,6 @@ from base_feature_app.serializers.order import (
     OrderTrackingSerializer, OrderStatusUpdateSerializer, OrderTrackingUpdateSerializer,
 )
 from base_feature_app.services.order_service import OrderService
-from base_feature_app.services.wompi_service import WompiService
 from base_feature_app.services.notification_service import NotificationService
 
 
@@ -25,58 +21,29 @@ def create_order(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     user = request.user if request.user.is_authenticated else None
-    is_new_account = False
-    temp_password = None
+    is_guest = False
 
     if user is None:
         User = get_user_model()
         customer_email = serializer.validated_data['customer_email']
-        customer_name = serializer.validated_data.get('customer_name', '')
-        name_parts = customer_name.split(maxsplit=1)
-
-        user, created = User.objects.get_or_create(
-            email=customer_email,
-            defaults={
-                'first_name': name_parts[0] if name_parts else '',
-                'last_name': name_parts[1] if len(name_parts) > 1 else '',
-                'role': User.Role.CUSTOMER,
-            },
-        )
-        if created:
-            temp_password = secrets.token_urlsafe(10)
-            user.set_password(temp_password)
-            user.save(update_fields=['password'])
-            is_new_account = True
+        try:
+            user = User.objects.get(email=customer_email)
+        except User.DoesNotExist:
+            user = None
+            is_guest = True
 
     try:
         order = OrderService.create_order(serializer.validated_data, user=user)
     except Exception as exc:
         return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-    checkout_url = ''
-    try:
-        checkout_url = WompiService.create_checkout(order.payment, new_account=is_new_account)
-    except Exception:
-        pass
-
-    if is_new_account and temp_password:
-        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
-        NotificationService.notify_welcome_credentials(
-            customer_name=order.customer_name,
-            email=order.customer_email,
-            temp_password=temp_password,
-            order_number=order.order_number,
-            login_url=f'{frontend_url}/auth/login',
-        )
-
     return Response(
         {
             'order_number': order.order_number,
-            'checkout_url': checkout_url,
             'deposit_amount': order.deposit_amount,
             'balance_amount': order.balance_amount,
             'total_amount': order.total_amount,
-            'is_new_account': is_new_account,
+            'is_guest': is_guest,
         },
         status=status.HTTP_201_CREATED,
     )
@@ -94,7 +61,9 @@ def my_orders(request):
 @permission_classes([AllowAny])
 def track_order(request, order_number: str):
     try:
-        order = Order.objects.select_related('payment').get(order_number=order_number)
+        order = Order.objects.select_related('payment').prefetch_related(
+            'items__peluch', 'items__size', 'items__color',
+        ).get(order_number=order_number)
     except Order.DoesNotExist:
         return Response({'detail': 'Pedido no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -135,7 +104,10 @@ def order_detail_view(request, order_number: str):
     except Order.DoesNotExist:
         return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    is_owner = request.user.is_authenticated and order.customer == request.user
+    is_owner = request.user.is_authenticated and (
+        order.customer == request.user
+        or order.customer_email == request.user.email
+    )
     is_admin = request.user.is_authenticated and request.user.is_staff
     if not is_owner and not is_admin:
         return Response({'detail': 'No tienes permiso para ver este pedido.'}, status=status.HTTP_403_FORBIDDEN)

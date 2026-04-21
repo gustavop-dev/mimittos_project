@@ -158,7 +158,7 @@ describe('SignUpPage', () => {
       });
     });
 
-    expect(replace).toHaveBeenCalledWith('/dashboard');
+    expect(replace).toHaveBeenCalledWith('/mis-pedidos');
   });
 
   it('shows error when Google registration fails with response error', async () => {
@@ -256,7 +256,7 @@ describe('SignUpPage', () => {
         picture: 'pic.png',
       });
     });
-    expect(replace).toHaveBeenCalledWith('/dashboard');
+    expect(replace).toHaveBeenCalledWith('/mis-pedidos');
   });
 
   it('shows an error when Google credential is missing', async () => {
@@ -305,6 +305,6 @@ describe('SignUpPage', () => {
         picture: undefined,
       });
     });
-    expect(replace).toHaveBeenCalledWith('/dashboard');
+    expect(replace).toHaveBeenCalledWith('/mis-pedidos');
   });
 });

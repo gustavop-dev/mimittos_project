@@ -59,7 +59,9 @@ def payment_info(request, order_number: str):
         'reference': tx.reference,
         'amount_in_cents': tx.amount_in_cents,
         'currency': tx.currency,
+        'total_amount': order.total_amount,
         'deposit_amount': order.deposit_amount,
+        'balance_amount': order.balance_amount,
         'customer_name': order.customer_name,
         'customer_email': order.customer_email,
         'customer_phone': order.customer_phone or '',
@@ -145,6 +147,48 @@ def process_payment(request):
         )
 
     return Response(result)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def check_payment_status(request, order_number: str):
+    """Query Wompi directly for the current transaction status and sync our DB."""
+    try:
+        tx = WompiTransaction.objects.select_related('order').get(order__order_number=order_number)
+    except WompiTransaction.DoesNotExist:
+        return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if not tx.wompi_id:
+        return Response({'status': tx.status, 'synced': False})
+
+    wompi_data = WompiService.fetch_transaction(tx.wompi_id)
+    if not wompi_data:
+        return Response({'status': tx.status, 'synced': False})
+
+    wompi_status_raw = wompi_data.get('status', '').upper()
+    status_map = {
+        'APPROVED': WompiTransaction.Status.APPROVED,
+        'DECLINED': WompiTransaction.Status.DECLINED,
+        'VOIDED': WompiTransaction.Status.VOIDED,
+        'ERROR': WompiTransaction.Status.ERROR,
+    }
+    new_status = status_map.get(wompi_status_raw)
+
+    if new_status and tx.status != new_status:
+        tx.status = new_status
+        tx.raw_response = wompi_data
+        tx.save(update_fields=['status', 'raw_response', 'updated_at'])
+
+        if new_status == WompiTransaction.Status.APPROVED:
+            from base_feature_app.models import Order
+            from base_feature_app.services.order_service import OrderService
+            from base_feature_app.services.notification_service import NotificationService
+            order = tx.order
+            if order.status == Order.Status.PENDING_PAYMENT:
+                OrderService.update_status(order, Order.Status.PAYMENT_CONFIRMED)
+                NotificationService.notify_new_order_admin(order)
+
+    return Response({'status': tx.status, 'synced': bool(new_status)})
 
 
 @api_view(['GET'])

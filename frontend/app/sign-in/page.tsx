@@ -52,7 +52,7 @@ export default function SignInPage() {
 
     try {
       await signIn({ email, password, captcha_token: captchaToken ?? undefined })
-      router.replace('/dashboard')
+      router.replace('/orders')
     } catch (err: any) {
       setError(err.response?.data?.error || 'Correo o contraseña incorrectos')
       recaptchaRef.current?.reset()
@@ -83,7 +83,7 @@ export default function SignInPage() {
         picture: decoded?.picture,
       })
 
-      router.replace('/dashboard')
+      router.replace('/orders')
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al iniciar sesión con Google')
     } finally {

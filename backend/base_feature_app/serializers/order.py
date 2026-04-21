@@ -152,6 +152,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 class OrderTrackingSerializer(serializers.ModelSerializer):
     payment_status = serializers.SerializerMethodField()
     checkout_url = serializers.SerializerMethodField()
+    items = OrderItemReadSerializer(many=True, read_only=True)
 
     class Meta:
         model = Order
@@ -159,6 +160,9 @@ class OrderTrackingSerializer(serializers.ModelSerializer):
             'order_number', 'status', 'tracking_number',
             'shipping_carrier', 'created_at', 'updated_at',
             'payment_status', 'checkout_url',
+            'customer_name', 'customer_phone',
+            'address', 'city', 'department', 'postal_code',
+            'items',
         ]
 
     def get_payment_status(self, obj):
