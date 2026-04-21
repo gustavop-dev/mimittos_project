@@ -23,8 +23,8 @@ const HUELLA_TYPES = [
   { id: 'image', label: 'Imagen', placeholder: '' },
 ]
 
-function fmt(n: number) {
-  return '$' + n.toLocaleString('es-CO')
+function fmt(n: number | undefined | null) {
+  return '$' + (n ?? 0).toLocaleString('es-CO')
 }
 
 export default function PeluchDetailPage() {
@@ -137,6 +137,12 @@ export default function PeluchDetailPage() {
   function handleAdd() {
     if (!activeSizePrice || !activeColor) return
 
+    const userAddedHuella = peluch.has_huella && (
+      huellaType !== 'image' ? huellaText.trim() !== '' : huellaMediaId !== null
+    )
+    const userAddedCorazon = peluch.has_corazon && corazonPhrase.trim() !== ''
+    const userAddedAudio = peluch.has_audio && audioMediaId !== null
+
     const cartItem: CartItem = {
       peluch_id: peluch.id,
       peluch_slug: peluch.slug,
@@ -150,14 +156,14 @@ export default function PeluchDetailPage() {
       personalization_cost: personalizationCost,
       quantity: qty,
       gallery_urls: gallery,
-      has_huella: peluch.has_huella,
-      huella_type: peluch.has_huella ? huellaType : '',
-      huella_text: peluch.has_huella ? huellaText : '',
-      huella_media_id: peluch.has_huella && huellaType === 'image' ? huellaMediaId : null,
-      has_corazon: peluch.has_corazon,
-      corazon_phrase: peluch.has_corazon ? corazonPhrase : '',
-      has_audio: peluch.has_audio,
-      audio_media_id: peluch.has_audio ? audioMediaId : null,
+      has_huella: userAddedHuella,
+      huella_type: userAddedHuella ? huellaType : '',
+      huella_text: userAddedHuella && huellaType !== 'image' ? huellaText : '',
+      huella_media_id: userAddedHuella && huellaType === 'image' ? huellaMediaId : null,
+      has_corazon: userAddedCorazon,
+      corazon_phrase: userAddedCorazon ? corazonPhrase : '',
+      has_audio: userAddedAudio,
+      audio_media_id: userAddedAudio ? audioMediaId : null,
     }
 
     addToCart(cartItem)

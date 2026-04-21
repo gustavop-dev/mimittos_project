@@ -41,7 +41,7 @@ export default function CheckoutPage() {
 
   useEffect(() => { setHydrated(true) }, [])
 
-  function fmt(n: number) { return '$' + n.toLocaleString('es-CO') }
+  function fmt(n: number | undefined | null) { return '$' + (n ?? 0).toLocaleString('es-CO') }
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
