@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 
 import { paymentService, type AcceptanceTokens, type PaymentInfo, type PseBank } from '@/lib/services/paymentService'
 
@@ -97,8 +97,6 @@ function PaymentContent() {
   const [selected, setSelected] = useState<Method | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [nequiPending, setNequiPending] = useState(false)
-
   // Card fields
   const [cardNumber, setCardNumber] = useState('')
   const [cardHolder, setCardHolder] = useState('')
@@ -114,8 +112,6 @@ function PaymentContent() {
   const [userType, setUserType] = useState(0)
   const [idType, setIdType] = useState('CC')
   const [idNumber, setIdNumber] = useState('')
-
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     if (!orderNumber) return
@@ -138,35 +134,7 @@ function PaymentContent() {
     }
   }, [selected, banks.length])
 
-  useEffect(() => {
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
-  }, [])
-
   const deposit = info?.deposit_amount ?? depositParam
-
-  function startNequiPolling() {
-    let attempts = 0
-    pollRef.current = setInterval(async () => {
-      attempts++
-      if (attempts > 24) { // 2 min max
-        clearInterval(pollRef.current!)
-        setError('El pago tomó demasiado tiempo. Verifica tu app Nequi y revisa el estado de tu pedido.')
-        setNequiPending(false)
-        return
-      }
-      try {
-        const data = await paymentService.pollStatus(orderNumber)
-        if (data.status === 'approved') {
-          clearInterval(pollRef.current!)
-          router.push(`/order-confirmed?order=${orderNumber}&confirmed=1${isNew ? '&new=1' : ''}`)
-        } else if (data.status === 'declined' || data.status === 'error') {
-          clearInterval(pollRef.current!)
-          setNequiPending(false)
-          setError('Pago rechazado. Verifica tu saldo en Nequi e intenta de nuevo.')
-        }
-      } catch {}
-    }, 5000)
-  }
 
   async function handleSubmit() {
     if (!selected || !orderNumber) return
@@ -211,14 +179,12 @@ function PaymentContent() {
       const confirmedParam = result.status === 'APPROVED' ? '&confirmed=1' : ''
       const newParam = isNew ? '&new=1' : ''
 
-      if (result.status === 'APPROVED' || (result.status === 'PENDING' && selected !== 'NEQUI' && !result.redirect_url)) {
-        router.push(`/order-confirmed?order=${orderNumber}${confirmedParam}${newParam}`)
-      } else if (result.status === 'PENDING') {
-        if (selected === 'NEQUI') {
-          setNequiPending(true)
-          startNequiPolling()
-        } else if (result.redirect_url) {
+      if (result.status === 'APPROVED' || result.status === 'PENDING') {
+        if (result.redirect_url) {
+          // 3DS or PSE/Bancolombia bank redirect
           window.location.href = result.redirect_url
+        } else {
+          router.push(`/order-confirmed?order=${orderNumber}${confirmedParam}${newParam}`)
         }
       } else {
         setError('Pago rechazado. Verifica tus datos e intenta con otro método.')
@@ -232,36 +198,6 @@ function PaymentContent() {
     } finally {
       setLoading(false)
     }
-  }
-
-  // — Nequi waiting screen —
-  if (nequiPending) {
-    return (
-      <main style={{ minHeight: '100vh', background: 'var(--cream-warm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ maxWidth: 420, width: '100%', padding: '0 20px', textAlign: 'center' }}>
-          <div style={{ width: 90, height: 90, borderRadius: '50%', overflow: 'hidden', margin: '0 auto 24px', background: '#f0d0f8' }}>
-            <Image src="/mimittos/payments/nequi.jpeg" alt="Nequi" width={90} height={90} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
-          </div>
-          <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 800, fontSize: 26, color: 'var(--navy)', marginBottom: 12 }}>
-            Revisa tu app Nequi
-          </h2>
-          <p style={{ color: 'var(--gray-warm)', fontSize: 15, lineHeight: 1.6, marginBottom: 8 }}>
-            Enviamos una solicitud de pago de <strong style={{ color: 'var(--terracotta)' }}>{fmt(deposit)}</strong> a tu cuenta Nequi.
-          </p>
-          <p style={{ color: 'var(--gray-warm)', fontSize: 13, marginBottom: 32 }}>Acepta la solicitud en la app para confirmar tu pedido. Esta pantalla se actualizará automáticamente.</p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 32 }}>
-            {[0, 1, 2].map((i) => (
-              <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', background: 'var(--coral)', animation: `bounce 1.2s ${i * 0.2}s infinite` }} />
-            ))}
-          </div>
-          {error && <p style={{ color: '#c23b3b', fontSize: 13, marginBottom: 16 }}>{error}</p>}
-          <Link href={`/tracking?order=${orderNumber}`} style={{ fontSize: 13, color: 'var(--gray-warm)', textDecoration: 'underline' }}>
-            Ver estado del pedido
-          </Link>
-          <style>{`@keyframes bounce { 0%,80%,100%{transform:scale(1)}40%{transform:scale(1.4)} }`}</style>
-        </div>
-      </main>
-    )
   }
 
   return (
