@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import React from 'react'
 import { useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 
@@ -102,15 +103,15 @@ export default function CheckoutPage() {
       <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 30 }}>
           {[['Carrito', true, true], ['Datos y envío', true, false], ['Pago Wompi', false, false], ['Confirmación', false, false]].map(([label, done, passed], i) => (
-            <>
-              <div key={String(label)} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <React.Fragment key={String(label)}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: done ? 'var(--coral)' : '#fff', color: done ? '#fff' : 'var(--gray-warm)', border: done ? 'none' : '1.5px solid rgba(27,42,74,.1)', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14 }}>
                   {passed ? '✓' : i + 1}
                 </div>
                 <span style={{ fontSize: 14, fontWeight: done ? 700 : 500, color: done ? 'var(--navy)' : 'var(--gray-warm)' }}>{label}</span>
               </div>
-              {i < 3 && <div key={`s-${i}`} style={{ flex: 1, height: 1.5, background: done ? 'var(--coral)' : 'rgba(27,42,74,.08)', minWidth: 20, maxWidth: 60 }} />}
-            </>
+              {i < 3 && <div style={{ flex: 1, height: 1.5, background: done ? 'var(--coral)' : 'rgba(27,42,74,.08)', minWidth: 20, maxWidth: 60 }} />}
+            </React.Fragment>
           ))}
         </div>
       </div>
