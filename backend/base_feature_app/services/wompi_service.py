@@ -43,6 +43,7 @@ class WompiService:
         order = tx.order
         integrity = WompiService._integrity_signature(tx.reference, tx.amount_in_cents, tx.currency)
 
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
         payload = {
             'amount_in_cents': tx.amount_in_cents,
             'currency': tx.currency,
@@ -51,6 +52,7 @@ class WompiService:
             'signature': integrity,
             'acceptance_token': acceptance_token,
             'accept_personal_auth': personal_auth_token,
+            'redirect_url': f'{frontend_url}/order-confirmed?order={order.order_number}',
             'customer_data': {
                 'phone_number': order.customer_phone or '',
                 'full_name': order.customer_name,

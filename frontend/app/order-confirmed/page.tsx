@@ -2,13 +2,31 @@
 
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+
+import { paymentService } from '@/lib/services/paymentService'
 
 function OrderConfirmedContent() {
   const searchParams = useSearchParams()
   const orderNumber = searchParams.get('order') ?? ''
   const isNew = searchParams.get('new') === '1'
-  const confirmed = searchParams.get('confirmed') === '1'
+  const startConfirmed = searchParams.get('confirmed') === '1'
+
+  const [confirmed, setConfirmed] = useState(startConfirmed)
+
+  // Single check 2 s after mount — handles sandbox PENDING and 3DS returns.
+  // In production, direct card charges resolve synchronously (APPROVED/DECLINED)
+  // so this fires at most once and only matters for PENDING edge cases.
+  useEffect(() => {
+    if (confirmed || !orderNumber) return
+    const t = setTimeout(async () => {
+      try {
+        const data = await paymentService.pollStatus(orderNumber)
+        if (data.status === 'approved') setConfirmed(true)
+      } catch {}
+    }, 2000)
+    return () => clearTimeout(t)
+  }, [confirmed, orderNumber])
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--cream-warm)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
