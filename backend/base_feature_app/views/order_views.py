@@ -1,3 +1,7 @@
+import secrets
+
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -21,6 +25,28 @@ def create_order(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     user = request.user if request.user.is_authenticated else None
+    is_new_account = False
+    temp_password = None
+
+    if user is None:
+        User = get_user_model()
+        customer_email = serializer.validated_data['customer_email']
+        customer_name = serializer.validated_data.get('customer_name', '')
+        name_parts = customer_name.split(maxsplit=1)
+
+        user, created = User.objects.get_or_create(
+            email=customer_email,
+            defaults={
+                'first_name': name_parts[0] if name_parts else '',
+                'last_name': name_parts[1] if len(name_parts) > 1 else '',
+                'role': User.Role.CUSTOMER,
+            },
+        )
+        if created:
+            temp_password = secrets.token_urlsafe(10)
+            user.set_password(temp_password)
+            user.save(update_fields=['password'])
+            is_new_account = True
 
     try:
         order = OrderService.create_order(serializer.validated_data, user=user)
@@ -29,9 +55,19 @@ def create_order(request):
 
     checkout_url = ''
     try:
-        checkout_url = WompiService.create_checkout(order.payment)
+        checkout_url = WompiService.create_checkout(order.payment, new_account=is_new_account)
     except Exception:
         pass
+
+    if is_new_account and temp_password:
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+        NotificationService.notify_welcome_credentials(
+            customer_name=order.customer_name,
+            email=order.customer_email,
+            temp_password=temp_password,
+            order_number=order.order_number,
+            login_url=f'{frontend_url}/auth/login',
+        )
 
     NotificationService.notify_new_order_admin(order)
 
@@ -42,6 +78,7 @@ def create_order(request):
             'deposit_amount': order.deposit_amount,
             'balance_amount': order.balance_amount,
             'total_amount': order.total_amount,
+            'is_new_account': is_new_account,
         },
         status=status.HTTP_201_CREATED,
     )

@@ -32,9 +32,10 @@ class WompiService:
         return getattr(settings, 'WOMPI_INTEGRITY_SECRET', '')
 
     @staticmethod
-    def create_checkout(wompi_transaction: WompiTransaction) -> str:
+    def create_checkout(wompi_transaction: WompiTransaction, new_account: bool = False) -> str:
         order = wompi_transaction.order
         frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+        redirect_suffix = '&new_account=1' if new_account else ''
 
         payload = {
             'name': f'Pedido {order.order_number}',
@@ -43,7 +44,7 @@ class WompiService:
             'collect_shipping': False,
             'currency': 'COP',
             'amount_in_cents': wompi_transaction.amount_in_cents,
-            'redirect_url': f'{frontend_url}/tracking?order={order.order_number}',
+            'redirect_url': f'{frontend_url}/tracking?order={order.order_number}{redirect_suffix}',
             'reference': wompi_transaction.reference,
             'customer_data': {
                 'email': order.customer_email,

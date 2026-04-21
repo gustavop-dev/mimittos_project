@@ -71,6 +71,29 @@ class NotificationService:
         return NotificationService._send(order.customer_email, subject, body, order)
 
     @staticmethod
+    def notify_welcome_credentials(customer_name: str, email: str, temp_password: str,
+                                   order_number: str, login_url: str) -> bool:
+        subject = f'¡Bienvenido a MIMITTOS! Tu cuenta y pedido {order_number} 🧸'
+        body = (
+            f'Hola {customer_name},\n\n'
+            f'Gracias por tu pedido en MIMITTOS. '
+            f'Creamos una cuenta para que puedas hacer seguimiento de tus pedidos y revisar tu historial.\n\n'
+            f'--- Tus datos de acceso ---\n'
+            f'Correo: {email}\n'
+            f'Contraseña temporal: {temp_password}\n\n'
+            f'Inicia sesión aquí: {login_url}\n\n'
+            f'Te recomendamos cambiar tu contraseña desde tu perfil después de iniciar sesión.\n\n'
+            f'¡Pronto comenzamos a preparar tu peluche con mucho amor!\n\n'
+            f'— Equipo MIMITTOS'
+        )
+        try:
+            send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [email])
+            return True
+        except Exception as exc:
+            logger.error('Error sending welcome credentials: %s', exc)
+            return False
+
+    @staticmethod
     def notify_new_order_admin(order: Order) -> bool:
         admin_email = getattr(settings, 'ADMIN_EMAIL', '')
         if not admin_email:

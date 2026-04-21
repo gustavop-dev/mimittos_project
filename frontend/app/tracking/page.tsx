@@ -34,6 +34,7 @@ function TrackingContent() {
   const [tracking, setTracking] = useState<OrderTrackingInfo | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const isNewAccount = searchParams.get('new_account') === '1'
 
   // Auto-search when arriving from Wompi redirect
   useEffect(() => {
@@ -89,6 +90,26 @@ function TrackingContent() {
             Puedes encontrar tu número de pedido en el correo de confirmación.
           </p>
         </div>
+
+        {/* New account welcome banner */}
+        {isNewAccount && (
+          <div style={{ background: '#E8F5E9', border: '1px solid #A5D6A7', borderRadius: 14, padding: '16px 20px', marginBottom: 20, display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#A5D6A7', display: 'grid', placeItems: 'center', flexShrink: 0, color: '#1B5E20', fontSize: 18 }}>
+              🧸
+            </div>
+            <div style={{ flex: 1 }}>
+              <strong style={{ display: 'block', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: '#1B5E20', fontSize: 15, marginBottom: 4 }}>
+                ¡Bienvenido a MIMITTOS!
+              </strong>
+              <p style={{ fontSize: 13, color: '#2E7D32', margin: '0 0 10px' }}>
+                Creamos una cuenta para ti. Revisa tu correo — te enviamos tus credenciales de acceso para que puedas ver el historial de tus pedidos.
+              </p>
+              <Link href="/auth/login" style={{ display: 'inline-block', padding: '8px 18px', borderRadius: 999, background: '#2E7D32', color: '#fff', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                Iniciar sesión →
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Payment status banner */}
         {tracking && (tracking.payment_status === 'DECLINED' || tracking.payment_status === 'ERROR') && (

@@ -180,6 +180,7 @@ export type OrderCreateResponse = {
   deposit_amount: number
   balance_amount: number
   total_amount: number
+  is_new_account: boolean
 }
 
 // ── Reseñas ───────────────────────────────────────────────────────────────────
