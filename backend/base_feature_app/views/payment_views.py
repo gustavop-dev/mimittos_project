@@ -14,14 +14,13 @@ from base_feature_app.services.wompi_service import WompiService
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def wompi_webhook(request):
-    signature = request.headers.get('X-Event-Checksum', '')
-    if not WompiService.verify_signature(request.body, signature):
-        return Response({'detail': 'Invalid signature.'}, status=status.HTTP_400_BAD_REQUEST)
-
     try:
         event_data = json.loads(request.body)
     except json.JSONDecodeError:
         return Response({'detail': 'Invalid JSON.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not WompiService.verify_signature(event_data):
+        return Response({'detail': 'Invalid signature.'}, status=status.HTTP_400_BAD_REQUEST)
 
     WompiService.process_event(event_data)
     return Response({'received': True})

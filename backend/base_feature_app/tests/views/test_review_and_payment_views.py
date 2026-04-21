@@ -237,18 +237,47 @@ def test_approve_review_returns_404_for_nonexistent(admin_client):
 # POST /api/payment/wompi/webhook/ — Wompi webhook
 # ---------------------------------------------------------------------------
 
-def _make_signature(payload_bytes: bytes, secret: str) -> str:
-    return hmac.new(secret.encode(), payload_bytes, hashlib.sha256).hexdigest()
+def _make_wompi_event(secret: str, event_type: str = 'transaction.updated',
+                      tx_id: str = 'tx-v-001', status: str = 'APPROVED',
+                      amount: int = 4000000, currency: str = 'COP',
+                      reference: str = 'REF-VIEW-001') -> dict:
+    """Build a Wompi event_data dict with a valid SHA256 checksum."""
+    sent_at = '2026-04-21T12:00:00.000Z'
+    properties = ['transaction.id', 'transaction.status', 'transaction.amount_in_cents',
+                  'transaction.currency', 'transaction.reference']
+    tx = {'id': tx_id, 'status': status, 'amount_in_cents': amount,
+          'currency': currency, 'reference': reference, 'payment_method_type': 'CARD'}
+    data = {'transaction': tx}
+
+    concat = ''
+    for prop in properties:
+        value = data
+        for part in prop.split('.'):
+            value = value[part]
+        concat += str(value)
+
+    from datetime import datetime
+    dt = datetime.fromisoformat(sent_at.replace('Z', '+00:00'))
+    concat += str(int(dt.timestamp()))
+    concat += secret
+
+    checksum = hashlib.sha256(concat.encode()).hexdigest()
+    return {
+        'event': event_type,
+        'data': data,
+        'sent_at': sent_at,
+        'signature': {'checksum': checksum, 'properties': properties},
+    }
 
 
 @pytest.mark.django_db
-def test_wompi_webhook_returns_400_for_invalid_signature(api_client):
-    payload = json.dumps({'event': 'transaction.updated'}).encode()
+def test_wompi_webhook_returns_400_for_invalid_signature(api_client, settings):
+    settings.WOMPI_EVENTS_SECRET = 'test_secret'
+    event = _make_wompi_event('wrong_secret')
     response = api_client.post(
         '/api/payment/wompi/webhook/',
-        data=payload,
+        data=json.dumps(event),
         content_type='application/json',
-        HTTP_X_EVENT_CHECKSUM='bad_signature',
     )
     assert response.status_code == 400
 
@@ -256,15 +285,23 @@ def test_wompi_webhook_returns_400_for_invalid_signature(api_client):
 @pytest.mark.django_db
 def test_wompi_webhook_returns_200_for_valid_signature(api_client, settings):
     settings.WOMPI_EVENTS_SECRET = 'test_secret'
-    payload = json.dumps({'event': 'other.event'}).encode()
-    sig = _make_signature(payload, 'test_secret')
+    event = _make_wompi_event('test_secret', event_type='other.event')
     response = api_client.post(
         '/api/payment/wompi/webhook/',
-        data=payload,
+        data=json.dumps(event),
         content_type='application/json',
-        HTTP_X_EVENT_CHECKSUM=sig,
     )
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_wompi_webhook_returns_400_for_invalid_json(api_client):
+    response = api_client.post(
+        '/api/payment/wompi/webhook/',
+        data=b'not-json',
+        content_type='application/json',
+    )
+    assert response.status_code == 400
 
 
 # ---------------------------------------------------------------------------

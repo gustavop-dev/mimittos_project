@@ -28,6 +28,10 @@ class WompiService:
         return getattr(settings, 'WOMPI_EVENTS_SECRET', '')
 
     @staticmethod
+    def _integrity_secret() -> str:
+        return getattr(settings, 'WOMPI_INTEGRITY_SECRET', '')
+
+    @staticmethod
     def create_checkout(wompi_transaction: WompiTransaction) -> str:
         order = wompi_transaction.order
         frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
@@ -39,7 +43,7 @@ class WompiService:
             'collect_shipping': False,
             'currency': 'COP',
             'amount_in_cents': wompi_transaction.amount_in_cents,
-            'redirect_url': f'{frontend_url}/orders/track/{order.order_number}',
+            'redirect_url': f'{frontend_url}/tracking?order={order.order_number}',
             'reference': wompi_transaction.reference,
             'customer_data': {
                 'email': order.customer_email,
@@ -73,18 +77,42 @@ class WompiService:
             raise
 
     @staticmethod
-    def verify_signature(payload_bytes: bytes, signature_header: str) -> bool:
+    def verify_signature(event_data: dict) -> bool:
+        """Verify Wompi webhook signature using SHA256.
+
+        Wompi embeds the checksum inside the body (not in an HTTP header).
+        Algorithm: sha256(prop1 + prop2 + ... + unix_timestamp + events_secret)
+        Properties and their order come from event_data['signature']['properties'].
+        """
         secret = WompiService._events_secret()
         if not secret:
             logger.warning('WOMPI_EVENTS_SECRET not configured')
             return False
 
-        expected = hmac.new(
-            secret.encode(),
-            payload_bytes,
-            hashlib.sha256,
-        ).hexdigest()
-        return hmac.compare_digest(expected, signature_header)
+        try:
+            sig = event_data['signature']
+            expected_checksum = sig['checksum']
+            properties = sig['properties']
+            sent_at = event_data['sent_at']
+            data = event_data.get('data', {})
+
+            concat = ''
+            for prop in properties:
+                value = data
+                for part in prop.split('.'):
+                    value = value[part]
+                concat += str(value)
+
+            from datetime import datetime
+            dt = datetime.fromisoformat(sent_at.replace('Z', '+00:00'))
+            concat += str(int(dt.timestamp()))
+            concat += secret
+
+            computed = hashlib.sha256(concat.encode()).hexdigest()
+            return hmac.compare_digest(computed, expected_checksum)
+        except (KeyError, TypeError, ValueError):
+            logger.warning('Wompi signature verification failed: malformed event payload')
+            return False
 
     @staticmethod
     def process_event(event_data: dict) -> None:

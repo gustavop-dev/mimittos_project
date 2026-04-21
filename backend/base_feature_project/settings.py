@@ -367,6 +367,7 @@ N_PLUS_ONE_THRESHOLD = int(os.getenv('N_PLUS_ONE_THRESHOLD', '10'))
 WOMPI_PUBLIC_KEY = os.getenv('WOMPI_PUBLIC_KEY', '')
 WOMPI_PRIVATE_KEY = os.getenv('WOMPI_PRIVATE_KEY', '')
 WOMPI_EVENTS_SECRET = os.getenv('WOMPI_EVENTS_SECRET', '')
+WOMPI_INTEGRITY_SECRET = os.getenv('WOMPI_INTEGRITY_SECRET', '')
 WOMPI_API_URL = os.getenv('WOMPI_API_URL', 'https://production.wompi.co/v1')
 
 # ---------------------------------------------------------------------------

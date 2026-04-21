@@ -59,7 +59,7 @@ def my_orders(request):
 @permission_classes([AllowAny])
 def track_order(request, order_number: str):
     try:
-        order = Order.objects.get(order_number=order_number)
+        order = Order.objects.select_related('payment').get(order_number=order_number)
     except Order.DoesNotExist:
         return Response({'detail': 'Pedido no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 

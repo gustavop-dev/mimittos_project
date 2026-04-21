@@ -90,6 +90,47 @@ function TrackingContent() {
           </p>
         </div>
 
+        {/* Payment status banner */}
+        {tracking && (tracking.payment_status === 'DECLINED' || tracking.payment_status === 'ERROR') && (
+          <div style={{ background: '#FFEBEE', border: '1px solid #FFCDD2', borderRadius: 14, padding: '16px 20px', marginBottom: 20, display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#FFCDD2', display: 'grid', placeItems: 'center', flexShrink: 0, color: '#C62828' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+            </div>
+            <div style={{ flex: 1 }}>
+              <strong style={{ display: 'block', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: '#C62828', fontSize: 15, marginBottom: 4 }}>
+                {tracking.payment_status === 'DECLINED' ? 'Pago rechazado' : 'Error en el pago'}
+              </strong>
+              <p style={{ fontSize: 13, color: '#B71C1C', margin: 0 }}>
+                {tracking.payment_status === 'DECLINED'
+                  ? 'Tu método de pago fue rechazado. Intenta con otro método o contacta a tu banco.'
+                  : 'Ocurrió un error al procesar tu pago. Por favor intenta de nuevo.'}
+              </p>
+              {tracking.checkout_url && (
+                <a href={tracking.checkout_url} style={{ display: 'inline-block', marginTop: 10, padding: '8px 18px', borderRadius: 999, background: '#C62828', color: '#fff', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                  Intentar de nuevo
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {tracking && tracking.payment_status === 'PENDING' && tracking.status === 'pending_payment' && (
+          <div style={{ background: '#FFF8E1', border: '1px solid #FFE082', borderRadius: 14, padding: '16px 20px', marginBottom: 20, display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#FFE082', display: 'grid', placeItems: 'center', flexShrink: 0, color: '#F57F17' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+            </div>
+            <div style={{ flex: 1 }}>
+              <strong style={{ display: 'block', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: '#F57F17', fontSize: 15, marginBottom: 4 }}>Pago pendiente</strong>
+              <p style={{ fontSize: 13, color: '#E65100', margin: 0 }}>Tu pago aún no ha sido confirmado.</p>
+              {tracking.checkout_url && (
+                <a href={tracking.checkout_url} style={{ display: 'inline-block', marginTop: 10, padding: '8px 18px', borderRadius: 999, background: '#F57F17', color: '#fff', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+                  Ir a pagar
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Timeline */}
         {tracking && (
           <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 28, boxShadow: 'var(--shadow-sm)' }}>

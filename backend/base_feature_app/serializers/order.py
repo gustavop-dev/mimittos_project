@@ -150,12 +150,24 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 
 
 class OrderTrackingSerializer(serializers.ModelSerializer):
+    payment_status = serializers.SerializerMethodField()
+    checkout_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Order
         fields = [
             'order_number', 'status', 'tracking_number',
             'shipping_carrier', 'created_at', 'updated_at',
+            'payment_status', 'checkout_url',
         ]
+
+    def get_payment_status(self, obj):
+        payment = getattr(obj, 'payment', None)
+        return payment.status if payment else None
+
+    def get_checkout_url(self, obj):
+        payment = getattr(obj, 'payment', None)
+        return payment.checkout_url if payment else None
 
 
 class OrderStatusUpdateSerializer(serializers.Serializer):

@@ -2,10 +2,49 @@ import hashlib
 import hmac
 import json
 import pytest
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 from base_feature_app.models import Order, WompiTransaction
 from base_feature_app.services.wompi_service import WompiService
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+_SENT_AT = '2026-04-21T12:00:00.000Z'
+_PROPERTIES = ['transaction.id', 'transaction.status', 'transaction.amount_in_cents',
+               'transaction.currency', 'transaction.reference']
+
+
+def _make_event_data(secret: str, tx_id: str = 'tx-001', status: str = 'APPROVED',
+                     amount: int = 4000000, currency: str = 'COP',
+                     reference: str = 'REF-001') -> dict:
+    """Build a Wompi event_data dict with a valid SHA256 checksum."""
+    tx = {'id': tx_id, 'status': status, 'amount_in_cents': amount,
+          'currency': currency, 'reference': reference, 'payment_method_type': 'CARD'}
+    data = {'transaction': tx}
+
+    concat = ''
+    for prop in _PROPERTIES:
+        value = data
+        for part in prop.split('.'):
+            value = value[part]
+        concat += str(value)
+
+    dt = datetime.fromisoformat(_SENT_AT.replace('Z', '+00:00'))
+    concat += str(int(dt.timestamp()))
+    concat += secret
+
+    checksum = hashlib.sha256(concat.encode()).hexdigest()
+
+    return {
+        'event': 'transaction.updated',
+        'data': data,
+        'sent_at': _SENT_AT,
+        'signature': {'checksum': checksum, 'properties': _PROPERTIES},
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -44,25 +83,39 @@ def wompi_tx(db, existing_order):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
-def test_verify_signature_returns_true_for_valid_hmac(settings):
+def test_verify_signature_returns_true_for_valid_checksum(settings):
     settings.WOMPI_EVENTS_SECRET = 'secret123'
-    payload = b'{"event": "transaction.updated"}'
-    sig = hmac.new(b'secret123', payload, hashlib.sha256).hexdigest()
-    assert WompiService.verify_signature(payload, sig) is True
+    event_data = _make_event_data('secret123')
+    assert WompiService.verify_signature(event_data) is True
 
 
 @pytest.mark.django_db
-def test_verify_signature_returns_false_for_invalid_signature(settings):
+def test_verify_signature_returns_false_for_tampered_checksum(settings):
     settings.WOMPI_EVENTS_SECRET = 'secret123'
-    payload = b'{"event": "transaction.updated"}'
-    assert WompiService.verify_signature(payload, 'badsignature') is False
+    event_data = _make_event_data('secret123')
+    event_data['signature']['checksum'] = 'bad' * 16
+    assert WompiService.verify_signature(event_data) is False
+
+
+@pytest.mark.django_db
+def test_verify_signature_returns_false_for_wrong_secret(settings):
+    settings.WOMPI_EVENTS_SECRET = 'correct_secret'
+    event_data = _make_event_data('wrong_secret')
+    assert WompiService.verify_signature(event_data) is False
 
 
 @pytest.mark.django_db
 def test_verify_signature_returns_false_when_secret_not_configured(settings):
     settings.WOMPI_EVENTS_SECRET = ''
-    payload = b'{"event": "transaction.updated"}'
-    assert WompiService.verify_signature(payload, 'anysig') is False
+    event_data = _make_event_data('any')
+    assert WompiService.verify_signature(event_data) is False
+
+
+@pytest.mark.django_db
+def test_verify_signature_returns_false_for_malformed_event(settings):
+    settings.WOMPI_EVENTS_SECRET = 'secret123'
+    assert WompiService.verify_signature({}) is False
+    assert WompiService.verify_signature({'signature': {}}) is False
 
 
 # ---------------------------------------------------------------------------

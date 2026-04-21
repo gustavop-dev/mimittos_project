@@ -170,6 +170,8 @@ export type OrderTrackingInfo = {
   shipping_carrier: string
   created_at: string
   updated_at: string
+  payment_status: string | null
+  checkout_url: string | null
 }
 
 export type OrderCreateResponse = {
