@@ -65,7 +65,8 @@ class WompiService:
             )
             resp.raise_for_status()
             data = resp.json().get('data', {})
-            checkout_url = data.get('url', '')
+            link_id = data.get('id', '')
+            checkout_url = f'https://checkout.wompi.co/l/{link_id}' if link_id else ''
 
             wompi_transaction.checkout_url = checkout_url
             wompi_transaction.raw_response = data
