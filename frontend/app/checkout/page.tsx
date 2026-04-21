@@ -63,7 +63,9 @@ export default function CheckoutPage() {
       })
       clearCart()
       if (result.checkout_url) {
-        window.location.href = result.checkout_url
+        router.push(
+          `/payment?order=${result.order_number}&deposit=${result.deposit_amount}&url=${encodeURIComponent(result.checkout_url)}`
+        )
       } else {
         router.push(`/tracking?order=${result.order_number}`)
       }

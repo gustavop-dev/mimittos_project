@@ -91,7 +91,7 @@ describe('CheckoutPage', () => {
     setCartState({ items: [peluchItem], clearCart })
     mockOrderService.createOrder.mockResolvedValueOnce({
       order_number: 'PELUCH-001', checkout_url: 'https://checkout.wompi.co/l/test',
-      deposit_amount: 64000, balance_amount: 64000, total_amount: 128000,
+      deposit_amount: 64000, balance_amount: 64000, total_amount: 128000, is_new_account: false,
     })
 
     const originalLocation = window.location
