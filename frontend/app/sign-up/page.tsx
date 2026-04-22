@@ -276,12 +276,6 @@ function SignUpContent() {
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--gray-warm)', fontSize: 12, fontWeight: 600, margin: '22px 0' }}>
-          <span style={{ flex: 1, height: 1, background: 'rgba(27,42,74,.1)' }} />
-          o con tus datos
-          <span style={{ flex: 1, height: 1, background: 'rgba(27,42,74,.1)' }} />
-        </div>
-
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>

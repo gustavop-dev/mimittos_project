@@ -9,6 +9,7 @@ jest.mock('../../../../lib/services/peluchService', () => ({
   peluchService: {
     getPeluchBySlug: jest.fn(),
     getReviews: jest.fn(),
+    getColorImages: jest.fn().mockResolvedValue([]),
   },
 }))
 
@@ -23,6 +24,7 @@ jest.mock('../../../../lib/stores/cartStore', () => ({
 jest.mock('next/navigation', () => ({
   useParams: jest.fn(() => ({ slug: 'osito-coral' })),
   useRouter: jest.fn(() => ({ push: jest.fn() })),
+  usePathname: jest.fn(() => '/peluches/osito-coral'),
 }))
 
 const mockPeluchService = peluchService as jest.Mocked<typeof peluchService>
@@ -33,12 +35,16 @@ const mockPeluchDetail = {
   category_name: 'Osito clásico', category_slug: 'osito-clasico',
   category: { id: 1, name: 'Osito clásico', slug: 'osito-clasico', description: '', display_order: 1, is_active: true },
   lead_description: 'El oseznito más querido',
-  description: 'Un osito adorable hecho a mano',
+  description: ['Un osito adorable hecho a mano'],
   badge: 'bestseller' as const,
   is_featured: true,
+  discount_pct: 0,
+  display_order: 100,
   min_price: 85000,
+  discounted_min_price: 85000,
   available_colors: [{ id: 1, name: 'Rosa Coral', slug: 'rosa-coral', hex_code: '#D4848A', sort_order: 1 }],
   gallery_urls: ['http://example.com/img1.jpg', 'http://example.com/img2.jpg'],
+  color_images_meta: [],
   average_rating: 4.9, review_count: 184,
   has_huella: true, has_corazon: true, has_audio: false,
   size_prices: [

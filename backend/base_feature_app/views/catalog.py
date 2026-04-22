@@ -1,28 +1,113 @@
+import io
+
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models import Min, Q
+from PIL import Image
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from base_feature_app.models import Peluch, Category, GlobalSize, GlobalColor
+from base_feature_app.models import Peluch, Category, GlobalSize, GlobalColor, PeluchColorImage
 from base_feature_app.serializers.catalog import (
     PeluchListSerializer, PeluchDetailSerializer, PeluchCreateUpdateSerializer,
     CategorySerializer, GlobalSizeSerializer, GlobalColorSerializer,
 )
+from django_attachments.models import Attachment
+
+_IMG_MAX = 1400
+_IMG_QUALITY = 82
+_IMG_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
 
 
-@api_view(['GET'])
+def _optimize_image(file) -> InMemoryUploadedFile:
+    """Resize to max 1400×1400 and re-encode as JPEG at quality 82."""
+    img = Image.open(file)
+    img = img.convert('RGB')  # drop alpha, unify mode
+
+    w, h = img.size
+    if w > _IMG_MAX or h > _IMG_MAX:
+        ratio = min(_IMG_MAX / w, _IMG_MAX / h)
+        img = img.resize((round(w * ratio), round(h * ratio)), Image.LANCZOS)
+
+    buf = io.BytesIO()
+    img.save(buf, format='JPEG', quality=_IMG_QUALITY, optimize=True)
+    buf.seek(0)
+
+    name = file.name.rsplit('.', 1)[0] + '.jpg'
+    return InMemoryUploadedFile(buf, 'file', name, 'image/jpeg', buf.getbuffer().nbytes, None)
+
+
+@api_view(['GET', 'POST'])
 @permission_classes([AllowAny])
 def sizes_list(request):
-    queryset = GlobalSize.objects.filter(is_active=True)
-    return Response(GlobalSizeSerializer(queryset, many=True).data)
+    if request.method == 'GET':
+        qs = GlobalSize.objects.filter(is_active=True).order_by('sort_order', 'label')
+        return Response(GlobalSizeSerializer(qs, many=True).data)
+
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+
+    serializer = GlobalSizeSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET'])
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([AllowAny])
+def size_detail(request, size_id: int):
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        size = GlobalSize.objects.get(pk=size_id)
+    except GlobalSize.DoesNotExist:
+        return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+    if request.method == 'DELETE':
+        size.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    serializer = GlobalSizeSerializer(size, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'POST'])
 @permission_classes([AllowAny])
 def colors_list(request):
-    queryset = GlobalColor.objects.filter(is_active=True)
-    return Response(GlobalColorSerializer(queryset, many=True).data)
+    if request.method == 'GET':
+        qs = GlobalColor.objects.filter(is_active=True).order_by('sort_order', 'name')
+        return Response(GlobalColorSerializer(qs, many=True).data)
+
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+
+    serializer = GlobalColorSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PATCH', 'DELETE'])
+@permission_classes([AllowAny])
+def color_detail(request, color_id: int):
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        color = GlobalColor.objects.get(pk=color_id)
+    except GlobalColor.DoesNotExist:
+        return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+    if request.method == 'DELETE':
+        color.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    serializer = GlobalColorSerializer(color, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET', 'POST'])
@@ -68,7 +153,8 @@ def category_detail(request, category_id: int):
 @permission_classes([AllowAny])
 def peluches_featured(request):
     qs = Peluch.objects.filter(is_active=True, is_featured=True).prefetch_related(
-        'available_colors', 'size_prices__size', 'gallery'
+        'available_colors', 'size_prices__size', 'gallery__attachment_set',
+        'color_images__color', 'color_images__attachment',
     )
     return Response(PeluchListSerializer(qs, many=True, context={'request': request}).data)
 
@@ -77,8 +163,11 @@ def peluches_featured(request):
 @permission_classes([AllowAny])
 def peluches(request):
     if request.method == 'GET':
-        qs = Peluch.objects.filter(is_active=True).prefetch_related(
-            'available_colors', 'size_prices__size', 'gallery', 'category'
+        is_admin = request.user.is_authenticated and request.user.is_staff
+        qs = Peluch.objects.all() if is_admin else Peluch.objects.filter(is_active=True)
+        qs = qs.prefetch_related(
+            'available_colors', 'size_prices__size', 'gallery__attachment_set', 'category',
+            'color_images__color', 'color_images__attachment',
         )
 
         category_slug = request.query_params.get('category')
@@ -141,7 +230,8 @@ def peluches(request):
 def peluch_detail(request, slug: str):
     try:
         peluch = Peluch.objects.prefetch_related(
-            'available_colors', 'size_prices__size', 'gallery', 'category'
+            'available_colors', 'size_prices__size', 'gallery__attachment_set', 'category',
+            'color_images__color', 'color_images__attachment',
         ).get(slug=slug, is_active=True)
     except Peluch.DoesNotExist:
         return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
@@ -163,3 +253,140 @@ def peluch_detail(request, slug: str):
         peluch = serializer.save()
         return Response(PeluchDetailSerializer(peluch, context={'request': request}).data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def peluch_gallery_upload(request, slug: str):
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        peluch = Peluch.objects.get(slug=slug)
+    except Peluch.DoesNotExist:
+        return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    file = request.FILES.get('image')
+    if not file:
+        return Response({'detail': 'No image provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if file.size > _IMG_MAX_BYTES:
+        return Response(
+            {'detail': 'Image exceeds 5 MB limit.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if not file.content_type.startswith('image/'):
+        return Response(
+            {'detail': 'File must be an image.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        optimized = _optimize_image(file)
+    except Exception:
+        return Response({'detail': 'Invalid or corrupt image.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    attachment = Attachment(library=peluch.gallery, original_name=optimized.name, file=optimized)
+    attachment.save()
+
+    return Response({'id': attachment.pk, 'url': attachment.file.url}, status=status.HTTP_201_CREATED)
+
+
+@api_view(['DELETE'])
+@permission_classes([AllowAny])
+def peluch_gallery_delete(request, slug: str, attachment_id: int):
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        peluch = Peluch.objects.get(slug=slug)
+        attachment = Attachment.objects.get(pk=attachment_id, library=peluch.gallery)
+    except (Peluch.DoesNotExist, Attachment.DoesNotExist):
+        return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+    attachment.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def peluch_color_image_list_upload(request, slug: str, color_slug: str):
+    try:
+        peluch = Peluch.objects.get(slug=slug)
+        color = GlobalColor.objects.get(slug=color_slug)
+    except (Peluch.DoesNotExist, GlobalColor.DoesNotExist):
+        return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        pci_qs = PeluchColorImage.objects.filter(
+            peluch=peluch, color=color
+        ).select_related('attachment').order_by('display_order')
+        data = [{'id': pci.pk, 'url': pci.attachment.file.url} for pci in pci_qs]
+        return Response(data)
+
+    # POST
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+
+    if not peluch.available_colors.filter(pk=color.pk).exists():
+        return Response({'detail': 'Este color no está asignado al peluche.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    file = request.FILES.get('image')
+    if not file:
+        return Response({'detail': 'No image provided.'}, status=status.HTTP_400_BAD_REQUEST)
+    if file.size > _IMG_MAX_BYTES:
+        return Response({'detail': 'Image exceeds 5 MB limit.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not file.content_type.startswith('image/'):
+        return Response({'detail': 'File must be an image.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        optimized = _optimize_image(file)
+    except Exception:
+        return Response({'detail': 'Invalid or corrupt image.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    attachment = Attachment(library=peluch.gallery, original_name=optimized.name, file=optimized)
+    attachment.save()
+
+    next_order = PeluchColorImage.objects.filter(peluch=peluch, color=color).count()
+    pci = PeluchColorImage.objects.create(
+        peluch=peluch, color=color, attachment=attachment, display_order=next_order
+    )
+
+    return Response(
+        {'id': pci.pk, 'color_id': color.pk, 'url': attachment.file.url},
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['DELETE'])
+@permission_classes([AllowAny])
+def peluch_color_image_delete(request, slug: str, color_slug: str, pci_id: int):
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        peluch = Peluch.objects.get(slug=slug)
+        color = GlobalColor.objects.get(slug=color_slug)
+        pci = PeluchColorImage.objects.select_related('attachment').get(
+            pk=pci_id, peluch=peluch, color=color
+        )
+    except (Peluch.DoesNotExist, GlobalColor.DoesNotExist, PeluchColorImage.DoesNotExist):
+        return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    pci.attachment.delete()
+    pci.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['PATCH'])
+@permission_classes([AllowAny])
+def peluch_bulk_category(request):
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+    slug_list = request.data.get('slug_list', [])
+    category_id = request.data.get('category_id')
+    if not slug_list or not category_id:
+        return Response({'detail': 'slug_list and category_id are required.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        Category.objects.get(pk=category_id)
+    except Category.DoesNotExist:
+        return Response({'detail': 'Categoría no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+    updated = Peluch.objects.filter(slug__in=slug_list).update(category_id=category_id)
+    return Response({'updated': updated})

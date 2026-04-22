@@ -40,9 +40,10 @@ class OrderService:
                 item['peluch'].corazon_extra_cost if item.get('has_corazon') else 0,
                 item['peluch'].audio_extra_cost if item.get('has_audio') else 0,
             ])
-            item['unit_price'] = size_price.price
+            discount = getattr(item['peluch'], 'discount_pct', 0)
+            item['unit_price'] = round(size_price.price * (100 - discount) / 100)
             item['personalization_cost'] = personalization_cost
-            total_amount += (size_price.price + personalization_cost) * item['quantity']
+            total_amount += (item['unit_price'] + personalization_cost) * item['quantity']
 
         deposit_amount = OrderService.calculate_deposit(total_amount)
         balance_amount = total_amount - deposit_amount
@@ -79,6 +80,8 @@ class OrderService:
                     'size_cm': item['size'].cm,
                     'color_name': item['color'].name,
                     'color_hex': item['color'].hex_code,
+                    'discount_pct': peluch.discount_pct,
+                    'original_unit_price': size_price.price,
                     'has_huella': item.get('has_huella', False),
                     'huella_type': item.get('huella_type', ''),
                     'huella_text': item.get('huella_text', ''),

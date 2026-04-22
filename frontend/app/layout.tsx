@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
+import PublicChrome from '@/components/layout/PublicChrome';
 import Providers from './providers';
 
 export const metadata: Metadata = {
@@ -22,9 +21,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body suppressHydrationWarning>
         <Providers>
-          <Header />
-          {children}
-          <Footer />
+          <PublicChrome>
+            {children}
+          </PublicChrome>
         </Providers>
       </body>
     </html>

@@ -74,7 +74,7 @@ export default function CartPage() {
               return (
                 <div key={itemKey} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 20, display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: 20, boxShadow: 'var(--shadow-sm)' }}>
                   <div style={{ width: 120, height: 120, borderRadius: 'var(--radius-md)', overflow: 'hidden', background: item.color_hex || 'var(--pink-melo)', position: 'relative' }}>
-                    {cover && <Image src={cover} alt={item.title} fill className="object-cover" />}
+                    {cover && <Image src={cover} alt={item.title} fill style={{ objectFit: 'cover' }} />}
                   </div>
                   <div>
                     <h3 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 20, color: 'var(--navy)', marginBottom: 6 }}>{item.title}</h3>

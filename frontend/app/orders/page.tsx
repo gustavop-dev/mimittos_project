@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 
 import { orderService } from '@/lib/services/orderService'
 import { useAuthStore } from '@/lib/stores/authStore'
+import { useRequireAuth } from '@/lib/hooks/useRequireAuth'
 import type { OrderListItem, OrderStatus } from '@/lib/types'
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; bg: string; color: string; pulse: boolean }> = {
@@ -30,6 +31,7 @@ function fmtDate(s: string) {
 
 export default function OrdersPage() {
   const router = useRouter()
+  useRequireAuth({ redirectStaff: true })
   const { user, signOut } = useAuthStore()
   const [orders, setOrders] = useState<OrderListItem[]>([])
   const [loading, setLoading] = useState(true)

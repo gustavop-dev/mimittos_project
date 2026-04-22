@@ -7,7 +7,9 @@ import { useEffect, useRef, useState } from 'react'
 
 import { mediaService } from '@/lib/services/mediaService'
 import { peluchService } from '@/lib/services/peluchService'
+import { useAuthStore } from '@/lib/stores/authStore'
 import { useCartStore } from '@/lib/stores/cartStore'
+import { usePageView } from '@/lib/hooks/usePageView'
 import type { CartItem, PeluchDetail, PeluchSizePrice, Review } from '@/lib/types'
 
 const BADGE_LABELS: Record<string, string> = {
@@ -27,15 +29,30 @@ function fmt(n: number | undefined | null) {
   return '$' + (n ?? 0).toLocaleString('es-CO')
 }
 
+function effectivePrice(base: number, discountPct: number) {
+  return discountPct > 0 ? Math.round(base * (100 - discountPct) / 100) : base
+}
+
 export default function PeluchDetailPage() {
   const { slug } = useParams() as { slug: string }
   const router = useRouter()
   const addToCart = useCartStore((s) => s.addToCart)
+  const { isAuthenticated, user } = useAuthStore()
+
+  usePageView(slug)
 
   const [peluch, setPeluch] = useState<PeluchDetail | null>(null)
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  // Review form
+  const [reviewRating, setReviewRating] = useState(0)
+  const [reviewHover, setReviewHover] = useState(0)
+  const [reviewComment, setReviewComment] = useState('')
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewError, setReviewError] = useState('')
+  const [reviewDone, setReviewDone] = useState(false)
 
   const [activeSizeIdx, setActiveSizeIdx] = useState(0)
   const [activeColorIdx, setActiveColorIdx] = useState(0)
@@ -43,6 +60,8 @@ export default function PeluchDetailPage() {
   const [activeTab, setActiveTab] = useState(0)
   const [activeImg, setActiveImg] = useState(0)
   const [addedToast, setAddedToast] = useState(false)
+  const [colorGalleryCache, setColorGalleryCache] = useState<Record<string, string[]>>({})
+  const [galleryLoading, setGalleryLoading] = useState(false)
 
   // Huella
   const [huellaType, setHuellaType] = useState<'name' | 'date' | 'letter' | 'image'>('name')
@@ -69,10 +88,34 @@ export default function PeluchDetailPage() {
       .then(([p, r]) => {
         setPeluch(p)
         setReviews(r)
+        // Pre-load first color gallery
+        const firstMeta = p.color_images_meta?.[0]
+        if (firstMeta && firstMeta.count > 0) {
+          peluchService.getColorImages(p.slug, firstMeta.color_slug)
+            .then((items) => setColorGalleryCache({ [firstMeta.color_slug]: items.map((i) => i.url) }))
+            .catch(() => {})
+        }
       })
       .catch(() => setError('No encontramos este peluche.'))
       .finally(() => setLoading(false))
   }, [slug])
+
+  useEffect(() => {
+    if (!peluch) return
+    const meta = peluch.color_images_meta?.[activeColorIdx]
+    if (!meta) return
+    setActiveImg(0)
+    if (meta.count === 0) return
+    if (colorGalleryCache[meta.color_slug]) return
+    setGalleryLoading(true)
+    peluchService.getColorImages(peluch.slug, meta.color_slug)
+      .then((items) => {
+        setColorGalleryCache((prev) => ({ ...prev, [meta.color_slug]: items.map((i) => i.url) }))
+      })
+      .catch(() => {})
+      .finally(() => setGalleryLoading(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeColorIdx, peluch])
 
   if (loading) {
     return (
@@ -98,7 +141,12 @@ export default function PeluchDetailPage() {
 
   const activeSizePrice: PeluchSizePrice | undefined = peluch.size_prices[activeSizeIdx]
   const activeColor = peluch.available_colors[activeColorIdx]
-  const gallery = peluch.gallery_urls.length > 0 ? peluch.gallery_urls : ['/mimittos/prod-01.svg']
+  const activeColorMeta = peluch.color_images_meta?.[activeColorIdx] ?? null
+  const gallery = (activeColorMeta && colorGalleryCache[activeColorMeta.color_slug]?.length)
+    ? colorGalleryCache[activeColorMeta.color_slug]
+    : activeColorMeta?.preview_url
+      ? [activeColorMeta.preview_url]
+      : peluch.gallery_urls.length > 0 ? peluch.gallery_urls : ['/mimittos/prod-01.svg']
 
   const userHasHuella = peluch.has_huella && (
     huellaType !== 'image' ? huellaText.trim() !== '' : huellaMediaId !== null
@@ -111,7 +159,7 @@ export default function PeluchDetailPage() {
     (userHasCorazon ? peluch.corazon_extra_cost : 0) +
     (userHasAudio ? peluch.audio_extra_cost : 0)
 
-  const unitPrice = activeSizePrice?.price ?? peluch.min_price ?? 0
+  const unitPrice = effectivePrice(activeSizePrice?.price ?? peluch.min_price ?? 0, peluch.discount_pct)
   const total = (unitPrice + personalizationCost) * qty
   const deposit = Math.round((total * 0.5) / 100) * 100
 
@@ -141,7 +189,7 @@ export default function PeluchDetailPage() {
   }
 
   function handleAdd() {
-    if (!activeSizePrice || !activeColor) return
+    if (!peluch || !activeSizePrice || !activeColor) return
 
     const cartItem: CartItem = {
       peluch_id: peluch.id,
@@ -171,6 +219,22 @@ export default function PeluchDetailPage() {
     setTimeout(() => setAddedToast(false), 2500)
   }
 
+  async function handleReviewSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!peluch || reviewRating === 0 || reviewComment.trim().length < 10) return
+    setReviewSubmitting(true)
+    setReviewError('')
+    try {
+      await peluchService.createReview(peluch.slug, { rating: reviewRating, comment: reviewComment.trim() })
+      setReviewDone(true)
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      setReviewError(msg ?? 'No se pudo enviar la reseña. Intenta de nuevo.')
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
+
   const TABS = ['Descripción', 'Especificaciones', 'Cuidados']
   const specEntries = Object.entries(peluch.specifications ?? {})
 
@@ -196,13 +260,13 @@ export default function PeluchDetailPage() {
                 {BADGE_LABELS[peluch.badge]}
               </span>
             )}
-            <Image src={gallery[activeImg]} alt={peluch.title} fill className="object-cover" />
+            <Image src={gallery[activeImg]} alt={peluch.title} fill style={{ objectFit: 'cover' }} />
           </div>
           {gallery.length > 1 && (
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(gallery.length, 4)},1fr)`, gap: 10, marginTop: 14 }}>
               {gallery.slice(0, 4).map((src, i) => (
                 <div key={i} onClick={() => setActiveImg(i)} style={{ aspectRatio: '1/1', borderRadius: 'var(--radius-sm)', overflow: 'hidden', cursor: 'pointer', border: `2.5px solid ${i === activeImg ? 'var(--coral)' : 'transparent'}`, transition: 'border-color .2s', position: 'relative' }}>
-                  <Image src={src} alt="" fill className="object-cover" />
+                  <Image src={src} alt="" fill style={{ objectFit: 'cover' }} />
                 </div>
               ))}
             </div>
@@ -231,10 +295,20 @@ export default function PeluchDetailPage() {
           </p>
 
           {/* Price */}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, padding: '18px 0', borderTop: '1px dashed rgba(212,132,138,.3)', borderBottom: '1px dashed rgba(212,132,138,.3)', marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 0', borderTop: '1px dashed rgba(212,132,138,.3)', borderBottom: '1px dashed rgba(212,132,138,.3)', marginBottom: 24, flexWrap: 'wrap' }}>
             <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 38, color: 'var(--terracotta)', lineHeight: 1 }}>
               {fmt(total)}
             </div>
+            {peluch.discount_pct > 0 && activeSizePrice && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ background: 'var(--terracotta)', color: '#fff', borderRadius: 999, padding: '4px 12px', fontSize: 13, fontWeight: 700 }}>
+                  -{peluch.discount_pct}%
+                </span>
+                <span style={{ textDecoration: 'line-through', color: 'var(--gray-warm)', fontSize: 20, fontFamily: "'Quicksand', sans-serif", fontWeight: 600 }}>
+                  {fmt((activeSizePrice.price + personalizationCost) * qty)}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Size */}
@@ -256,7 +330,14 @@ export default function PeluchDetailPage() {
                     style={{ border: `1.5px solid ${i === activeSizeIdx ? 'var(--coral)' : 'rgba(27,42,74,.08)'}`, padding: '14px 10px', borderRadius: 14, background: i === activeSizeIdx ? 'var(--pink-melo)' : '#fff', textAlign: 'center', cursor: sp.is_available ? 'pointer' : 'not-allowed', opacity: sp.is_available ? 1 : .5, transition: 'all .2s' }}
                   >
                     <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--navy)', marginBottom: 2 }}>{sp.size.label}</div>
-                    <div style={{ fontSize: 11, color: i === activeSizeIdx ? 'var(--terracotta)' : 'var(--gray-warm)', fontWeight: i === activeSizeIdx ? 700 : 400 }}>{sp.size.cm} · {fmt(sp.price)}</div>
+                    <div style={{ fontSize: 11, color: i === activeSizeIdx ? 'var(--terracotta)' : 'var(--gray-warm)', fontWeight: i === activeSizeIdx ? 700 : 400 }}>
+                      {sp.size.cm}
+                      {peluch.discount_pct > 0 ? (
+                        <span> · <span style={{ textDecoration: 'line-through', opacity: .6 }}>{fmt(sp.price)}</span> {fmt(effectivePrice(sp.price, peluch.discount_pct))}</span>
+                      ) : (
+                        <span> · {fmt(sp.price)}</span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -420,8 +501,12 @@ export default function PeluchDetailPage() {
         </div>
 
         {activeTab === 0 && (
-          <div style={{ marginBottom: 60 }}>
-            <p style={{ color: 'var(--gray-warm)', fontSize: 15, lineHeight: 1.7, maxWidth: 640 }}>{peluch.description}</p>
+          <div style={{ marginBottom: 60, maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {(Array.isArray(peluch.description) ? peluch.description : [peluch.description as unknown as string])
+              .filter(Boolean)
+              .map((p, i) => (
+                <p key={i} style={{ color: 'var(--gray-warm)', fontSize: 15, lineHeight: 1.7 }}>{p}</p>
+              ))}
           </div>
         )}
 
@@ -453,29 +538,114 @@ export default function PeluchDetailPage() {
       </section>
 
       {/* Reviews */}
-      {reviews.length > 0 && (
-        <section style={{ maxWidth: 1360, margin: '0 auto 60px', padding: '0 40px' }}>
-          <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--navy)', marginBottom: 20 }}>
-            Reseñas ({reviews.length})
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>
-            {reviews.map((r) => (
-              <div key={r.id} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 20, boxShadow: 'var(--shadow-sm)' }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--coral)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14 }}>
-                    {r.user_name?.[0]?.toUpperCase() ?? 'U'}
+      <section style={{ maxWidth: 1360, margin: '0 auto 60px', padding: '0 40px' }}>
+        {reviews.length > 0 && (
+          <>
+            <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--navy)', marginBottom: 20 }}>
+              Reseñas ({reviews.length})
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16, marginBottom: 40 }}>
+              {reviews.map((r) => (
+                <div key={r.id} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 20, boxShadow: 'var(--shadow-sm)' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--coral)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14 }}>
+                      {r.user_name?.[0]?.toUpperCase() ?? 'U'}
+                    </div>
+                    <div>
+                      <strong style={{ display: 'block', fontSize: 14, color: 'var(--navy)' }}>{r.user_name}</strong>
+                      <span style={{ color: 'var(--coral)', fontSize: 13 }}>{'★'.repeat(r.rating)}</span>
+                    </div>
                   </div>
-                  <div>
-                    <strong style={{ display: 'block', fontSize: 14, color: 'var(--navy)' }}>{r.user_name}</strong>
-                    <span style={{ color: 'var(--coral)', fontSize: 13 }}>{'★'.repeat(r.rating)}</span>
-                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--gray-warm)', lineHeight: 1.6 }}>{r.comment}</p>
                 </div>
-                <p style={{ fontSize: 13, color: 'var(--gray-warm)', lineHeight: 1.6 }}>{r.comment}</p>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Write a review */}
+        {(() => {
+          const alreadyReviewed = reviews.some((r) => r.user_email === user?.email)
+          if (alreadyReviewed || reviewDone) {
+            return reviewDone ? (
+              <div style={{ background: '#F1F8E9', border: '1.5px solid #C5E1A5', borderRadius: 'var(--radius-lg)', padding: '20px 24px', maxWidth: 520, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#558B2F" strokeWidth="2.5"><path d="M20 6 9 17l-5-5" /></svg>
+                <div>
+                  <strong style={{ display: 'block', color: '#33691E', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, marginBottom: 4 }}>¡Gracias por tu reseña!</strong>
+                  <span style={{ color: '#558B2F', fontSize: 13 }}>Está pendiente de aprobación y pronto aparecerá aquí.</span>
+                </div>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
+            ) : null
+          }
+          return (
+            <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: '28px 32px', boxShadow: 'var(--shadow-sm)', maxWidth: 560 }}>
+              <h3 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 18, color: 'var(--navy)', marginBottom: 6 }}>
+                Deja tu reseña
+              </h3>
+              <p style={{ fontSize: 13, color: 'var(--gray-warm)', marginBottom: 20 }}>
+                Solo compradores verificados pueden publicar reseñas.
+              </p>
+
+              {!isAuthenticated ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', background: 'var(--cream-peach)', borderRadius: 12 }}>
+                  <span style={{ fontSize: 13, color: 'var(--navy)' }}>Inicia sesión para dejar tu reseña</span>
+                  <Link href="/auth/login" style={{ background: 'var(--coral)', color: '#fff', padding: '8px 18px', borderRadius: 999, fontSize: 13, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}>
+                    Iniciar sesión
+                  </Link>
+                </div>
+              ) : (
+                <form onSubmit={handleReviewSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  {/* Star selector */}
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', marginBottom: 10 }}>Tu calificación</div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setReviewRating(star)}
+                          onMouseEnter={() => setReviewHover(star)}
+                          onMouseLeave={() => setReviewHover(0)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 28, lineHeight: 1, color: star <= (reviewHover || reviewRating) ? 'var(--coral)' : 'rgba(27,42,74,.15)', transition: 'color .15s', padding: '0 2px' }}
+                          aria-label={`${star} estrella${star > 1 ? 's' : ''}`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Comment */}
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', marginBottom: 8 }}>Tu comentario</div>
+                    <textarea
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
+                      placeholder="Cuéntanos cómo fue tu experiencia con este peluche... (mínimo 10 caracteres)"
+                      rows={4}
+                      style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid rgba(27,42,74,.12)', fontSize: 13, fontFamily: 'inherit', color: 'var(--navy)', resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
+                    />
+                  </div>
+
+                  {reviewError && (
+                    <div style={{ background: '#FFEBEE', color: '#C62828', borderRadius: 10, padding: '10px 14px', fontSize: 13 }}>
+                      {reviewError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={reviewRating === 0 || reviewComment.trim().length < 10 || reviewSubmitting}
+                    style={{ alignSelf: 'flex-start', padding: '11px 28px', background: 'var(--coral)', color: '#fff', border: 'none', borderRadius: 12, fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14, cursor: reviewRating > 0 && reviewComment.trim().length >= 10 ? 'pointer' : 'not-allowed', opacity: reviewRating === 0 || reviewComment.trim().length < 10 || reviewSubmitting ? .55 : 1, transition: 'opacity .2s' }}
+                  >
+                    {reviewSubmitting ? 'Enviando...' : 'Publicar reseña'}
+                  </button>
+                </form>
+              )}
+            </div>
+          )
+        })()}
+      </section>
 
       {/* Toast */}
       {addedToast && (

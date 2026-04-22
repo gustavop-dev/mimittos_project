@@ -52,7 +52,8 @@ export default function SignInPage() {
 
     try {
       await signIn({ email, password, captcha_token: captchaToken ?? undefined })
-      router.replace('/orders')
+      const loggedUser = useAuthStore.getState().user
+      router.replace(loggedUser?.is_staff ? '/backoffice' : '/orders')
     } catch (err: any) {
       setError(err.response?.data?.error || 'Correo o contraseña incorrectos')
       recaptchaRef.current?.reset()
@@ -83,7 +84,8 @@ export default function SignInPage() {
         picture: decoded?.picture,
       })
 
-      router.replace('/orders')
+      const loggedUser = useAuthStore.getState().user
+      router.replace(loggedUser?.is_staff ? '/backoffice' : '/orders')
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al iniciar sesión con Google')
     } finally {
@@ -96,20 +98,32 @@ export default function SignInPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center', maxWidth: 1200, margin: '0 auto', padding: '40px', gap: 48 }}>
       {/* Left — marketing */}
       <div>
-        <div style={{ width: 120, height: 120, marginBottom: 28, animation: 'floatY 4s ease-in-out infinite', position: 'relative' }}>
-          <Image src="/mimittos/logo-dark-big.png" alt="MIMITTOS" fill style={{ objectFit: 'contain' }} />
+        <div style={{ width: 200, marginBottom: 32, animation: 'floatY 4s ease-in-out infinite', position: 'relative' }}>
+          <Image src="/mimittos/logo-dark-big.png" alt="MIMITTOS" width={200} height={194} style={{ width: '100%', height: 'auto' }} />
         </div>
         <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 44, color: 'var(--navy)', lineHeight: 1.1, marginBottom: 16 }}>
-          Un club <em style={{ color: 'var(--coral)', fontStyle: 'normal' }}>tierno</em> para guardar tus recuerdos 🧸
+          Tu peluche favorito,<br /><em style={{ color: 'var(--coral)', fontStyle: 'normal' }}>siempre cerca</em> 🧸
         </h1>
         <p style={{ fontSize: 16, color: 'var(--gray-warm)', maxWidth: 440, lineHeight: 1.6, marginBottom: 32 }}>
-          Crea tu cuenta para seguir el estado de cada peluche, guardar tus direcciones y recibir mimos exclusivos en fechas especiales.
+          Sigue el estado de tu pedido en tiempo real, personaliza tu peluche y vive la experiencia MIMITTOS de principio a fin.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {[
-            { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><path d="M3 6h18" /></svg>, title: 'Historial completo', desc: 'Revisa, repite y descarga facturas' },
-            { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>, title: 'Direcciones guardadas', desc: 'Checkout en 60 segundos' },
-            { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.5A10 10 0 1 0 12 2z" /></svg>, title: 'Notificaciones', desc: 'Te avisamos cuando tu peluche esté listo' },
+            {
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>,
+              title: 'Sigue tu pedido en vivo',
+              desc: 'Desde producción hasta tu puerta — te avisamos en cada paso',
+            },
+            {
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4" /><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" /></svg>,
+              title: 'Personalización guardada',
+              desc: 'Tu huella, audio o dedicatoria quedan en tu cuenta para siempre',
+            },
+            {
+              icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>,
+              title: 'Reseñas y recuerdos',
+              desc: 'Deja tu reseña cuando recibas tu peluche y ayuda a otros a elegir',
+            },
           ].map(({ icon, title, desc }) => (
             <div key={title} style={{ display: 'flex', gap: 14, alignItems: 'flex-start', background: 'rgba(255,255,255,.6)', backdropFilter: 'blur(12px)', padding: '14px 18px', borderRadius: 16, maxWidth: 420 }}>
               <div style={{ width: 38, height: 38, borderRadius: 12, background: 'var(--coral)', color: '#fff', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{icon}</div>
@@ -133,12 +147,6 @@ export default function SignInPage() {
             <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setError('Error al iniciar sesión con Google')} size="large" text="signin_with" shape="rectangular" width="100%" />
           </div>
         )}
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--gray-warm)', fontSize: 12, fontWeight: 600, margin: '22px 0' }}>
-          <span style={{ flex: 1, height: 1, background: 'rgba(27,42,74,.1)' }} />
-          o con correo
-          <span style={{ flex: 1, height: 1, background: 'rgba(27,42,74,.1)' }} />
-        </div>
 
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>

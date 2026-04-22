@@ -202,7 +202,7 @@ export default function CheckoutPage() {
                 return (
                   <div key={`${item.peluch_id}-${item.size_id}-${item.color_id}-${idx}`} style={{ display: 'flex', gap: 12, paddingBottom: 12, borderBottom: '1px dashed rgba(212,132,138,.2)' }}>
                     <div style={{ width: 54, height: 54, borderRadius: 10, overflow: 'hidden', background: item.color_hex || 'var(--pink-melo)', flexShrink: 0, position: 'relative' }}>
-                      {cover && <Image src={cover} alt={item.title} fill className="object-cover" />}
+                      {cover && <Image src={cover} alt={item.title} fill style={{ objectFit: 'cover' }} />}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <strong style={{ display: 'block', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>{item.title}</strong>
