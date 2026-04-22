@@ -28,10 +28,10 @@ logger = logging.getLogger('backups')
 order_logger = logging.getLogger(__name__)
 
 
-@db_periodic_task(crontab(day_of_week='0', hour='3', minute='0'))
+@db_periodic_task(crontab(day_of_week='0', hour='3', minute='45'))
 def scheduled_backup():
     """
-    Automated weekly backup of database and media files (Sunday 03:00 UTC).
+    Automated weekly backup of database and media files (Sunday 03:45 UTC).
     Storage: configured via BACKUP_STORAGE_PATH env var.
     Retention: 4 weeks (~1 month).
     """

@@ -184,7 +184,7 @@ export default function HomePage() {
                   </div>
                   <button
                     style={{ background: 'var(--coral)', color: '#fff', width: 38, height: 38, borderRadius: '50%', display: 'grid', placeItems: 'center', border: 'none', cursor: 'pointer' }}
-                    onClick={() => addToCart({ id: Math.random(), title: p.name, price: parseInt(p.price.replace(/\D/g, '')), gallery_urls: [p.img], category: 'peluche', description: '' } as any, 1)}
+                    onClick={() => addToCart({ id: Math.random(), title: p.name, price: parseInt(p.price.replace(/\D/g, '')), gallery_urls: [p.img], category: 'peluche', description: '' } as any)}
                     aria-label="Agregar al carrito"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>

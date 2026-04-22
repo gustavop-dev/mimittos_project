@@ -245,3 +245,13 @@ export type UserListItem = {
   is_active: boolean
   date_joined: string
 }
+
+export type Blog = {
+  id: number
+  title: string
+  category?: string
+  description?: string
+  image_url?: string
+}
+
+export type Product = Peluch

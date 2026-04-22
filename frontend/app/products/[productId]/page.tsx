@@ -53,7 +53,8 @@ export default function ProductDetailPage() {
       gallery_urls: GALLERY,
       category: 'Osito clásico',
       description: `${SIZES[activeSize].label} · ${COLORS[activeColor].name}`,
-    } as any, qty)
+      quantity: qty,
+    } as any)
     setAddedToast(true)
     setTimeout(() => setAddedToast(false), 2500)
   }
