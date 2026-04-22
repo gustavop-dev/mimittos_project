@@ -166,7 +166,7 @@ WSGI_APPLICATION = 'base_feature_project.wsgi.application'
 _db_engine = os.getenv('DJANGO_DB_ENGINE', 'django.db.backends.sqlite3')
 _db_config = {
     'ENGINE': _db_engine,
-    'NAME': os.getenv('DJANGO_DB_NAME', str(BASE_DIR / 'db.sqlite3')),
+    'NAME': os.getenv('DB_NAME', str(BASE_DIR / 'db.sqlite3')),
 }
 if 'sqlite3' not in _db_engine:
     _db_config.update({
