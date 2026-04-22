@@ -126,7 +126,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {
       clearTokens();
       set({ accessToken: null, refreshToken: null, user: null, isAuthenticated: false });
-      if (typeof window !== 'undefined') window.location.replace('/');
     }
   },
 

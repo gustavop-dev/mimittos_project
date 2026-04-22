@@ -375,7 +375,7 @@ WOMPI_API_URL = os.getenv('WOMPI_API_URL', 'https://production.wompi.co/v1')
 # Peluchelandia business settings
 # ---------------------------------------------------------------------------
 DEPOSIT_PERCENTAGE = int(os.getenv('DEPOSIT_PERCENTAGE', '50'))
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000').rstrip('/')
 ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', '')
 
 # ---------------------------------------------------------------------------

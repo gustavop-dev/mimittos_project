@@ -8,6 +8,7 @@ import { clearTokens, getAccessToken, getRefreshToken, setTokens } from '../../s
 jest.mock('../../services/http', () => ({
   api: {
     post: jest.fn(),
+    get: jest.fn(),
   },
 }));
 
@@ -86,42 +87,33 @@ describe('authStore', () => {
     mockApi.post.mockResolvedValueOnce({ data: { access: null, refresh: null } });
 
     await expect(useAuthStore.getState().signIn({ email: 'user@example.com', password: 'password' })).rejects.toThrow(
-      'Invalid token response'
+      'Respuesta de tokens inválida'
     );
   });
 
   it('signs up successfully', async () => {
-    mockGetAccessToken.mockReturnValue('access');
-    mockGetRefreshToken.mockReturnValue('refresh');
     mockApi.post.mockResolvedValueOnce({
       data: {
-        access: 'access',
-        refresh: 'refresh',
-        user: {
-          id: 2,
-          email: 'new@example.com',
-          first_name: 'New',
-          last_name: 'User',
-          role: 'customer',
-          is_staff: false,
-        },
+        email: 'new@example.com',
       },
     });
 
+    let result;
     await act(async () => {
-      await useAuthStore.getState().signUp({ email: 'new@example.com', password: 'password' });
+      result = await useAuthStore.getState().signUp({ email: 'new@example.com', password: 'password' });
     });
 
-    expect(mockSetTokens).toHaveBeenCalledWith({ access: 'access', refresh: 'refresh' });
-    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+    expect(mockSetTokens).not.toHaveBeenCalled();
+    expect(result).toEqual({ email: 'new@example.com' });
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
   });
 
-  it('throws when sign up response is missing tokens', async () => {
-    mockApi.post.mockResolvedValueOnce({ data: { access: null, refresh: null } });
+  it('returns the submitted email when sign up response omits it', async () => {
+    mockApi.post.mockResolvedValueOnce({ data: {} });
 
-    await expect(
-      useAuthStore.getState().signUp({ email: 'new@example.com', password: 'password' })
-    ).rejects.toThrow('Invalid token response');
+    await expect(useAuthStore.getState().signUp({ email: 'new@example.com', password: 'password' })).resolves.toEqual({
+      email: 'new@example.com',
+    });
   });
 
   it('logs in with google credentials', async () => {
@@ -153,7 +145,7 @@ describe('authStore', () => {
   it('throws when google login response is missing tokens', async () => {
     mockApi.post.mockResolvedValueOnce({ data: { access: null, refresh: null } });
 
-    await expect(useAuthStore.getState().googleLogin({ credential: 'token' })).rejects.toThrow('Invalid token response');
+    await expect(useAuthStore.getState().googleLogin({ credential: 'token' })).rejects.toThrow('Respuesta de tokens inválida');
   });
 
   it('signs out and clears tokens', () => {
@@ -192,5 +184,48 @@ describe('authStore', () => {
       code: '123456',
       new_password: 'password123',
     });
+  });
+
+  it('restores the current user from validate_token', async () => {
+    mockGetAccessToken.mockReturnValue('access');
+    mockApi.get.mockResolvedValueOnce({
+      data: {
+        user: {
+          id: 7,
+          email: 'restore@example.com',
+          first_name: 'Restore',
+          last_name: 'User',
+          role: 'customer',
+          is_staff: false,
+        },
+      },
+    });
+
+    await act(async () => {
+      await useAuthStore.getState().restoreUser();
+    });
+
+    expect(mockApi.get).toHaveBeenCalledWith('validate_token/');
+    expect(useAuthStore.getState().user?.email).toBe('restore@example.com');
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+  });
+
+  it('clears auth state when restoreUser fails', async () => {
+    mockGetAccessToken.mockReturnValue('access');
+    mockApi.get.mockRejectedValueOnce(new Error('boom'));
+    useAuthStore.setState({
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      user: { id: 1, email: 'user@example.com', first_name: 'T', last_name: 'U', role: 'customer', is_staff: false },
+      isAuthenticated: true,
+    });
+
+    await act(async () => {
+      await useAuthStore.getState().restoreUser();
+    });
+
+    expect(mockClearTokens).toHaveBeenCalledTimes(1);
+    expect(useAuthStore.getState().user).toBeNull();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
   });
 });

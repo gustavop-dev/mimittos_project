@@ -555,19 +555,19 @@ python manage.py create_fake_data
 # Create all data with a single count for every model
 python manage.py create_fake_data 20
 
-# Individual commands
-python manage.py create_blogs 20
-python manage.py create_products 50
-python manage.py create_sales 30
-python manage.py create_users 10
+# Current domain counts
+python manage.py create_fake_data --blogs 10 --peluches 20 --users 10 --orders 15
+
+# Legacy aliases still supported
+python manage.py create_fake_data --products 20 --sales 15
 ```
 
-**Note:** The `create_users` command never deletes superusers or staff.
+`create_fake_data` now populates the current app domain: `Category`, `GlobalColor`, `GlobalSize`, `Peluch`, `Order`, `Blog`, and customer `User` records. It no longer creates legacy `Product`/`Sale` rows.
 
 #### Delete Fake Data
 
 ```bash
-# Delete all fake data (protects superusers)
+# Delete only records created by create_fake_data (protects staff/superusers)
 python manage.py delete_fake_data --confirm
 ```
 

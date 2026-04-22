@@ -1,61 +1,80 @@
 from django.core.management.base import BaseCommand, CommandError
-from base_feature_app.models import Product, Blog, Sale, User
+
+from base_feature_app.models import (
+    Blog,
+    Category,
+    GlobalColor,
+    GlobalSize,
+    Order,
+    Peluch,
+    User,
+)
+
+from ._fake_data import FAKE_EMAIL_DOMAIN, FAKE_SLUG_PREFIX, is_fake_blog_title
+
 
 class Command(BaseCommand):
-    help = 'Delete fake records from the database'
-
-    """
-    To delete fake data via console, run:
-    python3 manage.py delete_fake_data --confirm
-    
-    Note: This command will NOT delete superusers or admin users to protect system administrators.
-    """
+    help = 'Delete fake records created by create_fake_data'
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--confirm',
             action='store_true',
-            help='Confirm deletion of all fake data.',
+            help='Confirm deletion of fake data.',
         )
 
     def handle(self, *args, **options):
         if not options.get('confirm'):
             raise CommandError('Deletion not confirmed. Re-run with --confirm.')
-        
+
         self.stdout.write(self.style.SUCCESS('==== Deleting Fake Data ===='))
-        
-        # Delete Sales (includes SoldProducts via cascade)
-        self.stdout.write(self.style.SUCCESS('\n--- Deleting Sales ---'))
-        sale_count = Sale.objects.count()
-        for sale in Sale.objects.all():
-            sale.delete()
-        self.stdout.write(self.style.SUCCESS(f'{sale_count} Sales deleted'))
-        
-        # Delete Products
-        self.stdout.write(self.style.SUCCESS('\n--- Deleting Products ---'))
-        product_count = Product.objects.count()
-        for product in Product.objects.all():
-            product.delete()
-        self.stdout.write(self.style.SUCCESS(f'{product_count} Products deleted'))
-        
-        # Delete Blogs
+
+        fake_orders = Order.objects.filter(customer_email__iendswith=f'@{FAKE_EMAIL_DOMAIN}')
+        order_count = fake_orders.count()
+        self.stdout.write(self.style.SUCCESS('\n--- Deleting Orders ---'))
+        fake_orders.delete()
+        self.stdout.write(self.style.SUCCESS(f'{order_count} Orders deleted'))
+
+        self.stdout.write(self.style.SUCCESS('\n--- Deleting Peluches ---'))
+        peluches = list(Peluch.objects.filter(slug__startswith=FAKE_SLUG_PREFIX))
+        peluch_count = len(peluches)
+        for peluch in peluches:
+            peluch.delete()
+        self.stdout.write(self.style.SUCCESS(f'{peluch_count} Peluches deleted'))
+
         self.stdout.write(self.style.SUCCESS('\n--- Deleting Blogs ---'))
-        blog_count = Blog.objects.count()
-        for blog in Blog.objects.all():
+        blogs = [blog for blog in Blog.objects.all() if is_fake_blog_title(blog.title)]
+        blog_count = len(blogs)
+        for blog in blogs:
             blog.delete()
         self.stdout.write(self.style.SUCCESS(f'{blog_count} Blogs deleted'))
-        
-        # Delete Users (excluding superusers and staff)
+
         self.stdout.write(self.style.SUCCESS('\n--- Deleting Users ---'))
-        # Filter to exclude superusers and staff to protect admin accounts
-        users_to_delete = User.objects.filter(is_superuser=False, is_staff=False)
+        users_to_delete = User.objects.filter(
+            email__iendswith=f'@{FAKE_EMAIL_DOMAIN}',
+            is_superuser=False,
+            is_staff=False,
+        )
         user_count = users_to_delete.count()
-        protected_count = User.objects.filter(is_superuser=True).count() + User.objects.filter(is_staff=True, is_superuser=False).count()
-        
-        for user in users_to_delete:
-            user.delete()
-        
+        users_to_delete.delete()
         self.stdout.write(self.style.SUCCESS(f'{user_count} Users deleted'))
+
+        self.stdout.write(self.style.SUCCESS('\n--- Deleting Catalog Base Data ---'))
+        category_count = Category.objects.filter(slug__startswith=FAKE_SLUG_PREFIX).count()
+        color_count = GlobalColor.objects.filter(slug__startswith=FAKE_SLUG_PREFIX).count()
+        size_count = GlobalSize.objects.filter(slug__startswith=FAKE_SLUG_PREFIX).count()
+
+        Category.objects.filter(slug__startswith=FAKE_SLUG_PREFIX).delete()
+        GlobalColor.objects.filter(slug__startswith=FAKE_SLUG_PREFIX).delete()
+        GlobalSize.objects.filter(slug__startswith=FAKE_SLUG_PREFIX).delete()
+
+        self.stdout.write(self.style.SUCCESS(f'{category_count} Categories deleted'))
+        self.stdout.write(self.style.SUCCESS(f'{color_count} Colors deleted'))
+        self.stdout.write(self.style.SUCCESS(f'{size_count} Sizes deleted'))
+
+        protected_count = User.objects.filter(is_superuser=True).count() + User.objects.filter(
+            is_staff=True,
+            is_superuser=False,
+        ).count()
         self.stdout.write(self.style.WARNING(f'{protected_count} Admin/Superuser accounts protected and not deleted'))
-        
         self.stdout.write(self.style.SUCCESS('\n==== Fake Data Deletion Complete ===='))

@@ -1,16 +1,30 @@
-from django.contrib import admin
+import logging
+from urllib.parse import urlencode
+
+from django.conf import settings
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
+from django.core.exceptions import PermissionDenied
+from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404
+from django.urls import path, reverse
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
+
+from django_attachments.admin import AttachmentsAdminMixin
+
+from .forms.blog import BlogForm
+from .forms.product import ProductForm
+from .forms.user import UserChangeForm, UserCreationForm
 from .models import (
     Blog, Product, Sale, SoldProduct, User, PasswordCode,
     Category, GlobalSize, GlobalColor, Peluch, PeluchSizePrice,
     Order, OrderItem, OrderStatusHistory, WompiTransaction,
     Review, SiteContent, PageView,
 )
-from .forms.blog import BlogForm
-from .forms.product import ProductForm
-from .forms.user import UserChangeForm, UserCreationForm
-from django_attachments.admin import AttachmentsAdminMixin
+from .utils.auth_utils import generate_auth_tokens
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -80,7 +94,7 @@ class BaseFeatureUserAdmin(UserAdmin):
     list_filter = ('role', 'is_staff', 'is_active')
     search_fields = ('email', 'first_name', 'last_name')
     fieldsets = (
-        (None, {'fields': ('email', 'password')}),
+        (None, {'fields': ('email', 'password', 'impersonate_link')}),
         (_('Personal info'), {'fields': ('first_name', 'last_name', 'phone')}),
         (_('Role'), {'fields': ('role',)}),
         (
@@ -99,8 +113,54 @@ class BaseFeatureUserAdmin(UserAdmin):
         ),
     )
 
-    readonly_fields = ('date_joined',)
+    readonly_fields = ('date_joined', 'impersonate_link')
     filter_horizontal = ('groups', 'user_permissions')
+
+    def impersonate_link(self, obj):
+        if not obj or not obj.pk:
+            return '—'
+        url = reverse('myadmin:base_feature_app_user_login_as', args=[obj.pk])
+        return format_html(
+            '<a class="button" href="{}" style="text-decoration:none" target="_blank" rel="noopener">Login as this user</a>',
+            url,
+        )
+    impersonate_link.short_description = _('Impersonate')
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                '<int:user_id>/login_as/',
+                self.admin_site.admin_view(self.login_as_user_view),
+                name='base_feature_app_user_login_as',
+            ),
+        ]
+        return custom_urls + urls
+
+    def login_as_user_view(self, request, user_id):
+        if not (request.user.is_active and request.user.is_superuser):
+            raise PermissionDenied('Only active superusers can use Login-as.')
+
+        target = get_object_or_404(User, pk=user_id)
+        change_url = reverse('myadmin:base_feature_app_user_change', args=[user_id])
+
+        if target.is_superuser and target.pk != request.user.pk:
+            messages.error(request, _('No puedes iniciar sesión como otro superusuario.'))
+            return HttpResponseRedirect(change_url)
+
+        if not target.is_active:
+            messages.error(request, _('Este usuario está inactivo.'))
+            return HttpResponseRedirect(change_url)
+
+        tokens = generate_auth_tokens(target)
+        logger.info('admin %s logged in as user %s', request.user.email, target.email)
+
+        query = urlencode({
+            'access': tokens['access'],
+            'refresh': tokens['refresh'],
+            'redirect': '/',
+        })
+        return HttpResponseRedirect(f'{settings.FRONTEND_URL}/admin-login?{query}')
 
 
 class PasswordCodeAdmin(admin.ModelAdmin):
