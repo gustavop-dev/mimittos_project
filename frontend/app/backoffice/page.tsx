@@ -1,260 +1,251 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import {
+  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts'
 
 import { api } from '@/lib/services/http'
-import { orderService } from '@/lib/services/orderService'
-import { useRequireAuth } from '@/lib/hooks/useRequireAuth'
-import type { OrderListItem, OrderStatus, UserListItem } from '@/lib/types'
-
-const STATUS_OPTIONS: OrderStatus[] = [
-  'pending_payment', 'payment_confirmed', 'in_production', 'shipped', 'delivered', 'cancelled',
-]
-
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  pending_payment: 'Pendiente pago',
-  payment_confirmed: 'Pago confirmado',
-  in_production: 'En producción',
-  shipped: 'Despachado',
-  delivered: 'Entregado',
-  cancelled: 'Cancelado',
-}
-
-const STATUS_COLORS: Record<OrderStatus, { bg: string; color: string }> = {
-  pending_payment: { bg: '#FFF3E0', color: '#E65100' },
-  payment_confirmed: { bg: '#E3F2FD', color: '#1565C0' },
-  in_production: { bg: '#FFF0E8', color: '#B8696F' },
-  shipped: { bg: '#E3F2FD', color: '#1976D2' },
-  delivered: { bg: '#E8F5E9', color: '#2E7D32' },
-  cancelled: { bg: '#FFEBEE', color: '#C62828' },
-}
+import { analyticsAdminService } from '@/lib/services/analyticsAdminService'
+import type { DashboardData } from '@/lib/services/analyticsAdminService'
 
 type KPIs = {
-  new_orders?: number
-  in_production?: number
-  pending_dispatch?: number
-  confirmed_deposits?: number
-  [key: string]: unknown
+  new_orders: number
+  in_production: number
+  pending_dispatch: number
+  confirmed_deposits: number
 }
 
-function fmt(n: number) { return '$' + n.toLocaleString('es-CO') }
-function fmtDate(s: string) { return new Date(s).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) }
+const COLORS = ['#D4848A', '#1B2A4A', '#E8A87C', '#2E7D32', '#1976D2', '#9C27B0']
 
-export default function BackofficePage() {
-  const { isAuthenticated } = useRequireAuth()
+function fmt(n: number) { return '$' + Math.round(n).toLocaleString('es-CO') }
+function today() { return new Date().toISOString().slice(0, 10) }
+function monthAgo() {
+  const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0, 10)
+}
 
-  const [activeTab, setActiveTab] = useState<'orders' | 'users'>('orders')
+const QUICK_LINKS = [
+  { href: '/backoffice/pedidos', label: 'Pedidos', icon: '📦', desc: 'Gestionar producción y envíos' },
+  { href: '/backoffice/peluches', label: 'Catálogo', icon: '🧸', desc: 'Crear y editar modelos' },
+  { href: '/backoffice/categorias', label: 'Categorías', icon: '🏷️', desc: 'Organizar el catálogo' },
+  { href: '/backoffice/usuarios', label: 'Usuarios', icon: '👤', desc: 'Ver clientes y roles' },
+]
 
-  const [orders, setOrders] = useState<OrderListItem[]>([])
-  const [orderFilter, setOrderFilter] = useState<OrderStatus | ''>('')
+const dateInput: React.CSSProperties = {
+  padding: '7px 10px', borderRadius: 8, border: '1.5px solid rgba(27,42,74,.12)',
+  fontSize: 13, fontFamily: 'inherit', background: 'var(--cream-warm)',
+}
+
+export default function BackofficeDashboard() {
   const [kpis, setKpis] = useState<KPIs | null>(null)
-  const [users, setUsers] = useState<UserListItem[]>([])
+  const [kpisLoading, setKpisLoading] = useState(true)
 
-  const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({})
-  const [statusUpdating, setStatusUpdating] = useState<string | null>(null)
-
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [analyticsLoading, setAnalyticsLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
+  const [dateFrom, setDateFrom] = useState(monthAgo())
+  const [dateTo, setDateTo] = useState(today())
 
   useEffect(() => {
-    if (!isAuthenticated) return
-    setLoading(true)
-    Promise.all([
-      orderService.listOrders(orderFilter ? { status: orderFilter } : undefined),
-      api.get('/analytics/kpis/').then((r) => r.data as KPIs).catch(() => null),
-      api.get('/users/').then((r) => (Array.isArray(r.data) ? r.data : [])).catch(() => []),
-    ])
-      .then(([ords, kpiData, usrs]) => {
-        setOrders(ords)
-        setKpis(kpiData)
-        setUsers(usrs)
-      })
-      .catch(() => setError('No se pudo cargar la información del backoffice.'))
-      .finally(() => setLoading(false))
-  }, [isAuthenticated, orderFilter])
+    api.get('/analytics/kpis/')
+      .then((r) => setKpis(r.data as KPIs))
+      .catch(() => null)
+      .finally(() => setKpisLoading(false))
+    loadAnalytics()
+  }, [])
 
-  async function handleStatusChange(orderNumber: string, newStatus: string) {
-    setStatusUpdating(orderNumber)
+  async function loadAnalytics() {
+    setAnalyticsLoading(true)
     try {
-      await orderService.updateStatus(orderNumber, newStatus)
-      setOrders((prev) =>
-        prev.map((o) => (o.order_number === orderNumber ? { ...o, status: newStatus as OrderStatus } : o))
-      )
-    } catch {
-      alert('No se pudo actualizar el estado.')
-    } finally {
-      setStatusUpdating(null)
-    }
+      const result = await analyticsAdminService.getDashboard(dateFrom, dateTo)
+      setData(result)
+    } catch { /* silently fail */ }
+    finally { setAnalyticsLoading(false) }
   }
 
-  async function handleTrackingUpdate(orderNumber: string) {
-    const trackingNum = trackingInputs[orderNumber]?.trim()
-    if (!trackingNum) return
-    try {
-      await orderService.updateTracking(orderNumber, trackingNum)
-      setOrders((prev) =>
-        prev.map((o) => o.order_number === orderNumber ? o : o)
-      )
-      setTrackingInputs((prev) => ({ ...prev, [orderNumber]: '' }))
-    } catch {
-      alert('No se pudo actualizar la guía.')
-    }
+  async function handleExport() {
+    setExporting(true)
+    try { await analyticsAdminService.exportOrdersCSV(dateFrom, dateTo) }
+    catch { alert('No se pudo exportar el reporte.') }
+    finally { setExporting(false) }
   }
 
-  if (!isAuthenticated) return null
+  const deviceData = data ? [
+    { name: 'Móvil', value: data.device_types?.mobile ?? 0 },
+    { name: 'Desktop', value: data.device_types?.desktop ?? 0 },
+    { name: 'Tablet', value: data.device_types?.tablet ?? 0 },
+  ] : []
+
+  const newVsReturning = data ? [
+    { name: 'Nuevos', value: data.new_vs_returning?.new ?? 0 },
+    { name: 'Recurrentes', value: data.new_vs_returning?.returning ?? 0 },
+  ] : []
+
+  const trafficData = data
+    ? Object.entries(data.traffic_sources ?? {}).map(([key, val]) => ({
+        name: key.charAt(0).toUpperCase() + key.slice(1),
+        visitas: val,
+      }))
+    : []
 
   return (
-    <main style={{ maxWidth: 1360, margin: '0 auto', padding: '30px 40px 60px' }}>
-      <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 32, color: 'var(--navy)', marginBottom: 6 }}>
-        Panel de administración
-      </h1>
-      <p style={{ color: 'var(--gray-warm)', fontSize: 15, marginBottom: 30 }}>Gestión de pedidos y usuarios de Peluchelandia</p>
+    <div style={{ padding: '30px 40px 60px' }}>
+
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
+        <div>
+          <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 28, color: 'var(--navy)', marginBottom: 4 }}>Dashboard</h1>
+          <p style={{ color: 'var(--gray-warm)', fontSize: 14 }}>
+            {new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#fff', borderRadius: 10, padding: '10px 14px', boxShadow: 'var(--shadow-sm)' }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)' }}>Período:</span>
+            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={dateInput} />
+            <span style={{ color: 'var(--gray-warm)', fontSize: 12 }}>→</span>
+            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={dateInput} />
+            <button onClick={loadAnalytics} style={{ padding: '7px 14px', background: 'var(--coral)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Aplicar</button>
+          </div>
+          <button onClick={handleExport} disabled={exporting} style={{ padding: '10px 16px', background: '#E8F5E9', color: '#2E7D32', border: '1px solid #C8E6C9', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
+            {exporting ? 'Exportando...' : '↓ CSV'}
+          </button>
+        </div>
+      </div>
 
       {/* KPIs */}
-      {kpis && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 30 }}>
+      {kpisLoading ? (
+        <p style={{ color: 'var(--gray-warm)', marginBottom: 28 }}>Cargando métricas...</p>
+      ) : kpis && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 32 }}>
           {[
-            { label: 'Pedidos nuevos (hoy)', value: kpis.new_orders ?? 0 },
-            { label: 'En producción', value: kpis.in_production ?? 0 },
-            { label: 'Por despachar', value: kpis.pending_dispatch ?? 0 },
-            { label: 'Depósitos confirmados', value: typeof kpis.confirmed_deposits === 'number' ? fmt(kpis.confirmed_deposits) : '—' },
-          ].map(({ label, value }) => (
-            <div key={label} style={{ background: '#fff', borderRadius: 'var(--radius-md)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
-              <div style={{ fontSize: 11, color: 'var(--gray-warm)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, marginBottom: 6 }}>{label}</div>
-              <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 28, color: 'var(--navy)' }}>{String(value)}</div>
+            { label: 'Pedidos nuevos hoy', value: String(kpis.new_orders ?? 0), color: 'var(--coral)' },
+            { label: 'En producción', value: String(kpis.in_production ?? 0), color: '#B8696F' },
+            { label: 'Por despachar', value: String(kpis.pending_dispatch ?? 0), color: '#1976D2' },
+            { label: 'Abonos confirmados hoy', value: fmt(kpis.confirmed_deposits ?? 0), color: '#2E7D32' },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ background: '#fff', borderRadius: 'var(--radius-md)', padding: '20px 22px', boxShadow: 'var(--shadow-sm)', borderLeft: `4px solid ${color}` }}>
+              <div style={{ fontSize: 11, color: 'var(--gray-warm)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, marginBottom: 8 }}>{label}</div>
+              <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 800, fontSize: 30, color: 'var(--navy)' }}>{value}</div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-        {(['orders', 'users'] as const).map((tab) => (
-          <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '10px 20px', borderRadius: 999, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: activeTab === tab ? 'var(--coral)' : '#fff', color: activeTab === tab ? '#fff' : 'var(--navy)', boxShadow: 'var(--shadow-sm)' }}>
-            {tab === 'orders' ? `Pedidos (${orders.length})` : `Usuarios (${users.length})`}
-          </button>
+      {/* Accesos rápidos */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 36 }}>
+        {QUICK_LINKS.map(({ href, label, icon, desc }) => (
+          <Link key={href} href={href} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: '#fff', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)', textDecoration: 'none', border: '1.5px solid transparent' }}>
+            <span style={{ fontSize: 24 }}>{icon}</span>
+            <div>
+              <div style={{ fontWeight: 700, color: 'var(--navy)', fontSize: 13 }}>{label}</div>
+              <div style={{ fontSize: 11, color: 'var(--gray-warm)', marginTop: 1 }}>{desc}</div>
+            </div>
+          </Link>
         ))}
       </div>
 
-      {loading && <p style={{ color: 'var(--gray-warm)', marginBottom: 16 }}>Cargando...</p>}
-      {error && <p style={{ color: '#c23b3b', marginBottom: 16 }}>{error}</p>}
+      {/* Analytics */}
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 18, color: 'var(--navy)', marginBottom: 4 }}>Analytics del período</h2>
+        {data && (
+          <p style={{ fontSize: 13, color: 'var(--gray-warm)' }}>
+            {data.total_orders} pedidos · {fmt(data.confirmed_revenue)} en abonos confirmados
+          </p>
+        )}
+      </div>
 
-      {/* Orders tab */}
-      {activeTab === 'orders' && (
-        <div>
-          {/* Status filter */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-            <button onClick={() => setOrderFilter('')} style={filterBtn(!orderFilter)}>Todos</button>
-            {STATUS_OPTIONS.map((s) => (
-              <button key={s} onClick={() => setOrderFilter(s)} style={filterBtn(orderFilter === s)}>
-                {STATUS_LABELS[s]}
-              </button>
-            ))}
+      {analyticsLoading ? (
+        <p style={{ color: 'var(--gray-warm)' }}>Cargando analytics...</p>
+      ) : data && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* Tendencia de pedidos */}
+          <ChartCard title="Tendencia de pedidos" description="Pedidos e ingresos diarios en el período seleccionado">
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart data={data.daily_orders ?? []}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(27,42,74,.06)" />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                <Tooltip formatter={(value, name) => name === 'Ingresos ($)' ? fmt(Number(value)) : value} />
+                <Legend />
+                <Line yAxisId="left" type="monotone" dataKey="orders" stroke="#D4848A" strokeWidth={2} name="Pedidos" dot={false} />
+                <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#1B2A4A" strokeWidth={2} name="Ingresos ($)" dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
+
+          {/* Row: Nuevos vs recurrentes + Dispositivos */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            <ChartCard title="Nuevos vs recurrentes" description="Fidelización de clientes en el período">
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={newVsReturning} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75}
+                    label={({ name, percent }) => `${name ?? ''} ${(((percent as number) ?? 0) * 100).toFixed(0)}%`}>
+                    {newVsReturning.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartCard>
+
+            <ChartCard title="Dispositivos" description="Cómo acceden los visitantes">
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={deviceData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75}
+                    label={({ name, percent }) => `${name ?? ''} ${(((percent as number) ?? 0) * 100).toFixed(0)}%`}>
+                    {deviceData.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartCard>
           </div>
 
-          <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', overflow: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: 'var(--cream-warm)', borderBottom: '1px dashed rgba(212,132,138,.2)' }}>
-                  {['Pedido', 'Cliente', 'Ciudad', 'Estado', 'Total', 'Abono', 'Fecha', 'Actualizar estado', 'Guía'].map((h) => (
-                    <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--navy)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map((o) => {
-                  const sc = STATUS_COLORS[o.status]
-                  return (
-                    <tr key={o.order_number} style={{ borderBottom: '1px dashed rgba(212,132,138,.12)' }}>
-                      <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--navy)', whiteSpace: 'nowrap' }}>{o.order_number}</td>
-                      <td style={{ padding: '10px 14px', maxWidth: 180 }}>
-                        <div style={{ fontWeight: 600, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.customer_name}</div>
-                        <div style={{ fontSize: 11, color: 'var(--gray-warm)' }}>{o.customer_email}</div>
-                      </td>
-                      <td style={{ padding: '10px 14px', color: 'var(--gray-warm)' }}>{o.city}</td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <span style={{ display: 'inline-flex', padding: '4px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color }}>
-                          {STATUS_LABELS[o.status]}
-                        </span>
-                      </td>
-                      <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--terracotta)', whiteSpace: 'nowrap' }}>{fmt(o.total_amount)}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--navy)', whiteSpace: 'nowrap' }}>{fmt(o.deposit_amount)}</td>
-                      <td style={{ padding: '10px 14px', color: 'var(--gray-warm)', whiteSpace: 'nowrap' }}>{fmtDate(o.created_at)}</td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <select
-                          value={o.status}
-                          disabled={statusUpdating === o.order_number}
-                          onChange={(e) => handleStatusChange(o.order_number, e.target.value)}
-                          style={{ background: '#fff', border: '1px solid rgba(27,42,74,.1)', borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--navy)', fontFamily: 'inherit', cursor: 'pointer' }}
-                        >
-                          {STATUS_OPTIONS.map((s) => (
-                            <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <input
-                            value={trackingInputs[o.order_number] ?? ''}
-                            onChange={(e) => setTrackingInputs((prev) => ({ ...prev, [o.order_number]: e.target.value }))}
-                            placeholder="Guía..."
-                            style={{ width: 90, background: 'var(--cream-warm)', border: '1px solid rgba(27,42,74,.08)', borderRadius: 8, padding: '6px 8px', fontSize: 12, fontFamily: 'inherit' }}
-                          />
-                          <button
-                            onClick={() => handleTrackingUpdate(o.order_number)}
-                            style={{ padding: '6px 10px', background: 'var(--coral)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit' }}
-                          >
-                            ✓
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-                {!orders.length && !loading && (
-                  <tr><td colSpan={9} style={{ padding: '40px 14px', textAlign: 'center', color: 'var(--gray-warm)' }}>Sin pedidos</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+          {/* Row: Peluches más vendidos + Fuentes de tráfico */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            <ChartCard title="Peluches más vendidos" description="Unidades vendidas en el período">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={(data.top_peluches ?? []).slice(0, 8)} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(27,42,74,.06)" />
+                  <XAxis type="number" tick={{ fontSize: 11 }} />
+                  <YAxis type="category" dataKey="title" width={150} tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="total_sold" name="Vendidos" fill="#D4848A" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
 
-      {/* Users tab */}
-      {activeTab === 'users' && (
-        <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', overflow: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: 'var(--cream-warm)', borderBottom: '1px dashed rgba(212,132,138,.2)' }}>
-                {['Email', 'Rol', 'Staff', 'Activo'].map((h) => (
-                  <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--navy)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id} style={{ borderBottom: '1px dashed rgba(212,132,138,.12)' }}>
-                  <td style={{ padding: '10px 14px', color: 'var(--navy)' }}>{u.email}</td>
-                  <td style={{ padding: '10px 14px', color: 'var(--gray-warm)' }}>{u.role || '—'}</td>
-                  <td style={{ padding: '10px 14px' }}><span style={{ color: u.is_staff ? '#2E7D32' : 'var(--gray-warm)', fontWeight: 600 }}>{u.is_staff ? 'Sí' : 'No'}</span></td>
-                  <td style={{ padding: '10px 14px' }}><span style={{ color: u.is_active ? '#2E7D32' : '#C62828', fontWeight: 600 }}>{u.is_active ? 'Activo' : 'Inactivo'}</span></td>
-                </tr>
-              ))}
-              {!users.length && <tr><td colSpan={4} style={{ padding: '40px 14px', textAlign: 'center', color: 'var(--gray-warm)' }}>Sin usuarios</td></tr>}
-            </tbody>
-          </table>
+            <ChartCard title="Fuentes de tráfico" description="De dónde llegan los visitantes">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={trafficData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(27,42,74,.06)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="visitas" name="Visitas" fill="#1B2A4A" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          </div>
+
         </div>
       )}
-    </main>
+    </div>
   )
 }
 
-function filterBtn(active: boolean): React.CSSProperties {
-  return {
-    padding: '8px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-    border: `1.5px solid ${active ? 'var(--coral)' : 'rgba(27,42,74,.08)'}`,
-    background: active ? 'var(--coral)' : '#fff',
-    color: active ? '#fff' : 'var(--navy)',
-    cursor: 'pointer', fontFamily: 'inherit',
-  }
+function ChartCard({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', padding: '20px 22px' }}>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--navy)', marginBottom: 2 }}>{title}</div>
+        <div style={{ fontSize: 12, color: 'var(--gray-warm)' }}>{description}</div>
+      </div>
+      {children}
+    </div>
+  )
 }

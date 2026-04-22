@@ -18,3 +18,4 @@ from .wompi_transaction import WompiTransaction
 from .review import Review
 from .site_content import SiteContent
 from .page_view import PageView
+from .peluch_color_image import PeluchColorImage

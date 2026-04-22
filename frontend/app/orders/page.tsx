@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 
 import { orderService } from '@/lib/services/orderService'
 import { useAuthStore } from '@/lib/stores/authStore'
+import { useRequireAuth } from '@/lib/hooks/useRequireAuth'
 import type { OrderListItem, OrderStatus } from '@/lib/types'
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; bg: string; color: string; pulse: boolean }> = {
@@ -20,7 +21,6 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; bg: string; color: str
 
 const NAV_ITEMS = [
   { label: 'Mis pedidos', href: '/orders', active: true },
-  { label: 'Mis datos', href: '/dashboard', active: false },
 ]
 
 function fmt(n: number) { return '$' + n.toLocaleString('es-CO') }
@@ -31,31 +31,24 @@ function fmtDate(s: string) {
 
 export default function OrdersPage() {
   const router = useRouter()
+  useRequireAuth({ redirectStaff: true })
   const { user, signOut } = useAuthStore()
   const [orders, setOrders] = useState<OrderListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<OrderStatus | 'all'>('all')
   const [search, setSearch] = useState('')
-  const [openOrder, setOpenOrder] = useState<string | null>(null)
 
   useEffect(() => {
     orderService
       .getMyOrders()
-      .then((data) => {
-        setOrders(data)
-        if (data.length > 0) setOpenOrder(data[0].order_number)
-      })
+      .then((data) => setOrders(data))
       .catch(() => router.push('/sign-in'))
       .finally(() => setLoading(false))
   }, [])
 
-  const initials = user
-    ? `${user.first_name?.[0] ?? ''}${user.last_name?.[0] ?? ''}`.toUpperCase() || 'U'
-    : 'U'
   const fullName = user
     ? `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() || 'Usuario'
     : 'Usuario'
-
   const statusKeys = Object.keys(STATUS_CONFIG) as OrderStatus[]
 
   const visible = orders.filter((o) => {
@@ -88,12 +81,9 @@ export default function OrdersPage() {
       <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px 60px', display: 'grid', gridTemplateColumns: '260px 1fr', gap: 40, alignItems: 'flex-start' }}>
         {/* Sidebar */}
         <aside style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 22, boxShadow: 'var(--shadow-sm)', position: 'sticky', top: 110 }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', paddingBottom: 18, borderBottom: '1px dashed rgba(212,132,138,.25)', marginBottom: 14 }}>
-            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--coral)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 18 }}>{initials}</div>
-            <div>
-              <strong style={{ display: 'block', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--navy)' }}>{fullName}</strong>
-              <span style={{ fontSize: 12, color: 'var(--gray-warm)' }}>{user?.email}</span>
-            </div>
+          <div style={{ paddingBottom: 18, borderBottom: '1px dashed rgba(212,132,138,.25)', marginBottom: 14 }}>
+            <strong style={{ display: 'block', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--navy)' }}>{fullName}</strong>
+            <span style={{ fontSize: 12, color: 'var(--gray-warm)' }}>{user?.email}</span>
           </div>
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
             {NAV_ITEMS.map(({ label, href, active }) => (
@@ -142,13 +132,12 @@ export default function OrdersPage() {
               </p>
             </div>
           ) : visible.map((order) => {
-            const isOpen = openOrder === order.order_number
             const sc = STATUS_CONFIG[order.status]
 
             return (
               <div key={order.order_number} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', marginBottom: 16, overflow: 'hidden' }}>
                 {/* Header */}
-                <div onClick={() => setOpenOrder(isOpen ? null : order.order_number)} style={{ padding: '18px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: 20, alignItems: 'center', background: 'var(--cream-warm)', borderBottom: '1px dashed rgba(212,132,138,.2)', cursor: 'pointer' }}>
+                <div style={{ padding: '18px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 20, alignItems: 'center', background: 'var(--cream-warm)', borderBottom: '1px dashed rgba(212,132,138,.2)' }}>
                   <div><div style={cellLbl}>Pedido</div><div style={cellVal}>{order.order_number}</div></div>
                   <div><div style={cellLbl}>Fecha</div><div style={cellVal}>{fmtDate(order.created_at)}</div></div>
                   <div><div style={cellLbl}>Total</div><div style={{ ...cellVal, color: 'var(--terracotta)', fontSize: 16 }}>{fmt(order.total_amount)}</div></div>
@@ -159,7 +148,6 @@ export default function OrdersPage() {
                       {sc.label.toUpperCase()}
                     </span>
                   </div>
-                  <svg style={{ color: 'var(--gray-warm)', transition: 'transform .3s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg>
                 </div>
 
                 {/* Summary row */}
@@ -177,14 +165,6 @@ export default function OrdersPage() {
                   </div>
                 </div>
 
-                {/* Expanded */}
-                {isOpen && (
-                  <div style={{ borderTop: '1px dashed rgba(212,132,138,.2)', padding: '16px 24px', background: 'var(--cream-warm)' }}>
-                    <p style={{ fontSize: 13, color: 'var(--gray-warm)' }}>
-                      Para ver el detalle completo de ítems, personalización y estado, usa el botón de seguimiento.
-                    </p>
-                  </div>
-                )}
               </div>
             )
           })}

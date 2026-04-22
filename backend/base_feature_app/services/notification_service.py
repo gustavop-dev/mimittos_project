@@ -28,15 +28,36 @@ class NotificationService:
     def notify_order_confirmation(order: Order) -> bool:
         if not _can_send_automated_email(order):
             return False
+
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        has_account = User.objects.filter(email=order.customer_email).exists()
+
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+        tracking_url = f'{frontend_url}/tracking?order={order.order_number}'
+        register_url = f'{frontend_url}/auth/register'
+
         subject = f'¡Tu pedido {order.order_number} está confirmado! 🧸'
         body = (
             f'Hola {order.customer_name},\n\n'
-            f'Recibimos tu pedido {order.order_number} correctamente.\n'
+            f'¡Tu pago fue procesado exitosamente! Tu pedido {order.order_number} está confirmado.\n\n'
             f'Abono pagado: ${order.deposit_amount:,} COP\n'
             f'Saldo contraentrega: ${order.balance_amount:,} COP\n\n'
-            f'Te notificaremos cuando comience la producción.\n\n'
-            f'¡Gracias por confiar en Peluchelandia!'
+            f'Seguimiento de tu pedido:\n{tracking_url}\n\n'
         )
+
+        if not has_account:
+            body += (
+                f'─────────────────────────────\n'
+                f'👤 ¡Crea tu cuenta en MIMITTOS!\n\n'
+                f'Regístrate con tu correo {order.customer_email} para ver el historial '
+                f'de todos tus pedidos directamente desde tu perfil.\n\n'
+                f'Crear cuenta → {register_url}\n'
+                f'(Usa el correo: {order.customer_email})\n'
+                f'─────────────────────────────\n\n'
+            )
+
+        body += '¡Gracias por confiar en MIMITTOS! Tu peluche se está preparando con mucho amor. 🧸\n\n— Equipo MIMITTOS'
         return NotificationService._send(order.customer_email, subject, body, order)
 
     @staticmethod

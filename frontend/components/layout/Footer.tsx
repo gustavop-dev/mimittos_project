@@ -35,7 +35,7 @@ export default function Footer() {
           <div>
             <h5 style={footerHeadStyle}>Explorar</h5>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[['Catálogo', '/catalog'], ['Personaliza tu peluche', '/products/1'], ['Novedades', '/catalog'], ['Más vendidos', '/catalog']].map(([label, href]) => (
+              {[['Inicio', '/'], ['Catálogo', '/catalog'], ['Historia', '/about'], ['Contacto', '/contact']].map(([label, href]) => (
                 <li key={label}><Link href={href} style={{ color: 'var(--gray-warm)', fontSize: 14 }}>{label}</Link></li>
               ))}
             </ul>
@@ -44,7 +44,7 @@ export default function Footer() {
           <div>
             <h5 style={footerHeadStyle}>Compañía</h5>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[['Nuestra historia', '/about'], ['Seguimiento de pedido', '/tracking'], ['Preguntas frecuentes', '/#faq'], ['Términos y Condiciones', '/terms']].map(([label, href]) => (
+              {[['Iniciar sesión', '/sign-in'], ['Regístrate', '/sign-up'], ['Términos y Condiciones', '/terms']].map(([label, href]) => (
                 <li key={label}><Link href={href} style={{ color: 'var(--gray-warm)', fontSize: 14 }}>{label}</Link></li>
               ))}
             </ul>
@@ -59,7 +59,7 @@ export default function Footer() {
             </ul>
             <h5 style={{ ...footerHeadStyle, marginTop: 22 }}>Pagamos con</h5>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
-              {['PSE', 'Nequi', 'VISA', 'MasterCard', 'Efecty'].map((m) => (
+              {['PSE', 'Nequi', 'VISA', 'MasterCard'].map((m) => (
                 <span key={m} style={{ background: '#fff', color: 'var(--navy)', fontSize: 11, fontWeight: 700, padding: '6px 10px', borderRadius: 8, boxShadow: 'var(--shadow-sm)' }}>{m}</span>
               ))}
             </div>

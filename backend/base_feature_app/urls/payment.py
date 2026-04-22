@@ -7,4 +7,5 @@ urlpatterns = [
     path('payment/info/<str:order_number>/', payment_views.payment_info, name='payment-info'),
     path('payment/process/', payment_views.process_payment, name='payment-process'),
     path('payment/pse-banks/', payment_views.pse_banks, name='pse-banks'),
+    path('payment/check/<str:order_number>/', payment_views.check_payment_status, name='payment-check'),
 ]

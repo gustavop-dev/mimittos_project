@@ -1,5 +1,16 @@
 // ── Catálogo ──────────────────────────────────────────────────────────────────
 
+export type ColorImageItem = { id: number; url: string }
+
+export type ColorImageMeta = {
+  color_id: number
+  color_slug: string
+  color_name: string
+  hex_code: string
+  preview_url: string | null
+  count: number
+}
+
 export type GlobalSize = {
   id: number
   label: string
@@ -41,9 +52,13 @@ export type Peluch = {
   lead_description: string
   badge: 'none' | 'bestseller' | 'new' | 'limited_edition'
   is_featured: boolean
+  discount_pct: number
+  display_order: number
   min_price: number | null
+  discounted_min_price: number | null
   available_colors: GlobalColor[]
   gallery_urls: string[]
+  color_images_meta: ColorImageMeta[]
   average_rating: number
   review_count: number
   has_huella: boolean
@@ -53,7 +68,7 @@ export type Peluch = {
 
 export type PeluchDetail = Peluch & {
   category: Category
-  description: string
+  description: string[]
   specifications: Record<string, string>
   care_instructions: string[]
   size_prices: PeluchSizePrice[]
@@ -172,15 +187,21 @@ export type OrderTrackingInfo = {
   updated_at: string
   payment_status: string | null
   checkout_url: string | null
+  customer_name: string
+  customer_phone: string
+  address: string
+  city: string
+  department: string
+  postal_code: string
+  items: OrderItemRead[]
 }
 
 export type OrderCreateResponse = {
   order_number: string
-  checkout_url: string
   deposit_amount: number
   balance_amount: number
   total_amount: number
-  is_new_account: boolean
+  is_guest: boolean
 }
 
 // ── Reseñas ───────────────────────────────────────────────────────────────────
@@ -212,4 +233,15 @@ export type User = {
   last_name: string
   role: string
   is_staff: boolean
+}
+
+export type UserListItem = {
+  id: number
+  email: string
+  first_name: string
+  last_name: string
+  role: string
+  is_staff: boolean
+  is_active: boolean
+  date_joined: string
 }

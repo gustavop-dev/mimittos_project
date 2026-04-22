@@ -111,7 +111,7 @@ describe('SignInPage', () => {
     await waitFor(() => {
       expect(signIn).toHaveBeenCalledWith({ email: 'user@example.com', password: 'password123', captcha_token: undefined });
     });
-    expect(replace).toHaveBeenCalledWith('/dashboard');
+    expect(replace).toHaveBeenCalledWith('/mis-pedidos');
   });
 
   it('shows an error when sign in fails', async () => {
@@ -181,7 +181,7 @@ describe('SignInPage', () => {
         picture: 'pic.png',
       });
     });
-    expect(replace).toHaveBeenCalledWith('/dashboard');
+    expect(replace).toHaveBeenCalledWith('/mis-pedidos');
   });
 
   it('shows an error when Google credential is missing', async () => {
@@ -268,6 +268,6 @@ describe('SignInPage', () => {
         picture: undefined,
       });
     });
-    expect(replace).toHaveBeenCalledWith('/dashboard');
+    expect(replace).toHaveBeenCalledWith('/mis-pedidos');
   });
 });

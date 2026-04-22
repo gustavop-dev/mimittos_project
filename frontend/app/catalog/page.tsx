@@ -179,7 +179,7 @@ export default function CatalogPage() {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))', gap: 22 }}>
               {peluches.map((p) => {
-                const cover = p.gallery_urls[0]
+                const cover = p.color_images_meta?.[0]?.preview_url ?? p.gallery_urls[0]
                 return (
                   <Link key={p.id} href={`/peluches/${p.slug}`} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', cursor: 'pointer', textDecoration: 'none' }}>
                     <div style={{ position: 'relative', aspectRatio: '1/1', background: 'var(--pink-melo)', overflow: 'hidden' }}>
@@ -188,8 +188,13 @@ export default function CatalogPage() {
                           {BADGE_LABELS[p.badge]}
                         </span>
                       )}
+                      {p.discount_pct > 0 && (
+                        <span style={{ position: 'absolute', top: 14, right: 14, background: 'var(--terracotta)', color: '#fff', fontSize: 12, fontWeight: 800, padding: '6px 10px', borderRadius: 999, boxShadow: 'var(--shadow-sm)', zIndex: 1 }}>
+                          -{p.discount_pct}%
+                        </span>
+                      )}
                       {cover ? (
-                        <Image src={cover} alt={p.title} fill className="object-cover" />
+                        <Image src={cover} alt={p.title} fill style={{ objectFit: 'cover' }} />
                       ) : (
                         <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center', fontSize: 48 }}>🧸</div>
                       )}
@@ -207,8 +212,17 @@ export default function CatalogPage() {
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px dashed rgba(212,132,138,.2)' }}>
                         <div>
-                          <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 20, color: 'var(--terracotta)' }}>{fmt(p.min_price)}</div>
-                          <small style={{ fontWeight: 500, fontSize: 12, color: 'var(--gray-warm)' }}>desde</small>
+                          {p.discount_pct > 0 ? (
+                            <>
+                              <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 20, color: 'var(--terracotta)' }}>{fmt(p.discounted_min_price)}</div>
+                              <div style={{ textDecoration: 'line-through', fontSize: 12, color: 'var(--gray-warm)' }}>{fmt(p.min_price)}</div>
+                            </>
+                          ) : (
+                            <>
+                              <small style={{ fontWeight: 500, fontSize: 12, color: 'var(--gray-warm)', display: 'block', marginBottom: 1 }}>desde</small>
+                              <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 20, color: 'var(--terracotta)' }}>{fmt(p.min_price)}</div>
+                            </>
+                          )}
                         </div>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                           {p.has_huella && <span title="Huella personalizada" style={{ fontSize: 16 }}>🐾</span>}

@@ -7,14 +7,7 @@ from django.conf import settings
 
 
 def generate_auth_tokens(user):
-    """
-    Generate JWT tokens for a user.
-    
-    :param user: User instance
-    :return: Dictionary with refresh, access tokens and user data
-    """
     refresh = RefreshToken.for_user(user)
-    
     return {
         'refresh': str(refresh),
         'access': str(refresh.access_token),
@@ -30,28 +23,21 @@ def generate_auth_tokens(user):
 
 
 def send_password_reset_code(user, code):
-    """
-    Send password reset code via email.
-    
-    :param user: User instance
-    :param code: 6-digit code
-    """
-    subject = 'Password Reset Code'
-    message = f'''
-Hello {user.first_name},
+    name = user.first_name or 'MIMITTOS'
+    subject = 'Código para restablecer tu contraseña — MIMITTOS'
+    message = f'''Hola {name} 👋
 
-You requested a password reset. Your verification code is:
+Recibimos una solicitud para restablecer la contraseña de tu cuenta MIMITTOS.
 
-{code}
+Tu código de verificación es:
 
-This code will expire in 15 minutes.
+  {code}
 
-If you didn't request this, please ignore this email.
+Este código es válido por 15 minutos. Si no solicitaste este cambio, ignora este correo.
 
-Best regards,
-The Team
-    '''
-    
+Con cariño,
+El equipo de MIMITTOS 🧸
+'''
     try:
         send_mail(
             subject,
@@ -67,26 +53,22 @@ The Team
 
 
 def send_verification_code(email, code):
-    """
-    Send verification code for new user registration.
-    
-    :param email: User email
-    :param code: 6-digit code
-    """
-    subject = 'Email Verification Code'
-    message = f'''
-Hello,
+    subject = 'Verifica tu cuenta en MIMITTOS 🧸'
+    message = f'''¡Bienvenido/a a MIMITTOS! 🌸
 
-Welcome! Your email verification code is:
+Para activar tu cuenta necesitamos verificar tu correo electrónico.
 
-{code}
+Tu código de verificación es:
 
-This code will expire in 15 minutes.
+  {code}
 
-Best regards,
-The Team
-    '''
-    
+Este código es válido por 15 minutos.
+
+Si no creaste esta cuenta, puedes ignorar este correo.
+
+Con cariño,
+El equipo de MIMITTOS 🧸
+'''
     try:
         send_mail(
             subject,

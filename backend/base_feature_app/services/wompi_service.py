@@ -107,6 +107,20 @@ class WompiService:
         }
 
     @staticmethod
+    def fetch_transaction(wompi_id: str) -> dict:
+        try:
+            resp = requests.get(
+                f'{WompiService._api_url()}/transactions/{wompi_id}',
+                headers={'Authorization': f'Bearer {WompiService._private_key()}'},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            return resp.json().get('data', {})
+        except requests.RequestException as exc:
+            logger.warning('fetch_transaction failed for %s: %s', wompi_id, exc)
+            return {}
+
+    @staticmethod
     def get_pse_banks() -> list:
         try:
             resp = requests.get(

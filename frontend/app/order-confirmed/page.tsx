@@ -9,23 +9,40 @@ import { paymentService } from '@/lib/services/paymentService'
 function OrderConfirmedContent() {
   const searchParams = useSearchParams()
   const orderNumber = searchParams.get('order') ?? ''
-  const isNew = searchParams.get('new') === '1'
+  const isGuest = searchParams.get('guest') === '1'
+  const customerEmail = searchParams.get('email') ?? ''
   const startConfirmed = searchParams.get('confirmed') === '1'
 
   const [confirmed, setConfirmed] = useState(startConfirmed)
 
-  // Single check 2 s after mount — handles sandbox PENDING and 3DS returns.
-  // In production, direct card charges resolve synchronously (APPROVED/DECLINED)
-  // so this fires at most once and only matters for PENDING edge cases.
+  // Retry checks with increasing delays — handles sandbox PENDING lag and 3DS returns.
+  // Attempts at ~2s, 7s, 17s, 37s from mount. Stops as soon as approved.
   useEffect(() => {
     if (confirmed || !orderNumber) return
-    const t = setTimeout(async () => {
-      try {
-        const data = await paymentService.pollStatus(orderNumber)
-        if (data.status === 'approved') setConfirmed(true)
-      } catch {}
-    }, 2000)
-    return () => clearTimeout(t)
+
+    const DELAYS = [2000, 5000, 10000, 20000]
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout>
+
+    async function tryCheck(idx: number) {
+      if (cancelled || idx >= DELAYS.length) return
+      timer = setTimeout(async () => {
+        if (cancelled) return
+        try {
+          const data = await paymentService.checkStatus(orderNumber)
+          if (data.status === 'approved') {
+            setConfirmed(true)
+          } else {
+            tryCheck(idx + 1)
+          }
+        } catch {
+          tryCheck(idx + 1)
+        }
+      }, DELAYS[idx])
+    }
+
+    tryCheck(0)
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [confirmed, orderNumber])
 
   return (
@@ -93,25 +110,29 @@ function OrderConfirmedContent() {
           <div>
             <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: 'var(--navy)', fontSize: 15, marginBottom: 3 }}>Revisa tu correo</div>
             <div style={{ fontSize: 13, color: 'var(--gray-warm)', lineHeight: 1.5 }}>
-              Te enviamos un resumen del pedido.
-              {isNew && ' También encontrarás tus credenciales para acceder a tu cuenta.'}
+              Te enviamos un resumen del pedido con todos los detalles.
             </div>
           </div>
         </div>
 
-        {/* New account banner */}
-        {isNew && (
-          <div style={{ background: '#E8F5E9', border: '1px solid #A5D6A7', borderRadius: 16, padding: '18px 20px', marginBottom: 16, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-            <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#A5D6A7', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1B5E20" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+        {/* Guest register banner */}
+        {isGuest && (
+          <div style={{ background: '#EDE7F6', border: '1px solid #B39DDB', borderRadius: 16, padding: '18px 20px', marginBottom: 16, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#B39DDB', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4527A0" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
             </div>
             <div>
-              <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: '#1B5E20', fontSize: 15, marginBottom: 3 }}>Tu cuenta fue creada</div>
-              <div style={{ fontSize: 13, color: '#2E7D32', lineHeight: 1.5, marginBottom: 10 }}>
-                Puedes iniciar sesión para ver el historial de tus pedidos en cualquier momento.
+              <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: '#4527A0', fontSize: 15, marginBottom: 3 }}>
+                ¡Crea tu cuenta y ve tus pedidos!
               </div>
-              <Link href="/auth/login" style={{ display: 'inline-block', padding: '8px 18px', borderRadius: 999, background: '#2E7D32', color: '#fff', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
-                Iniciar sesión →
+              <div style={{ fontSize: 13, color: '#512DA8', lineHeight: 1.5, marginBottom: 10 }}>
+                Regístrate con{customerEmail ? <> el correo <strong>{customerEmail}</strong></> : ' el correo que usaste para comprar'} y este pedido aparecerá automáticamente en tu perfil.
+              </div>
+              <Link
+                href={`/sign-up${customerEmail ? `?email=${encodeURIComponent(customerEmail)}` : ''}`}
+                style={{ display: 'inline-block', padding: '8px 18px', borderRadius: 999, background: '#512DA8', color: '#fff', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13, textDecoration: 'none' }}
+              >
+                Crear cuenta →
               </Link>
             </div>
           </div>

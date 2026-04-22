@@ -1,9 +1,9 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { FormEvent, useEffect, useRef, useState } from 'react'
+import { FormEvent, Suspense, useEffect, useRef, useState } from 'react'
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google'
 import { jwtDecode } from 'jwt-decode'
 import ReCAPTCHA from 'react-google-recaptcha'
@@ -18,13 +18,18 @@ type GoogleUser = {
   picture?: string
 }
 
-export default function SignUpPage() {
+function SignUpContent() {
   const router = useRouter()
-  const { signUp, googleLogin } = useAuthStore()
+  const searchParams = useSearchParams()
+  const { signUp, verifyRegistration, resendVerification, googleLogin } = useAuthStore()
 
   const hasGoogleClientId = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
 
-  const [email, setEmail] = useState('')
+  const [step, setStep] = useState<'form' | 'verify'>('form')
+  const [pendingEmail, setPendingEmail] = useState('')
+
+  // form fields
+  const [email, setEmail] = useState(searchParams.get('email') ?? '')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [firstName, setFirstName] = useState('')
@@ -33,11 +38,16 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [newsletter, setNewsletter] = useState(true)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [siteKey, setSiteKey] = useState<string>('')
+
+  // verify step
+  const [code, setCode] = useState('')
+  const [resendCooldown, setResendCooldown] = useState(0)
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [mounted, setMounted] = useState(false)
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
-  const [siteKey, setSiteKey] = useState<string>('')
   const recaptchaRef = useRef<ReCAPTCHA>(null)
 
   const pwStrength = (() => {
@@ -60,6 +70,12 @@ export default function SignUpPage() {
       .catch(() => {})
   }, [])
 
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const t = setTimeout(() => setResendCooldown(c => c - 1), 1000)
+    return () => clearTimeout(t)
+  }, [resendCooldown])
+
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -70,19 +86,16 @@ export default function SignUpPage() {
       setLoading(false)
       return
     }
-
     if (password.length < 8) {
       setError('La contraseña debe tener al menos 8 caracteres')
       setLoading(false)
       return
     }
-
     if (!termsAccepted) {
       setError('Debes aceptar los Términos y Condiciones')
       setLoading(false)
       return
     }
-
     if (siteKey && !captchaToken) {
       setError('Por favor completa el captcha')
       setLoading(false)
@@ -90,14 +103,16 @@ export default function SignUpPage() {
     }
 
     try {
-      await signUp({
+      const result = await signUp({
         email,
         password,
         first_name: firstName,
         last_name: lastName,
         captcha_token: captchaToken ?? undefined,
       })
-      router.replace('/dashboard')
+      setPendingEmail(result.email)
+      setStep('verify')
+      setResendCooldown(60)
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al crear la cuenta')
       recaptchaRef.current?.reset()
@@ -107,19 +122,37 @@ export default function SignUpPage() {
     }
   }
 
+  const onVerify = async (e: FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    try {
+      await verifyRegistration({ email: pendingEmail, code })
+      router.replace('/orders')
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Código inválido o expirado')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const onResend = async () => {
+    if (resendCooldown > 0) return
+    try {
+      await resendVerification(pendingEmail)
+      setResendCooldown(60)
+    } catch {
+      // silently ignore
+    }
+  }
+
   const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
     try {
       setLoading(true)
       setError('')
-
-      if (!credentialResponse.credential) {
-        setError('Error con Google')
-        return
-      }
-
+      if (!credentialResponse.credential) { setError('Error con Google'); return }
       let decoded: GoogleUser | null = null
       try { decoded = jwtDecode<GoogleUser>(credentialResponse.credential) } catch { decoded = null }
-
       await googleLogin({
         credential: credentialResponse.credential,
         email: decoded?.email,
@@ -127,13 +160,78 @@ export default function SignUpPage() {
         family_name: decoded?.family_name,
         picture: decoded?.picture,
       })
-
-      router.replace('/dashboard')
+      router.replace('/orders')
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al registrarse con Google')
     } finally {
       setLoading(false)
     }
+  }
+
+  if (step === 'verify') {
+    return (
+      <main style={{ background: 'linear-gradient(135deg,var(--cream-warm) 0%,var(--pink-melo) 100%)', minHeight: 'calc(100vh - 88px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+        <div style={{ background: '#fff', borderRadius: 24, padding: 40, boxShadow: '0 20px 60px -20px rgba(27,42,74,.2)', maxWidth: 420, width: '100%' }}>
+          <div style={{ textAlign: 'center', marginBottom: 28 }}>
+            <div style={{ width: 70, height: 70, borderRadius: '50%', background: 'var(--cream-peach)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--coral)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4a2 2 0 0 1-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+            </div>
+            <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--navy)', margin: '0 0 8px' }}>
+              Verifica tu correo
+            </h2>
+            <p style={{ fontSize: 14, color: 'var(--gray-warm)', lineHeight: 1.6, margin: 0 }}>
+              Enviamos un código de 6 dígitos a<br />
+              <strong style={{ color: 'var(--navy)' }}>{pendingEmail}</strong>
+            </p>
+          </div>
+
+          <form onSubmit={onVerify} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={labelStyle}>Código de verificación</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="000000"
+                maxLength={6}
+                required
+                autoFocus
+                style={{ ...inputStyle, textAlign: 'center', fontSize: 28, fontWeight: 700, letterSpacing: '0.3em', paddingLeft: 15 }}
+              />
+              <p style={{ fontSize: 12, color: 'var(--gray-warm)', marginTop: 6 }}>
+                Revisa tu bandeja de entrada y la carpeta de spam.
+              </p>
+            </div>
+
+            {error && <p style={{ fontSize: 13, color: '#C62828', background: '#FFEBEE', padding: '8px 12px', borderRadius: 10 }}>{error}</p>}
+
+            <button type="submit" disabled={loading || code.length < 6} style={{ width: '100%', padding: 15, borderRadius: 999, background: 'var(--coral)', color: '#fff', border: 'none', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, cursor: (loading || code.length < 6) ? 'not-allowed' : 'pointer', opacity: (loading || code.length < 6) ? .6 : 1 }}>
+              {loading ? 'Verificando...' : 'Activar mi cuenta ♡'}
+            </button>
+          </form>
+
+          <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--gray-warm)' }}>
+            ¿No recibiste el código?{' '}
+            {resendCooldown > 0 ? (
+              <span style={{ color: 'var(--gray-warm)' }}>Reenviar en {resendCooldown}s</span>
+            ) : (
+              <button onClick={onResend} style={{ background: 'none', border: 'none', color: 'var(--coral)', fontWeight: 700, cursor: 'pointer', fontSize: 13, padding: 0 }}>
+                Reenviar código
+              </button>
+            )}
+          </p>
+          <p style={{ textAlign: 'center', marginTop: 12, fontSize: 13 }}>
+            <button onClick={() => { setStep('form'); setCode(''); setError('') }} style={{ background: 'none', border: 'none', color: 'var(--gray-warm)', cursor: 'pointer', fontSize: 13, padding: 0 }}>
+              ← Cambiar correo
+            </button>
+          </p>
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -177,12 +275,6 @@ export default function SignUpPage() {
             <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setError('Error al registrarse con Google')} size="large" text="signup_with" shape="rectangular" width="100%" />
           </div>
         )}
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--gray-warm)', fontSize: 12, fontWeight: 600, margin: '22px 0' }}>
-          <span style={{ flex: 1, height: 1, background: 'rgba(27,42,74,.1)' }} />
-          o con tus datos
-          <span style={{ flex: 1, height: 1, background: 'rgba(27,42,74,.1)' }} />
-        </div>
 
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -280,6 +372,14 @@ export default function SignUpPage() {
 
       <style>{`@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}`}</style>
     </main>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense>
+      <SignUpContent />
+    </Suspense>
   )
 }
 

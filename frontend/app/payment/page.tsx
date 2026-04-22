@@ -90,7 +90,7 @@ function PaymentContent() {
   const searchParams = useSearchParams()
   const orderNumber = searchParams.get('order') ?? ''
   const depositParam = parseInt(searchParams.get('deposit') ?? '0', 10) || 0
-  const isNew = searchParams.get('new') === '1'
+  const isGuest = searchParams.get('guest') === '1'
 
   const [info, setInfo] = useState<PaymentInfo | null>(null)
   const [acceptance, setAcceptance] = useState<AcceptanceTokens | null>(null)
@@ -177,14 +177,16 @@ function PaymentContent() {
       }
 
       const confirmedParam = result.status === 'APPROVED' ? '&confirmed=1' : ''
-      const newParam = isNew ? '&new=1' : ''
+      const guestParam = isGuest ? '&guest=1' : ''
+      const emailParam = isGuest && info?.customer_email
+        ? `&email=${encodeURIComponent(info.customer_email)}`
+        : ''
 
       if (result.status === 'APPROVED' || result.status === 'PENDING') {
         if (result.redirect_url) {
-          // 3DS or PSE/Bancolombia bank redirect
           window.location.href = result.redirect_url
         } else {
-          router.push(`/order-confirmed?order=${orderNumber}${confirmedParam}${newParam}`)
+          router.push(`/order-confirmed?order=${orderNumber}${confirmedParam}${guestParam}${emailParam}`)
         }
       } else {
         setError('Pago rechazado. Verifica tus datos e intenta con otro método.')
@@ -236,15 +238,23 @@ function PaymentContent() {
 
         {/* Order info */}
         {orderNumber && (
-          <div style={{ background: '#fff', borderRadius: 16, padding: '16px 20px', marginBottom: 28, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 12px rgba(27,42,74,.06)' }}>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--coral)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 2 }}>Pedido</div>
-              <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: 'var(--navy)', fontSize: 15 }}>{orderNumber}</div>
+          <div style={{ background: '#fff', borderRadius: 16, padding: '16px 20px', marginBottom: 28, boxShadow: '0 2px 12px rgba(27,42,74,.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: deposit > 0 && info?.total_amount ? 12 : 0 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--coral)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 2 }}>Pedido</div>
+                <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: 'var(--navy)', fontSize: 15 }}>{orderNumber}</div>
+              </div>
+              {deposit > 0 && (
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 11, color: 'var(--gray-warm)', marginBottom: 2 }}>Abono (50%)</div>
+                  <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 800, color: 'var(--terracotta)', fontSize: 22 }}>{fmt(deposit)}</div>
+                </div>
+              )}
             </div>
-            {deposit > 0 && (
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 11, color: 'var(--gray-warm)', marginBottom: 2 }}>Abono (50%)</div>
-                <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 800, color: 'var(--terracotta)', fontSize: 22 }}>{fmt(deposit)}</div>
+            {info?.total_amount && info.total_amount > 0 && (
+              <div style={{ borderTop: '1px dashed rgba(27,42,74,.1)', paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--gray-warm)' }}>
+                <span>Total del pedido: <b style={{ color: 'var(--navy)' }}>{fmt(info.total_amount)}</b></span>
+                <span>Saldo al recibir: <b style={{ color: 'var(--navy)' }}>{fmt(info.balance_amount)}</b></span>
               </div>
             )}
           </div>

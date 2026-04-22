@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
 import { useAuthStore } from '@/lib/stores/authStore'
@@ -12,6 +13,8 @@ export default function Header() {
   const signOut = useAuthStore((s) => s.signOut)
   const cartCount = useCartStore((s) => s.items.reduce((acc, item) => acc + item.quantity, 0))
   const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   const navLinks = [
     { href: '/', label: 'Inicio' },
@@ -55,12 +58,6 @@ export default function Header() {
         </nav>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button style={iconBtnStyle} aria-label="Buscar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" />
-            </svg>
-          </button>
-
           <Link href="/cart" style={{ ...iconBtnStyle, position: 'relative' } as React.CSSProperties} aria-label="Carrito">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
@@ -77,16 +74,11 @@ export default function Header() {
             )}
           </Link>
 
-          {isAuthenticated ? (
-            <>
-              <Link href="/orders" style={loginBtnStyle}>Mis pedidos</Link>
-              <button style={{ ...loginBtnStyle, background: 'transparent', color: 'var(--navy)', border: '1.5px solid rgba(27,42,74,.15)' } as React.CSSProperties} onClick={signOut}>
-                Salir
-              </button>
-            </>
+          {mounted && (isAuthenticated ? (
+            <Link href="/orders" style={loginBtnStyle}>Mis pedidos</Link>
           ) : (
             <Link href="/sign-in" style={loginBtnStyle}>Ingresar</Link>
-          )}
+          ))}
         </div>
       </div>
     </header>

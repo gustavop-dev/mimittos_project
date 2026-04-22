@@ -1,3 +1,4 @@
+from django.core.validators import MaxValueValidator
 from django.db import models
 from django_attachments.fields import GalleryField
 from django_attachments.models import Library
@@ -17,13 +18,15 @@ class Peluch(models.Model):
     slug = models.SlugField(unique=True)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='peluches')
     lead_description = models.CharField(max_length=280)
-    description = models.TextField()
+    description = models.JSONField(default=list, blank=True)
     specifications = models.JSONField(default=dict)
     care_instructions = models.JSONField(default=list)
     available_colors = models.ManyToManyField(GlobalColor, blank=True, related_name='peluches')
     badge = models.CharField(max_length=20, choices=BadgeType.choices, default=BadgeType.NONE)
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
+    discount_pct = models.PositiveSmallIntegerField(default=0, validators=[MaxValueValidator(100)])
+    display_order = models.PositiveSmallIntegerField(default=100)
     average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00)
     review_count = models.PositiveIntegerField(default=0)
     view_count = models.PositiveIntegerField(default=0)
@@ -40,7 +43,7 @@ class Peluch(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['display_order', '-is_featured', '-created_at']
 
     def __str__(self):
         return self.title

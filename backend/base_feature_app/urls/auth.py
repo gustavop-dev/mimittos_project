@@ -3,6 +3,8 @@ from base_feature_app.views import auth
 
 urlpatterns = [
     path('sign_up/', auth.sign_up, name='sign_up'),
+    path('verify_registration/', auth.verify_registration, name='verify_registration'),
+    path('resend_verification/', auth.resend_verification, name='resend_verification'),
     path('sign_in/', auth.sign_in, name='sign_in'),
     path('google_login/', auth.google_login, name='google_login'),
     path('send_passcode/', auth.send_passcode, name='send_passcode'),

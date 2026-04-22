@@ -8,15 +8,13 @@ class ReviewService:
 
     @staticmethod
     def create_review(peluch: Peluch, user, order, rating: int, comment: str) -> Review:
-        if order:
-            has_delivered = Order.objects.filter(
-                id=order.id,
-                customer=user,
-                status=Order.Status.DELIVERED,
-                items__peluch=peluch,
-            ).exists()
-            if not has_delivered:
-                raise ValidationError('Solo puedes reseñar peluches de pedidos entregados.')
+        has_purchased = Order.objects.filter(
+            customer=user,
+            status=Order.Status.DELIVERED,
+            items__peluch=peluch,
+        ).exists()
+        if not has_purchased:
+            raise ValidationError('Solo puedes reseñar peluches que hayas comprado y recibido.')
 
         if Review.objects.filter(peluch=peluch, user=user).exists():
             raise ValidationError('Ya tienes una reseña para este peluche.')

@@ -8,7 +8,9 @@ export type PaymentInfo = {
   reference: string
   amount_in_cents: number
   currency: string
+  total_amount: number
   deposit_amount: number
+  balance_amount: number
   customer_name: string
   customer_email: string
   customer_phone: string
@@ -49,6 +51,9 @@ export const paymentService = {
 
   pollStatus: (orderNumber: string) =>
     api.get<PaymentInfo>(`/payment/info/${orderNumber}/`).then((r) => r.data),
+
+  checkStatus: (orderNumber: string) =>
+    api.get<{ status: string; synced: boolean }>(`/payment/check/${orderNumber}/`).then((r) => r.data),
 
   getAcceptanceTokens: async (): Promise<AcceptanceTokens> => {
     const resp = await fetch(`${WOMPI_API_URL}/merchants/${WOMPI_PUBLIC_KEY}`)

@@ -1,5 +1,5 @@
 import { api } from './http'
-import type { Category, GlobalColor, GlobalSize, Peluch, PeluchDetail, Review } from '../types'
+import type { Category, ColorImageItem, GlobalColor, GlobalSize, Peluch, PeluchDetail, Review } from '../types'
 
 export const peluchService = {
   listPeluches: (params?: {
@@ -29,4 +29,7 @@ export const peluchService = {
 
   createReview: (slug: string, data: { rating: number; comment: string; order_id?: number }) =>
     api.post<Review>(`/peluches/${slug}/reviews/`, data).then((r) => r.data),
+
+  getColorImages: (slug: string, colorSlug: string) =>
+    api.get<ColorImageItem[]>(`/peluches/${slug}/color-image/${colorSlug}/`).then((r) => r.data),
 }

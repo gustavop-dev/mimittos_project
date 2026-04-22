@@ -54,6 +54,7 @@ api.interceptors.response.use(
     refreshPromise = null;
 
     if (!newAccess) {
+      if (typeof window !== 'undefined') window.location.replace('/');
       return Promise.reject(error);
     }
 
