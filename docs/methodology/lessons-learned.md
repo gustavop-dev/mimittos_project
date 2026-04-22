@@ -3,7 +3,7 @@ trigger: manual
 description: Project intelligence and lessons learned. Reference for project-specific patterns, preferences, and key insights discovered during development.
 ---
 
-# Lessons Learned — Base Django React Next Feature
+# Lessons Learned — Mimittos
 
 This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
 

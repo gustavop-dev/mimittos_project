@@ -91,14 +91,12 @@ describe('authStore', () => {
     );
   });
 
-  it('signs up successfully', async () => {
+  it('signs up successfully and returns email', async () => {
     mockApi.post.mockResolvedValueOnce({
-      data: {
-        email: 'new@example.com',
-      },
+      data: { email: 'new@example.com' },
     });
 
-    let result;
+    let result: { email: string } | undefined;
     await act(async () => {
       result = await useAuthStore.getState().signUp({ email: 'new@example.com', password: 'password' });
     });
@@ -108,12 +106,15 @@ describe('authStore', () => {
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
   });
 
-  it('returns the submitted email when sign up response omits it', async () => {
+  it('returns email from signUp even when response email is missing', async () => {
     mockApi.post.mockResolvedValueOnce({ data: {} });
 
-    await expect(useAuthStore.getState().signUp({ email: 'new@example.com', password: 'password' })).resolves.toEqual({
-      email: 'new@example.com',
+    let result: { email: string } | undefined;
+    await act(async () => {
+      result = await useAuthStore.getState().signUp({ email: 'new@example.com', password: 'password' });
     });
+
+    expect(result).toEqual({ email: 'new@example.com' });
   });
 
   it('logs in with google credentials', async () => {

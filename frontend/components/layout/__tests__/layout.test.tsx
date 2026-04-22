@@ -56,17 +56,14 @@ describe('layout components', () => {
     expect(screen.getByText('5')).toBeInTheDocument()
   })
 
-  it('renders orders link and sign-out button for authenticated users', () => {
+  it('renders orders link for authenticated users', () => {
     renderHeader({ isAuthenticated: true, signOut: jest.fn() }, [])
     expect(screen.getByRole('link', { name: 'Mis pedidos' })).toHaveAttribute('href', '/orders')
-    expect(screen.getByRole('button', { name: 'Salir' })).toBeInTheDocument()
   })
 
-  it('calls signOut when Salir button is clicked', async () => {
-    const signOut = jest.fn()
-    renderHeader({ isAuthenticated: true, signOut }, [])
-    await userEvent.click(screen.getByRole('button', { name: 'Salir' }))
-    expect(signOut).toHaveBeenCalledTimes(1)
+  it('does not render Ingresar link for authenticated users', () => {
+    renderHeader({ isAuthenticated: true, signOut: jest.fn() }, [])
+    expect(screen.queryByRole('link', { name: 'Ingresar' })).not.toBeInTheDocument()
   })
 
   it('does not render Salir button for unauthenticated users', () => {

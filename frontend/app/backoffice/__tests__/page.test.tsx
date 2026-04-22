@@ -1,122 +1,75 @@
 import { describe, it, expect, beforeEach } from '@jest/globals'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-
-import BackofficePage from '../page'
-import { useRequireAuth } from '../../../lib/hooks/useRequireAuth'
-import { api } from '../../../lib/services/http'
-import { orderService } from '../../../lib/services/orderService'
-
-jest.mock('../../../lib/hooks/useRequireAuth', () => ({
-  useRequireAuth: jest.fn(),
-}))
+import { render, screen, waitFor } from '@testing-library/react'
 
 jest.mock('../../../lib/services/http', () => ({
   api: { get: jest.fn() },
 }))
 
-jest.mock('../../../lib/services/orderService', () => ({
-  orderService: {
-    listOrders: jest.fn(),
-    updateStatus: jest.fn(),
-    updateTracking: jest.fn(),
+jest.mock('../../../lib/services/analyticsAdminService', () => ({
+  analyticsAdminService: {
+    getDashboard: jest.fn(),
+    exportOrdersCSV: jest.fn(),
   },
 }))
 
-const mockUseRequireAuth = useRequireAuth as unknown as jest.Mock
-const mockApi = api as jest.Mocked<typeof api>
-const mockOrderService = orderService as jest.Mocked<typeof orderService>
+jest.mock('recharts', () => ({
+  LineChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="line-chart">{children}</div>,
+  BarChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="bar-chart">{children}</div>,
+  PieChart: ({ children }: { children?: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
+  Line: () => null,
+  Bar: () => null,
+  Pie: () => null,
+  Cell: () => null,
+  XAxis: () => null,
+  YAxis: () => null,
+  CartesianGrid: () => null,
+  Tooltip: () => null,
+  Legend: () => null,
+  ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+}))
 
-describe('BackofficePage', () => {
+import { api } from '../../../lib/services/http'
+import { analyticsAdminService } from '../../../lib/services/analyticsAdminService'
+import BackofficePage from '../page'
+
+const mockApi = api as jest.Mocked<typeof api>
+const mockGetDashboard = analyticsAdminService.getDashboard as jest.Mock
+
+describe('BackofficeDashboard', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockOrderService.listOrders.mockResolvedValue([])
     mockApi.get.mockResolvedValue({ data: null })
+    mockGetDashboard.mockResolvedValue(null)
   })
 
-  it('renders nothing when unauthenticated', () => {
-    mockUseRequireAuth.mockReturnValue({ isAuthenticated: false })
-    const { container } = render(<BackofficePage />)
-    expect(container).toBeEmptyDOMElement()
-  })
-
-  it('renders loading state while fetching', () => {
-    mockUseRequireAuth.mockReturnValue({ isAuthenticated: true })
-    mockOrderService.listOrders.mockReturnValue(new Promise(() => {}))
-
+  it('renders the Dashboard h1 heading', () => {
     render(<BackofficePage />)
-    expect(screen.getByText('Cargando...')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
   })
 
-  it('renders order table after loading', async () => {
-    mockUseRequireAuth.mockReturnValue({ isAuthenticated: true })
-    mockOrderService.listOrders.mockResolvedValue([
-      {
-        id: 1,
-        order_number: 'PELUCH-20260420-XXXX',
-        customer_name: 'María López',
-        customer_email: 'maria@example.com',
-        city: 'Medellín',
-        department: 'Antioquia',
-        status: 'payment_confirmed',
-        total_amount: 120000,
-        deposit_amount: 60000,
-        balance_amount: 60000,
-        created_at: '2026-04-20T10:00:00Z',
-      },
-    ])
-    mockApi.get.mockResolvedValue({ data: [] })
-
+  it('renders quick links to all backoffice sections', () => {
     render(<BackofficePage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('PELUCH-20260420-XXXX')).toBeInTheDocument()
-    })
-    expect(screen.getByText('María López')).toBeInTheDocument()
+    const links = screen.getAllByRole('link')
+    const hrefs = links.map((l) => l.getAttribute('href'))
+    expect(hrefs).toContain('/backoffice/pedidos')
+    expect(hrefs).toContain('/backoffice/peluches')
+    expect(hrefs).toContain('/backoffice/categorias')
+    expect(hrefs).toContain('/backoffice/usuarios')
   })
 
-  it('renders user table in users tab after clicking tab', async () => {
-    mockUseRequireAuth.mockReturnValue({ isAuthenticated: true })
-    mockOrderService.listOrders.mockResolvedValue([])
-    mockApi.get.mockImplementation((url: string) => {
-      if (url === '/users/') return Promise.resolve({ data: [{ id: 1, email: 'admin@example.com', role: 'admin', is_staff: true, is_active: true }] })
-      return Promise.resolve({ data: null })
-    })
-
+  it('shows loading metrics state initially', () => {
+    mockApi.get.mockReturnValue(new Promise(() => {}))
     render(<BackofficePage />)
-
-    // Wait for initial load to finish, then switch to users tab
-    await waitFor(() => {
-      expect(screen.getByText(/Pedidos/)).toBeInTheDocument()
-    })
-
-    const usersTab = screen.getByText(/Usuarios/)
-    fireEvent.click(usersTab)
-
-    await waitFor(() => {
-      expect(screen.getByText('admin@example.com')).toBeInTheDocument()
-    })
+    expect(screen.getByText('Cargando métricas...')).toBeInTheDocument()
   })
 
-  it('shows error message when loading fails', async () => {
-    mockUseRequireAuth.mockReturnValue({ isAuthenticated: true })
-    mockOrderService.listOrders.mockRejectedValue(new Error('Network error'))
-
-    render(<BackofficePage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('No se pudo cargar la información del backoffice.')).toBeInTheDocument()
+  it('shows KPI cards after metrics load', async () => {
+    mockApi.get.mockResolvedValue({
+      data: { new_orders: 5, in_production: 3, pending_dispatch: 2, confirmed_deposits: 150000 },
     })
-  })
-
-  it('shows empty state when no orders exist', async () => {
-    mockUseRequireAuth.mockReturnValue({ isAuthenticated: true })
-    mockOrderService.listOrders.mockResolvedValue([])
-    mockApi.get.mockResolvedValue({ data: [] })
-
     render(<BackofficePage />)
-
     await waitFor(() => {
-      expect(screen.getByText('Sin pedidos')).toBeInTheDocument()
+      expect(screen.getByText('Pedidos nuevos hoy')).toBeInTheDocument()
     })
   })
 })
