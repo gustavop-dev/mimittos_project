@@ -131,27 +131,23 @@ def anon_client():
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
-@patch('base_feature_app.views.order_views.WompiService.create_checkout', return_value='https://checkout.wompi.co/l/link123')
 @patch('base_feature_app.views.order_views.NotificationService.notify_new_order_admin', return_value=True)
-def test_create_order_returns_201_with_valid_data(mock_notify, mock_checkout, anon_client, order_data):
+def test_create_order_returns_201_with_valid_data(mock_notify, anon_client, order_data):
     response = anon_client.post('/api/orders/', order_data, format='json')
     assert response.status_code == 201
     assert 'order_number' in response.data
-    assert response.data['checkout_url'] == 'https://checkout.wompi.co/l/link123'
 
 
 @pytest.mark.django_db
-@patch('base_feature_app.views.order_views.WompiService.create_checkout', return_value='https://checkout.wompi.co/l/link123')
 @patch('base_feature_app.views.order_views.NotificationService.notify_new_order_admin', return_value=True)
-def test_create_order_stores_order_in_database(mock_notify, mock_checkout, anon_client, order_data):
+def test_create_order_stores_order_in_database(mock_notify, anon_client, order_data):
     anon_client.post('/api/orders/', order_data, format='json')
     assert Order.objects.filter(customer_email='ana@example.com').exists()
 
 
 @pytest.mark.django_db
-@patch('base_feature_app.views.order_views.WompiService.create_checkout', return_value='https://checkout.wompi.co/l/link123')
 @patch('base_feature_app.views.order_views.NotificationService.notify_new_order_admin', return_value=True)
-def test_create_order_returns_amounts_in_response(mock_notify, mock_checkout, anon_client, order_data):
+def test_create_order_returns_amounts_in_response(mock_notify, anon_client, order_data):
     response = anon_client.post('/api/orders/', order_data, format='json')
     assert response.data['total_amount'] == 80000
     assert response.data['deposit_amount'] == 40000
@@ -172,12 +168,12 @@ def test_create_order_returns_400_for_empty_items(anon_client, order_data):
 
 
 @pytest.mark.django_db
-@patch('base_feature_app.views.order_views.WompiService.create_checkout', side_effect=Exception('Wompi down'))
 @patch('base_feature_app.views.order_views.NotificationService.notify_new_order_admin', return_value=True)
-def test_create_order_returns_201_even_when_checkout_fails(mock_notify, mock_checkout, anon_client, order_data):
+def test_create_order_returns_201_with_expected_keys(mock_notify, anon_client, order_data):
     response = anon_client.post('/api/orders/', order_data, format='json')
     assert response.status_code == 201
-    assert response.data['checkout_url'] == ''
+    for key in ('order_number', 'deposit_amount', 'balance_amount', 'total_amount', 'is_guest'):
+        assert key in response.data
 
 
 # ---------------------------------------------------------------------------

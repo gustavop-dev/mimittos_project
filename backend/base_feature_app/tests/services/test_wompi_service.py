@@ -257,7 +257,7 @@ def test_create_checkout_returns_checkout_url(mock_post, wompi_tx, settings):
     settings.FRONTEND_URL = 'http://localhost:3000'
 
     mock_response = MagicMock()
-    mock_response.json.return_value = {'data': {'url': 'https://checkout.wompi.co/l/testlink'}}
+    mock_response.json.return_value = {'data': {'id': 'testlink'}}
     mock_response.raise_for_status.return_value = None
     mock_post.return_value = mock_response
 
@@ -273,7 +273,7 @@ def test_create_checkout_saves_url_to_transaction(mock_post, wompi_tx, settings)
     settings.FRONTEND_URL = 'http://localhost:3000'
 
     mock_response = MagicMock()
-    mock_response.json.return_value = {'data': {'url': 'https://checkout.wompi.co/l/saved'}}
+    mock_response.json.return_value = {'data': {'id': 'saved'}}
     mock_response.raise_for_status.return_value = None
     mock_post.return_value = mock_response
 
