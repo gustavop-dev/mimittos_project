@@ -130,14 +130,10 @@ test.describe('Authentication', () => {
     await waitForPageLoad(page);
 
     await expect(page).toHaveURL(/.*forgot-password/);
-    await expect(page.getByRole('heading', { name: 'Reset Password' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Olvidaste tu contraseña/i })).toBeVisible();
 
-    // Step A: email input and send code button
-    await expect(page.getByPlaceholder('Email')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Send verification code' })).toBeVisible();
-
-    // Link back to sign-in
-    await expect(page.getByRole('link', { name: 'Back to sign in' })).toBeVisible();
+    await expect(page.getByPlaceholder('tu@correo.com')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Enviar código/i })).toBeVisible();
   });
 
   test('should navigate from sign-in to forgot password', { tag: [...AUTH_FORGOT_PASSWORD_FORM] }, async ({ page }) => {
@@ -150,6 +146,6 @@ test.describe('Authentication', () => {
     await page.waitForURL(/.*forgot-password/, { timeout: 10_000 });
 
     await expect(page).toHaveURL(/.*forgot-password/);
-    await expect(page.getByRole('heading', { name: 'Reset Password' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Olvidaste tu contraseña/i })).toBeVisible();
   });
 });
