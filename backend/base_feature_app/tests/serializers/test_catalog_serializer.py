@@ -1,7 +1,13 @@
 import pytest
 from django_attachments.models import Library
 
-from base_feature_app.models import Category, GlobalColor, GlobalSize, Peluch, PeluchSizePrice
+from base_feature_app.models import (
+    Category,
+    GlobalColor,
+    GlobalSize,
+    Peluch,
+    PeluchSizePrice,
+)
 from base_feature_app.serializers.catalog import (
     CategorySerializer,
     GlobalColorSerializer,
@@ -9,7 +15,6 @@ from base_feature_app.serializers.catalog import (
     PeluchCreateUpdateSerializer,
     PeluchListSerializer,
 )
-
 
 # ---------------------------------------------------------------------------
 # GlobalSizeSerializer

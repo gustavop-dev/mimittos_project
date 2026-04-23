@@ -13,11 +13,9 @@ jest.mock('@/lib/services/paymentService', () => ({
 }))
 
 import { useSearchParams } from 'next/navigation'
-import { paymentService } from '@/lib/services/paymentService'
 import OrderConfirmedPage from '../page'
 
 const mockUseSearchParams = useSearchParams as unknown as jest.Mock
-const mockCheckStatus = paymentService.checkStatus as jest.Mock
 
 describe('OrderConfirmedPage', () => {
   beforeEach(() => {

@@ -97,5 +97,6 @@ def test_delete_fake_data_removes_only_fake_records_and_preserves_real_data():
 
 
 def test_delete_fake_data_requires_confirm_flag():
-    with pytest.raises(CommandError):
+    with pytest.raises(CommandError) as exc_info:
         call_command('delete_fake_data')
+    assert 'confirm' in str(exc_info.value).lower()

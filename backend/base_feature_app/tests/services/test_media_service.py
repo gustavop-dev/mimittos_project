@@ -1,6 +1,7 @@
 import io
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, patch, PropertyMock
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
@@ -24,8 +25,6 @@ def test_optimize_image_returns_in_memory_uploaded_file(mock_image_module):
     fake_img.mode = 'RGB'
     fake_img.size = (800, 800)
 
-    output_buf = io.BytesIO(b'x' * 100)
-
     def save_side_effect(buf, **kwargs):
         buf.write(b'x' * 100)
 
@@ -35,6 +34,7 @@ def test_optimize_image_returns_in_memory_uploaded_file(mock_image_module):
 
     file = _make_fake_file()
     result = MediaOptimizationService.optimize_image(file)
+    mock_image_module.open.assert_called_once()
     assert isinstance(result, InMemoryUploadedFile)
     assert result.content_type == 'image/jpeg'
 
@@ -50,6 +50,7 @@ def test_optimize_image_output_name_has_jpg_extension(mock_image_module):
 
     file = _make_fake_file(name='photo.png')
     result = MediaOptimizationService.optimize_image(file)
+    mock_image_module.open.assert_called_once()
     assert result.name == 'photo.jpg'
 
 
@@ -72,6 +73,8 @@ def test_optimize_image_converts_rgba_to_rgb(mock_image_module):
 
     file = _make_fake_file()
     result = MediaOptimizationService.optimize_image(file)
+    mock_image_module.open.assert_called_once()
+    mock_image_module.new.assert_called_once()
     assert result.content_type == 'image/jpeg'
 
 
@@ -104,6 +107,7 @@ def test_optimize_audio_returns_file_and_duration(mock_audio_segment):
 
     file = _make_fake_file(name='voice.mp3', content=b'mp3data')
     result_file, duration = MediaOptimizationService.optimize_audio(file)
+    mock_audio_segment.from_file.assert_called_once()
     assert isinstance(result_file, InMemoryUploadedFile)
     assert duration == 15.0
 
@@ -121,6 +125,7 @@ def test_optimize_audio_trims_audio_longer_than_30_seconds(mock_audio_segment):
 
     file = _make_fake_file(name='long.mp3')
     result_file, duration = MediaOptimizationService.optimize_audio(file)
+    mock_audio_segment.from_file.assert_called_once()
     assert duration == 30.0
 
 
@@ -135,6 +140,7 @@ def test_optimize_audio_output_name_has_mp3_extension(mock_audio_segment):
 
     file = _make_fake_file(name='recording.wav')
     result_file, _ = MediaOptimizationService.optimize_audio(file)
+    mock_audio_segment.from_file.assert_called_once()
     assert result_file.name == 'recording.mp3'
 
 

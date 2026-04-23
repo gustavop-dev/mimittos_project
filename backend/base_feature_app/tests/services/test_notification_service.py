@@ -1,12 +1,11 @@
-import pytest
 from datetime import timedelta
 from unittest.mock import patch
+
+import pytest
 from django.utils import timezone
-from freezegun import freeze_time
 
 from base_feature_app.models import Order
 from base_feature_app.services.notification_service import NotificationService
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

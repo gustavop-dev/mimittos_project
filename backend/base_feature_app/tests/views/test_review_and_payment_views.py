@@ -1,12 +1,18 @@
 import hashlib
-import hmac
 import json
+
 import pytest
 from django_attachments.models import Library
 from rest_framework.test import APIClient
 
-from base_feature_app.models import Category, GlobalColor, Order, Peluch, Review, WompiTransaction
-
+from base_feature_app.models import (
+    Category,
+    GlobalColor,
+    Order,
+    Peluch,
+    Review,
+    WompiTransaction,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures

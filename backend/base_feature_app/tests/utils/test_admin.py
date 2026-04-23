@@ -155,6 +155,7 @@ def test_user_admin_login_as_requires_active_superuser():
 
     with pytest.raises(PermissionDenied):
         admin.login_as_user_view(request, target_user.id)
+    assert not regular_user.is_superuser
 
 
 @pytest.mark.django_db

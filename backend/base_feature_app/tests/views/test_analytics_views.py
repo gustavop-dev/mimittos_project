@@ -1,9 +1,8 @@
+
 import pytest
-from datetime import date, timedelta
 from rest_framework.test import APIClient
 
 from base_feature_app.models import Order, PageView
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

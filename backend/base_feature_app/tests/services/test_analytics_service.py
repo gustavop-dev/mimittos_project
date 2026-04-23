@@ -1,14 +1,20 @@
-import pytest
-from datetime import date, timedelta
+from datetime import date
 
+import pytest
 from django_attachments.models import Library
 from freezegun import freeze_time
 
 from base_feature_app.models import (
-    Category, GlobalColor, GlobalSize, Order, OrderItem, PageView, Peluch, PeluchSizePrice,
+    Category,
+    GlobalColor,
+    GlobalSize,
+    Order,
+    OrderItem,
+    PageView,
+    Peluch,
+    PeluchSizePrice,
 )
 from base_feature_app.services.analytics_service import AnalyticsService
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

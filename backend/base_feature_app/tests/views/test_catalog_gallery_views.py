@@ -1,11 +1,11 @@
 import io
+
 import pytest
-from PIL import Image
 from django.core.files.base import ContentFile
-from django_attachments.models import Library, Attachment
+from django_attachments.models import Attachment, Library
+from PIL import Image
 
 from base_feature_app.models import Category, GlobalColor, GlobalSize, Peluch
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

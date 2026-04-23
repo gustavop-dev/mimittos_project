@@ -3,10 +3,16 @@ from django.core.exceptions import ValidationError
 from django_attachments.models import Library
 
 from base_feature_app.models import (
-    Category, GlobalColor, GlobalSize, Order, OrderItem, Peluch, PeluchSizePrice, Review,
+    Category,
+    GlobalColor,
+    GlobalSize,
+    Order,
+    OrderItem,
+    Peluch,
+    PeluchSizePrice,
+    Review,
 )
 from base_feature_app.services.review_service import ReviewService
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -78,8 +84,9 @@ def delivered_order(db, existing_user, peluch_with_price, size, color):
 
 @pytest.mark.django_db
 def test_create_review_raises_when_user_has_no_delivered_order(existing_user, peluch):
-    with pytest.raises(ValidationError, match='Solo puedes reseñar'):
+    with pytest.raises(ValidationError) as exc_info:
         ReviewService.create_review(peluch, existing_user, None, 5, 'Excelente')
+    assert 'Solo puedes reseñar' in str(exc_info.value)
 
 
 @pytest.mark.django_db
@@ -92,8 +99,9 @@ def test_create_review_raises_on_duplicate_review(existing_user, peluch_with_pri
         comment='Primera reseña',
     )
 
-    with pytest.raises(ValidationError, match='Ya tienes una reseña'):
+    with pytest.raises(ValidationError) as exc_info:
         ReviewService.create_review(peluch_with_price, existing_user, delivered_order, 5, 'Segunda')
+    assert 'Ya tienes una reseña' in str(exc_info.value)
 
 
 # ---------------------------------------------------------------------------
@@ -152,7 +160,6 @@ def test_update_peluch_rating_rounds_to_two_decimal_places(db, category, color, 
     )
     from django.contrib.auth import get_user_model
     User = get_user_model()
-    users_and_orders = []
     for i, rating in enumerate([3, 4, 5], start=1):
         user = User.objects.create_user(email=f'rater{i}@example.com', password='pass1234')
         order = Order.objects.create(

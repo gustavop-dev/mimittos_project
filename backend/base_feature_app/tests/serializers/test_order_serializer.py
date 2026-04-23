@@ -2,8 +2,14 @@ import pytest
 from django_attachments.models import Library
 
 from base_feature_app.models import (
-    Category, GlobalColor, GlobalSize, Order, OrderItem, Peluch,
-    PeluchSizePrice, PersonalizationMedia,
+    Category,
+    GlobalColor,
+    GlobalSize,
+    Order,
+    OrderItem,
+    Peluch,
+    PeluchSizePrice,
+    PersonalizationMedia,
 )
 from base_feature_app.serializers.order import (
     OrderCreateSerializer,
@@ -11,7 +17,6 @@ from base_feature_app.serializers.order import (
     OrderStatusUpdateSerializer,
     OrderTrackingUpdateSerializer,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

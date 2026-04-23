@@ -1,11 +1,16 @@
-import pytest
 from unittest.mock import patch
+
+import pytest
 from django_attachments.models import Library
 
 from base_feature_app.models import (
-    Category, GlobalColor, GlobalSize, Order, Peluch, PeluchSizePrice, WompiTransaction
+    Category,
+    GlobalColor,
+    GlobalSize,
+    Order,
+    Peluch,
+    PeluchSizePrice,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
