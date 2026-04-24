@@ -66,11 +66,10 @@ describe('HomePage', () => {
   })
 
   it('hides first FAQ answer after clicking its container', () => {
-    const { container } = render(<HomePage />)
-    const faqSection = container.querySelector('#faq')!
-    const firstAnswer = faqSection.querySelector('p')!
+    render(<HomePage />)
+    const firstAnswer = screen.getByText(/4 a 6 días hábiles/i)
     fireEvent.click(firstAnswer.parentElement!)
-    expect(faqSection.querySelector('p')).toBeNull()
+    expect(screen.queryByText(/4 a 6 días hábiles/i)).not.toBeInTheDocument()
   })
 
   it('calls addToCart when add button is clicked on a featured product', () => {

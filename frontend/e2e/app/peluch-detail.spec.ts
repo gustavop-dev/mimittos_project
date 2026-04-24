@@ -1,4 +1,5 @@
 import { test, expect } from '../test-with-coverage';
+import type { Page } from '@playwright/test';
 import { waitForPageLoad } from '../fixtures';
 import {
   PELUCH_DETAIL_SIZE_COLOR,
@@ -7,13 +8,13 @@ import {
   PELUCH_DETAIL_AUDIO,
 } from '../helpers/flow-tags';
 
-async function navigateToFirstPeluch(page: any) {
+async function navigateToFirstPeluch(page: Page) {
   await page.goto('/catalog');
   await waitForPageLoad(page);
-  // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
   const cards = page.locator('a[href^="/peluches/"]');
   const count = await cards.count();
   if (count === 0) return false;
+  // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
   await cards.first().click();
   await waitForPageLoad(page);
   return true;
@@ -36,9 +37,11 @@ test.describe('Peluch Detail — Personalization', () => {
         const sizeCount = await sizeOptions.count();
 
         if (sizeCount > 1) {
+          // quality: allow-fragile-selector (size options are divs driven by catalog data; second option picked to test toggle)
           await sizeOptions.nth(1).click();
           await expect(sizeLabel).toBeVisible();
         } else if (sizeCount === 1) {
+          // quality: allow-fragile-selector (only one size available; first is the only choice)
           await sizeOptions.first().click();
           await expect(sizeLabel).toBeVisible();
         }
@@ -53,8 +56,10 @@ test.describe('Peluch Detail — Personalization', () => {
         const colorCount = await colorNames.count();
 
         if (colorCount > 1) {
+          // quality: allow-fragile-selector (color swatches are data-driven; second swatch tests toggle from default)
           await colorNames.nth(1).click();
         } else if (colorCount === 1) {
+          // quality: allow-fragile-selector (only one color available; first is the only choice)
           await colorNames.first().click();
         }
 

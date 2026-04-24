@@ -50,6 +50,7 @@ test.describe('User Flows', () => {
     const count = await peluchCards.count();
 
     if (count > 0) {
+      // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
       await peluchCards.first().click();
       await page.waitForURL(/.*peluches\/.+/, { timeout: 10_000 });
       await expect(page).toHaveURL(/.*peluches\/.+/);
@@ -65,6 +66,7 @@ test.describe('User Flows', () => {
     const count = await peluchCards.count();
 
     if (count >= 3) {
+      // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
       await peluchCards.nth(0).click();
       await waitForPageLoad(page);
       await expect(page).toHaveURL(/.*peluches\/.+/);
@@ -72,6 +74,7 @@ test.describe('User Flows', () => {
       await page.goto('/catalog');
       await waitForPageLoad(page);
 
+      // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
       await peluchCards.nth(1).click();
       await waitForPageLoad(page);
       await expect(page).toHaveURL(/.*peluches\/.+/);
@@ -79,6 +82,7 @@ test.describe('User Flows', () => {
       await page.goto('/catalog');
       await waitForPageLoad(page);
 
+      // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
       await peluchCards.nth(2).click();
       await waitForPageLoad(page);
       await expect(page).toHaveURL(/.*peluches\/.+/);
@@ -113,6 +117,7 @@ test.describe('User Flows', () => {
     const count = await peluchCards.count();
 
     if (count > 0) {
+      // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
       await peluchCards.first().click();
       await waitForPageLoad(page);
 

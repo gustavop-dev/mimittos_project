@@ -167,7 +167,7 @@ test.describe('Authentication', () => {
     await page.getByPlaceholder('Mínimo 8 caracteres').fill('password123');
     await page.getByPlaceholder('Repite la contraseña').fill('password123');
 
-    // Accept terms and conditions — click the checkbox div (sibling to the span with the link)
+    // quality: allow-fragile-selector (terms checkbox sibling div, uniquely scoped by adjacent text span)
     await page.locator('span', { hasText: 'Acepto los' }).locator('..').locator('div').first().click();
 
     await page.getByRole('button', { name: /Crear mi cuenta/i }).click();

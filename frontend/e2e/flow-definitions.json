@@ -272,7 +272,7 @@
       "roles": ["shared"],
       "priority": "P2",
       "description": "User picks a size from size_prices and a color from available_colors; price updates accordingly",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "peluch-detail-personalization-huella": {
       "name": "Configure huella personalization",
@@ -280,7 +280,7 @@
       "roles": ["shared"],
       "priority": "P2",
       "description": "User opens huella section, selects type (name/date/letter/image), fills text or uploads image, extra cost shown",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "peluch-detail-personalization-corazon": {
       "name": "Configure corazón personalization",
@@ -288,7 +288,7 @@
       "roles": ["shared"],
       "priority": "P2",
       "description": "User opens corazón section, enters phrase (max 50 chars), extra cost added to total",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "peluch-detail-personalization-audio": {
       "name": "Upload audio personalization",
@@ -296,7 +296,7 @@
       "roles": ["shared"],
       "priority": "P3",
       "description": "User opens audio section and uploads an audio file; media_id stored before adding to cart",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "checkout-wompi-redirect": {
       "name": "Checkout redirects to Wompi",
@@ -304,7 +304,7 @@
       "roles": ["shared"],
       "priority": "P1",
       "description": "After POST /api/orders/ succeeds, frontend clears cart and redirects browser to checkout_url from response",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "orders-list-view": {
       "name": "View my orders list",
@@ -312,7 +312,7 @@
       "roles": ["user"],
       "priority": "P2",
       "description": "Authenticated user navigates to /orders and sees their order cards with status badges",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "tracking-by-order-number": {
       "name": "Track order by number",
@@ -320,7 +320,7 @@
       "roles": ["shared"],
       "priority": "P2",
       "description": "User enters order number on /tracking, fetches GET /api/orders/track/:number/, timeline updates to current status",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "tracking-auto-from-wompi": {
       "name": "Auto-load tracking after Wompi redirect",
@@ -328,7 +328,7 @@
       "roles": ["shared"],
       "priority": "P3",
       "description": "Wompi redirects to /tracking?order=PELUCH-XXXX; page auto-searches that order number and shows timeline",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "auth-login-success": {
       "name": "Successful sign-in and redirect",
@@ -352,7 +352,7 @@
       "roles": ["guest"],
       "priority": "P2",
       "description": "User clicks Google button on sign-in page, completes OAuth, receives JWT, redirected to dashboard",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "auth-session-persistence": {
       "name": "Session persistence across reload",
@@ -368,7 +368,7 @@
       "roles": ["guest"],
       "priority": "P2",
       "description": "After sign-up, user enters verification code sent to email and account is activated",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "app-dashboard-access": {
       "name": "Dashboard access (authenticated)",
@@ -432,7 +432,7 @@
       "roles": ["staff"],
       "priority": "P3",
       "description": "Staff views /backoffice/peluches with all peluches in a table; can navigate to detail or create new",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "backoffice-peluch-create": {
       "name": "Backoffice create peluch",
@@ -440,7 +440,7 @@
       "roles": ["staff"],
       "priority": "P3",
       "description": "Staff on /backoffice/peluches/nuevo fills PeluchForm and submits POST /api/peluches/",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "backoffice-peluch-edit": {
       "name": "Backoffice edit peluch",
@@ -448,7 +448,7 @@
       "roles": ["staff"],
       "priority": "P3",
       "description": "Staff on /backoffice/peluches/[slug] edits fields and submits PATCH /api/peluches/{slug}/",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "backoffice-category-management": {
       "name": "Backoffice category management",
@@ -456,7 +456,7 @@
       "roles": ["staff"],
       "priority": "P3",
       "description": "Staff on /backoffice/categorias creates, edits, or deletes a category via categoryAdminService",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "backoffice-user-management": {
       "name": "Backoffice user management",
@@ -464,7 +464,7 @@
       "roles": ["staff"],
       "priority": "P3",
       "description": "Staff on /backoffice/usuarios views user list and updates role/staff/active via userAdminService",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "contact-page-display": {
       "name": "Contact page display",
@@ -472,7 +472,7 @@
       "roles": ["shared"],
       "priority": "P4",
       "description": "User navigates to /contact and sees contact form or contact information",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "about-page-display": {
       "name": "About page display",
@@ -480,7 +480,7 @@
       "roles": ["shared"],
       "priority": "P4",
       "description": "User navigates to /about and sees the brand history/story content",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     },
     "terms-page-display": {
       "name": "Terms and conditions display",
@@ -488,7 +488,7 @@
       "roles": ["shared"],
       "priority": "P4",
       "description": "User navigates to /terms and sees the terms and conditions content",
-      "expectedSpecs": 0
+      "expectedSpecs": 1
     }
   }
 }

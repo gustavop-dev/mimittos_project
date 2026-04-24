@@ -26,23 +26,38 @@ def temp_media_root(settings, tmp_path):
 
 
 @pytest.mark.django_db
-def test_create_fake_data_positional_count_populates_current_domain():
-    out = StringIO()
-
-    call_command('create_fake_data', 2, stdout=out)
+def test_create_fake_data_creates_content_object_counts():
+    call_command('create_fake_data', 2, stdout=StringIO())
 
     assert Category.objects.count() == 3
     assert GlobalColor.objects.count() == 6
     assert GlobalSize.objects.count() == 3
-    assert User.objects.count() == 2
     assert Blog.objects.count() == 2
     assert Peluch.objects.count() == 2
+
+
+@pytest.mark.django_db
+def test_create_fake_data_creates_user_order_transaction_counts():
+    call_command('create_fake_data', 2, stdout=StringIO())
+
+    assert User.objects.count() == 2
     assert Order.objects.count() == 2
     assert WompiTransaction.objects.count() == 2
+
+
+@pytest.mark.django_db
+def test_create_fake_data_creates_no_products_sales_or_staff():
+    call_command('create_fake_data', 2, stdout=StringIO())
+
     assert Product.objects.count() == 0
     assert Sale.objects.count() == 0
     assert User.objects.filter(is_staff=True).count() == 0
     assert User.objects.filter(email__iendswith=f'@{FAKE_EMAIL_DOMAIN}').count() == 2
+
+
+@pytest.mark.django_db
+def test_create_fake_data_orders_have_valid_totals():
+    call_command('create_fake_data', 2, stdout=StringIO())
 
     for order in Order.objects.prefetch_related('items').all():
         assert order.items.exists()
@@ -77,16 +92,25 @@ def test_create_fake_data_legacy_aliases_map_to_peluches_and_orders():
 
 
 @pytest.mark.django_db
-def test_delete_fake_data_removes_only_fake_records_and_preserves_real_data():
-    out = StringIO()
+def test_delete_fake_data_preserves_real_admin_and_category():
     admin = User.objects.create_superuser(email='admin@example.com', password='adminpass')
     Category.objects.create(name='Real', slug='real-category', description='real')
 
-    call_command('create_fake_data', 2, stdout=out)
-    call_command('delete_fake_data', confirm=True, stdout=out)
+    call_command('create_fake_data', 2, stdout=StringIO())
+    call_command('delete_fake_data', confirm=True, stdout=StringIO())
 
     assert User.objects.filter(email=admin.email).exists()
     assert Category.objects.filter(slug='real-category').exists()
+
+
+@pytest.mark.django_db
+def test_delete_fake_data_removes_all_fake_records():
+    User.objects.create_superuser(email='admin@example.com', password='adminpass')
+    Category.objects.create(name='Real', slug='real-category', description='real')
+
+    call_command('create_fake_data', 2, stdout=StringIO())
+    call_command('delete_fake_data', confirm=True, stdout=StringIO())
+
     assert User.objects.filter(email__iendswith=f'@{FAKE_EMAIL_DOMAIN}').count() == 0
     assert Blog.objects.count() == 0
     assert Peluch.objects.count() == 0

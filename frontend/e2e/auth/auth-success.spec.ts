@@ -51,7 +51,7 @@ test.describe('Auth — authenticated flows', () => {
       // Cookies should still be present after reload
       const cookies = await page.context().cookies();
       const accessCookie = cookies.find((c) => c.name === 'access_token');
-      expect(accessCookie).toBeTruthy();
+      expect(accessCookie?.value).toBe('fake-access');
     }
   );
 

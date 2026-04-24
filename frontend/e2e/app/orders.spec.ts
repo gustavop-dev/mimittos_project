@@ -1,4 +1,5 @@
 import { test, expect } from '../test-with-coverage';
+import type { Page, Route } from '@playwright/test';
 import { waitForPageLoad } from '../fixtures';
 import { ORDERS_LIST_VIEW, TRACKING_BY_ORDER_NUMBER, TRACKING_AUTO_FROM_WOMPI } from '../helpers/flow-tags';
 
@@ -43,17 +44,17 @@ const mockTracking = {
   items: [],
 };
 
-async function setupAuthMocks(page: any) {
+async function setupAuthMocks(page: Page) {
   // Set auth cookies via initScript BEFORE React initializes so authStore starts isAuthenticated=true
   await page.addInitScript(() => {
     document.cookie = 'access_token=mock-access-token; path=/';
     document.cookie = 'refresh_token=mock-refresh-token; path=/';
   });
   // Stub all auth-related API calls to avoid hitting the real backend with fake tokens
-  await page.route('**/api/validate_token/', (route: any) =>
+  await page.route('**/api/validate_token/', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ user: mockUser }) })
   );
-  await page.route('**/api/token/refresh/', (route: any) =>
+  await page.route('**/api/token/refresh/', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access: 'mock-access-token' }) })
   );
 }
@@ -64,7 +65,7 @@ test.describe('Orders & Tracking', () => {
     async ({ page }) => {
       await setupAuthMocks(page);
 
-      await page.route('**/api/orders/my/', (route: any) =>
+      await page.route('**/api/orders/my/', (route: Route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -83,7 +84,7 @@ test.describe('Orders & Tracking', () => {
   test('should show order tracking timeline by order number',
     { tag: [...TRACKING_BY_ORDER_NUMBER] },
     async ({ page }) => {
-      await page.route('**/api/orders/track/**', (route: any) =>
+      await page.route('**/api/orders/track/**', (route: Route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -109,7 +110,7 @@ test.describe('Orders & Tracking', () => {
   test('should auto-load tracking when order number is in URL',
     { tag: [...TRACKING_AUTO_FROM_WOMPI] },
     async ({ page }) => {
-      await page.route('**/api/orders/track/**', (route: any) =>
+      await page.route('**/api/orders/track/**', (route: Route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',

@@ -87,3 +87,24 @@ export const BACKOFFICE_ORDER_MANAGEMENT = ['@flow:backoffice-order-management',
 // ── Payment ──
 export const PAYMENT_PAGE_DISPLAY = ['@flow:payment-page-display', '@module:payment', '@priority:P1'];
 export const ORDER_CONFIRMED_DISPLAY = ['@flow:order-confirmed-display', '@module:payment', '@priority:P1'];
+
+// ── Auth (verification & OAuth) ──
+export const AUTH_REGISTRATION_VERIFY = ['@flow:auth-registration-verify', '@module:auth', '@priority:P2'];
+export const AUTH_GOOGLE_LOGIN = ['@flow:auth-google-login', '@module:auth', '@priority:P2'];
+
+// ── Reviews ──
+export const REVIEW_SUBMIT = ['@flow:review-submit', '@module:reviews', '@priority:P2'];
+
+// ── Backoffice (catalog management) ──
+export const BACKOFFICE_PELUCH_LIST = ['@flow:backoffice-peluch-list', '@module:backoffice', '@priority:P3'];
+export const BACKOFFICE_PELUCH_CREATE = ['@flow:backoffice-peluch-create', '@module:backoffice', '@priority:P3'];
+export const BACKOFFICE_PELUCH_EDIT = ['@flow:backoffice-peluch-edit', '@module:backoffice', '@priority:P3'];
+
+// ── Backoffice (admin management) ──
+export const BACKOFFICE_CATEGORY_MANAGEMENT = ['@flow:backoffice-category-management', '@module:backoffice', '@priority:P3'];
+export const BACKOFFICE_USER_MANAGEMENT = ['@flow:backoffice-user-management', '@module:backoffice', '@priority:P3'];
+
+// ── Public Pages ──
+export const CONTACT_PAGE_DISPLAY = ['@flow:contact-page-display', '@module:public', '@priority:P4'];
+export const ABOUT_PAGE_DISPLAY = ['@flow:about-page-display', '@module:public', '@priority:P4'];
+export const TERMS_PAGE_DISPLAY = ['@flow:terms-page-display', '@module:public', '@priority:P4'];
