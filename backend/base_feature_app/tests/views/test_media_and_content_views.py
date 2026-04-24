@@ -1,11 +1,11 @@
 import io
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import MagicMock, patch
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from rest_framework.test import APIClient
 
 from base_feature_app.models import PersonalizationMedia, SiteContent
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

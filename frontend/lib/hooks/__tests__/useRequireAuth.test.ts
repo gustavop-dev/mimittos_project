@@ -26,7 +26,8 @@ describe('useRequireAuth', () => {
     mockUseRouter.mockReturnValue({ replace });
 
     const syncFromCookies = jest.fn();
-    const state = { isAuthenticated: false, syncFromCookies };
+    const restoreUser = jest.fn().mockResolvedValue(undefined);
+    const state = { isAuthenticated: false, syncFromCookies, restoreUser };
     mockUseAuthStore.mockImplementation((selector?: (s: typeof state) => unknown) =>
       selector ? selector(state) : state
     );
@@ -44,7 +45,8 @@ describe('useRequireAuth', () => {
     mockUseRouter.mockReturnValue({ replace });
 
     const syncFromCookies = jest.fn();
-    const state = { isAuthenticated: true, syncFromCookies };
+    const restoreUser = jest.fn().mockResolvedValue(undefined);
+    const state = { isAuthenticated: true, syncFromCookies, restoreUser };
     mockUseAuthStore.mockImplementation((selector?: (s: typeof state) => unknown) =>
       selector ? selector(state) : state
     );

@@ -1,8 +1,8 @@
-# 🚀 Base Django React Next Feature
+# 🚀 MIMITTOS
 
-> Base template for developing projects with Django REST Framework + Next.js + React
+> MIMITTOS — Más que un peluche, un recuerdo. Handcrafted plush toys made in Colombia.
 
-This repository serves as a foundation for rapid implementation of future projects using Django backend and Next.js + React frontend, with RESTful architecture and JWT authentication.
+Mimittos is an online shop for personalized, handcrafted plush toys, built on Django REST Framework and Next.js + React. It includes JWT and Google OAuth authentication, product catalog, blog, sales management, and admin panel, with a RESTful architecture.
 
 [![Django](https://img.shields.io/badge/Django-6.0+-092E20?style=flat&logo=django)](https://www.djangoproject.com/)
 [![Next.js](https://img.shields.io/badge/Next.js-16+-000000?style=flat&logo=next.js)](https://nextjs.org/)
@@ -23,8 +23,8 @@ This repository serves as a foundation for rapid implementation of future projec
 - [Frontend (Next.js + React)](#-frontend-nextjs--react)
 - [Testing](#-testing)
 - [Documentation](#-documentation)
-- [Reference Projects](#-reference-projects)
-- [Customization](#-customization)
+- [Base Template](#-base-template)
+- [Extending Mimittos](#-extending-mimittos)
 - [Contributing](#-contributing)
 
 ---
@@ -135,7 +135,7 @@ This repository serves as a foundation for rapid implementation of future projec
 ## 📁 Project Structure
 
 ```
-base_django_react_next_feature/
+mimittos_project/
 ├── backend/                              # Django Backend
 │   ├── base_feature_app/                # Main app
 │   │   ├── models/                      # Blog, Product, Sale, SoldProduct, User, PasswordCode
@@ -274,8 +274,9 @@ base_django_react_next_feature/
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/carlos18bp/base_django_react_next_feature.git
-cd base_django_react_next_feature
+# TODO: replace with the real Mimittos repo URL
+git clone https://github.com/carlos18bp/mimittos_project.git
+cd mimittos_project
 ```
 
 ### 2. Backend Setup
@@ -1059,53 +1060,13 @@ The project includes complete documentation:
 
 ---
 
-## 🎯 Reference Projects
+## 🎯 Base Template
 
-Real implementation examples built on top of this base:
-
-### Health & Fitness
-- [💪 KORE Health](https://github.com/carlos18bp/kore_project) — Personalized health platform with subscription billing, biomechanical evaluations (KORE Index), Wompi payments, and role-based access (CUSTOMER / TRAINER / ADMIN)
-
-### Social & Adoption
-- [🐾 Mi Huella](https://github.com/carlos18bp/tuhuella_project) — Pet adoption & sponsorship platform with complex multi-role system (Adopter, Shelter Admin, Site Admin), Next.js static export to Django, and Zustand with persist middleware
-
-### Portfolio & Interior Design
-- [🏠 TenndaluX](https://github.com/carlos18bp/tenndalux_project) — Interior design portfolio with Next.js static export, SingletonModel pattern for site settings, and gallery management via django-attachments
-
-### Lead Generation
-- [🎓 Fernando Aragón](https://github.com/gustavop-dev/fernando_aragon_project) — Educational lead gen with React 18 + Vite + TypeScript, reCAPTCHA validation, bilingual routes, and 100% backend test coverage *(React + Vite, not Next.js)*
-
-### Also see
-- [🚀 Base Django Vue Feature](https://github.com/carlos18bp/base_django_vue_feature) — Companion template for Django + Vue 3 + Vite projects (Pinia, Vue Router, vue-i18n)
+Mimittos is built on the [Base Django React Next Feature](https://github.com/carlos18bp/base_django_react_next_feature) template, which provides the shared architecture (DRF + Next.js App Router + JWT + Huey + Tailwind + testing).
 
 ---
 
-## 🔧 Customization
-
-### Change Project Name
-
-If you want to use this base for a new project:
-
-1. **Search and replace** all occurrences of `base_feature`:
-
-```bash
-# Use ag (the silver searcher) or grep
-ag base_feature
-# Or
-grep -r "base_feature" .
-
-# Replace in files
-find . -type f -exec sed -i 's/base_feature/your_new_name/g' {} +
-```
-
-2. **Rename directories**:
-
-```bash
-mv backend/base_feature_project backend/your_project
-mv backend/base_feature_app backend/your_app
-```
-
-3. **Update imports** in Python and references in configuration.
+## 🔧 Extending Mimittos
 
 ### Add New Models
 

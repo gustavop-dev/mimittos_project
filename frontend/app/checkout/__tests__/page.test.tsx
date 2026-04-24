@@ -102,14 +102,14 @@ describe('CheckoutPage', () => {
     jest.spyOn(HTMLFormElement.prototype, 'checkValidity').mockReturnValue(true)
     jest.spyOn(HTMLFormElement.prototype, 'reportValidity').mockReturnValue(true)
 
-    const { container } = render(<CheckoutPage />)
+    render(<CheckoutPage />)
 
     await waitFor(() => expect(screen.getByRole('checkbox')).toBeInTheDocument())
     fireEvent.click(screen.getByRole('checkbox'))
     await waitFor(() => expect(screen.getByRole('button', { name: /Ir a pagar/i })).not.toBeDisabled())
 
     await act(async () => {
-      fireEvent.submit(container.querySelector('form')!)
+      fireEvent.submit(screen.getByRole('button', { name: /Ir a pagar/i }).closest('form')!)
     })
 
     await waitFor(() => {
@@ -130,14 +130,14 @@ describe('CheckoutPage', () => {
     jest.spyOn(HTMLFormElement.prototype, 'checkValidity').mockReturnValue(true)
     jest.spyOn(HTMLFormElement.prototype, 'reportValidity').mockReturnValue(true)
 
-    const { container } = render(<CheckoutPage />)
+    render(<CheckoutPage />)
 
     await waitFor(() => expect(screen.getByRole('checkbox')).toBeInTheDocument())
     fireEvent.click(screen.getByRole('checkbox'))
     await waitFor(() => expect(screen.getByRole('button', { name: /Ir a pagar/i })).not.toBeDisabled())
 
     await act(async () => {
-      fireEvent.submit(container.querySelector('form')!)
+      fireEvent.submit(screen.getByRole('button', { name: /Ir a pagar/i }).closest('form')!)
     })
 
     expect(await screen.findByText('Stock insuficiente')).toBeInTheDocument()

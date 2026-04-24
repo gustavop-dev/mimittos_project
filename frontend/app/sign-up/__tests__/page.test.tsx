@@ -45,6 +45,7 @@ jest.mock('../../../lib/services/http', () => ({
 
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
+  useSearchParams: jest.fn(() => ({ get: () => null })),
 }));
 
 jest.mock('jwt-decode', () => ({
@@ -132,9 +133,9 @@ describe('SignUpPage', () => {
     expect(signUp).not.toHaveBeenCalled();
   });
 
-  it('signs up successfully and redirects', async () => {
-    const signUp = jest.fn().mockResolvedValue(undefined);
-    setAuthStoreState({ signUp, googleLogin: jest.fn() });
+  it('signs up successfully and moves to verification step', async () => {
+    const signUp = jest.fn().mockResolvedValue({ email: 'user@example.com' });
+    setAuthStoreState({ signUp, verifyRegistration: jest.fn(), resendVerification: jest.fn(), googleLogin: jest.fn() });
     const replace = jest.fn();
     mockUseRouter.mockReturnValue({ replace });
 
@@ -158,7 +159,7 @@ describe('SignUpPage', () => {
       });
     });
 
-    expect(replace).toHaveBeenCalledWith('/mis-pedidos');
+    expect(await screen.findByPlaceholderText('000000')).toBeInTheDocument();
   });
 
   it('shows error when Google registration fails with response error', async () => {
@@ -256,7 +257,7 @@ describe('SignUpPage', () => {
         picture: 'pic.png',
       });
     });
-    expect(replace).toHaveBeenCalledWith('/mis-pedidos');
+    expect(replace).toHaveBeenCalledWith('/orders');
   });
 
   it('shows an error when Google credential is missing', async () => {
@@ -305,6 +306,6 @@ describe('SignUpPage', () => {
         picture: undefined,
       });
     });
-    expect(replace).toHaveBeenCalledWith('/mis-pedidos');
+    expect(replace).toHaveBeenCalledWith('/orders');
   });
 });

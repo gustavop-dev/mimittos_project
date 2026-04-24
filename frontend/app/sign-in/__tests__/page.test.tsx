@@ -76,6 +76,7 @@ describe('SignInPage', () => {
     mockGoogleError = false;
     process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID = 'test-client';
     user = userEvent.setup();
+    Object.assign(mockUseAuthStore, { getState: jest.fn().mockReturnValue({ user: null }) });
   });
 
   afterEach(() => {
@@ -111,7 +112,7 @@ describe('SignInPage', () => {
     await waitFor(() => {
       expect(signIn).toHaveBeenCalledWith({ email: 'user@example.com', password: 'password123', captcha_token: undefined });
     });
-    expect(replace).toHaveBeenCalledWith('/mis-pedidos');
+    expect(replace).toHaveBeenCalledWith('/orders');
   });
 
   it('shows an error when sign in fails', async () => {
@@ -181,7 +182,7 @@ describe('SignInPage', () => {
         picture: 'pic.png',
       });
     });
-    expect(replace).toHaveBeenCalledWith('/mis-pedidos');
+    expect(replace).toHaveBeenCalledWith('/orders');
   });
 
   it('shows an error when Google credential is missing', async () => {
@@ -268,6 +269,6 @@ describe('SignInPage', () => {
         picture: undefined,
       });
     });
-    expect(replace).toHaveBeenCalledWith('/mis-pedidos');
+    expect(replace).toHaveBeenCalledWith('/orders');
   });
 });

@@ -1,13 +1,14 @@
-# Base Django React Next Feature — Claude Code Configuration
+# Mimittos — Claude Code Configuration
 
 ## Project Identity
 
-- **Name**: Base Django React Next Feature (Template project)
-- **Domain**: N/A (template — not deployed to production)
+- **Name**: MIMITTOS — Más que un peluche, un recuerdo
+- **Domain**: Peluches artesanales hechos a mano en Colombia, personalizados para ti.
 - **Stack**: Django + DRF (backend) / Next.js + React + TypeScript (frontend) / MySQL 8 / Redis / Huey
 - **Server path**: `/home/ryzepeck/webapps/base_django_react_next_feature_staging` (staging only)
 - **Services**: `base_django_react_next_feature_staging` (Gunicorn), `base_django_react_next_feature-staging-huey`
-- **Note**: This is a **template project** used as the starting point for new Django+Next.js projects
+
+> Note: server paths and systemd service names are inherited from the base template; real Mimittos infrastructure is pending.
 
 ---
 
@@ -338,7 +339,7 @@ Full reference: `docs/TESTING_QUALITY_STANDARDS.md`
 
 ---
 
-## Lessons Learned — Base Django React Next Feature
+## Lessons Learned — Mimittos
 
 ### Architecture Patterns
 
@@ -378,7 +379,7 @@ Full reference: `docs/TESTING_QUALITY_STANDARDS.md`
 
 ---
 
-## Error Documentation — Base Django React Next Feature
+## Error Documentation — Mimittos
 
 No documented errors (clean template).
 

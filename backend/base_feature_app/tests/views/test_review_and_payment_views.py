@@ -1,12 +1,18 @@
 import hashlib
-import hmac
 import json
+
 import pytest
 from django_attachments.models import Library
 from rest_framework.test import APIClient
 
-from base_feature_app.models import Category, GlobalColor, Order, Peluch, Review, WompiTransaction
-
+from base_feature_app.models import (
+    Category,
+    GlobalColor,
+    Order,
+    Peluch,
+    Review,
+    WompiTransaction,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -123,6 +129,34 @@ def wompi_tx(db, existing_order):
     )
 
 
+@pytest.fixture
+def delivered_order_with_peluch(db, existing_user, peluch, color):
+    from base_feature_app.models import GlobalSize, Order, OrderItem
+    size = GlobalSize.objects.create(label='Mediano', slug='mediano-rvw', cm='30cm')
+    order = Order.objects.create(
+        order_number='PELUCH-20260420-RVW3',
+        customer=existing_user,
+        customer_email=existing_user.email,
+        customer_name='Test User',
+        address='Calle 1',
+        city='Bogotá',
+        department='Cundinamarca',
+        total_amount=80000,
+        deposit_amount=40000,
+        balance_amount=0,
+        status=Order.Status.DELIVERED,
+    )
+    OrderItem.objects.create(
+        order=order,
+        peluch=peluch,
+        size=size,
+        color=color,
+        quantity=1,
+        unit_price=80000,
+    )
+    return order
+
+
 # ---------------------------------------------------------------------------
 # GET /api/peluches/<slug>/reviews/ — list approved reviews
 # ---------------------------------------------------------------------------
@@ -152,7 +186,7 @@ def test_reviews_list_returns_404_for_nonexistent_peluch(api_client):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
-def test_create_review_returns_201_for_authenticated_user(auth_client, peluch):
+def test_create_review_returns_201_for_authenticated_user(auth_client, peluch, delivered_order_with_peluch):
     payload = {'rating': 5, 'comment': 'Increíble calidad'}
     response = auth_client.post(f'/api/peluches/{peluch.slug}/reviews/', payload)
     assert response.status_code == 201

@@ -16,6 +16,7 @@ test.describe('Product Pages', () => {
     const count = await productCards.count();
 
     if (count > 0) {
+      // quality: allow-fragile-selector (product list links uniquely scoped by href pattern)
       await expect(productCards.first()).toBeVisible();
     }
   });
@@ -39,7 +40,8 @@ test.describe('Product Pages', () => {
     if (count > 0) {
       // quality: allow-fragile-selector (product list links uniquely scoped by href pattern)
       const firstCard = productCards.first();
-      const titleInList = await firstCard.locator('h3, [class*="title"]').first().textContent();
+      // quality: allow-fragile-selector (title extracted from heading; scoped within first card)
+      const titleInList = await firstCard.getByRole('heading').first().textContent();
 
       await firstCard.click();
       await waitForPageLoad(page);

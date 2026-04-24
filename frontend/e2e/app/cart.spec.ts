@@ -20,17 +20,17 @@ test.describe('Shopping Cart', () => {
     const count = await peluchCards.count();
 
     if (count > 0) {
+      // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
       await peluchCards.first().click();
       await waitForPageLoad(page);
 
       // Select size if available
-      const firstSize = page.locator('[class*="size"], button:has-text("Pequeño"), button:has-text("Mediano")').first();
+      const firstSize = page.getByRole('button', { name: /Pequeño|Mediano/i }).first();
       if (await firstSize.isVisible()) {
         await firstSize.click();
       }
 
-      // quality: allow-fragile-selector (add button is the only Agregar button on detail page)
-      const addBtn = page.locator('button:has-text("Agregar")').first();
+      const addBtn = page.getByRole('button', { name: /Agregar/i });
       if (await addBtn.isVisible()) {
         await addBtn.click();
         await page.waitForLoadState('domcontentloaded');
@@ -58,11 +58,11 @@ test.describe('Shopping Cart', () => {
     const count = await peluchCards.count();
 
     if (count > 0) {
+      // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
       await peluchCards.first().click();
       await waitForPageLoad(page);
 
-      // quality: allow-fragile-selector (add button is the only Agregar button on detail page)
-      const addBtn = page.locator('button:has-text("Agregar")').first();
+      const addBtn = page.getByRole('button', { name: /Agregar/i });
       if (await addBtn.isVisible()) {
         await addBtn.click();
         await page.waitForLoadState('domcontentloaded');
@@ -89,11 +89,11 @@ test.describe('Shopping Cart', () => {
     const count = await peluchCards.count();
 
     if (count > 0) {
+      // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
       await peluchCards.first().click();
       await waitForPageLoad(page);
 
-      // quality: allow-fragile-selector (add button is the only Agregar button on detail page)
-      const addBtn = page.locator('button:has-text("Agregar")').first();
+      const addBtn = page.getByRole('button', { name: /Agregar/i });
       if (await addBtn.isVisible()) {
         await addBtn.click();
         await page.waitForLoadState('domcontentloaded');
@@ -102,7 +102,7 @@ test.describe('Shopping Cart', () => {
       await page.goto('/cart');
       await waitForPageLoad(page);
 
-      const removeBtn = page.locator('button:has-text("Eliminar"), button[aria-label*="eliminar"], button[aria-label*="remove"]').first();
+      const removeBtn = page.getByRole('button', { name: /Eliminar/i });
       if (await removeBtn.isVisible()) {
         await removeBtn.click();
         await expect(page.getByText(/Tu carrito está vacío/)).toBeVisible();
@@ -119,11 +119,11 @@ test.describe('Shopping Cart', () => {
     const count = await peluchCards.count();
 
     if (count > 0) {
+      // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
       await peluchCards.first().click();
       await waitForPageLoad(page);
 
-      // quality: allow-fragile-selector (add button is the only Agregar button on detail page)
-      const addBtn = page.locator('button:has-text("Agregar")').first();
+      const addBtn = page.getByRole('button', { name: /Agregar/i });
       if (await addBtn.isVisible()) {
         await addBtn.click();
         await page.waitForLoadState('domcontentloaded');
@@ -145,11 +145,11 @@ test.describe('Shopping Cart', () => {
     const count = await peluchCards.count();
 
     if (count > 0) {
+      // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
       await peluchCards.first().click();
       await waitForPageLoad(page);
 
-      // quality: allow-fragile-selector (add button is the only Agregar button on detail page)
-      const addBtn = page.locator('button:has-text("Agregar")').first();
+      const addBtn = page.getByRole('button', { name: /Agregar/i });
       if (await addBtn.isVisible()) {
         await addBtn.click();
         await page.waitForLoadState('domcontentloaded');
@@ -165,6 +165,43 @@ test.describe('Shopping Cart', () => {
     }
   });
 
+  test('should show empty cart when item quantity is decremented to zero', { tag: [...CART_UPDATE_QTY] }, async ({ page }) => {
+    // Add an item first
+    await page.goto('/catalog');
+    await waitForPageLoad(page);
+
+    const peluchCards = page.locator('a[href^="/peluches/"]');
+    if (await peluchCards.count() > 0) {
+      // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
+      await peluchCards.first().click();
+      await waitForPageLoad(page);
+
+      const addBtn = page.getByRole('button', { name: /Agregar/i });
+      if (await addBtn.isVisible()) {
+        await addBtn.click();
+        await page.waitForLoadState('domcontentloaded');
+      }
+
+      await page.goto('/cart');
+      await waitForPageLoad(page);
+
+      // Decrement quantity until item is removed
+      const decrementBtn = page.locator('[data-testid="cart-item"]').first().getByRole('button').first();
+      if (await decrementBtn.isVisible()) {
+        await decrementBtn.click();
+        await page.waitForLoadState('domcontentloaded');
+
+        // After removing last item, cart should show empty state
+        const emptyMsg = page.getByText(/Tu carrito está vacío/i);
+        const cartItems = page.locator('[data-testid="cart-item"]');
+        const remaining = await cartItems.count();
+        if (remaining === 0) {
+          await expect(emptyMsg).toBeVisible();
+        }
+      }
+    }
+  });
+
   test('should add multiple different peluches', { tag: [...CART_MULTIPLE_PRODUCTS] }, async ({ page }) => {
     await page.goto('/catalog');
     await waitForPageLoad(page);
@@ -174,17 +211,19 @@ test.describe('Shopping Cart', () => {
     const count = await peluchCards.count();
 
     if (count >= 2) {
+      // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
       await peluchCards.nth(0).click();
       await waitForPageLoad(page);
-      const addBtn0 = page.locator('button:has-text("Agregar")').first();
+      const addBtn0 = page.getByRole('button', { name: /Agregar/i });
       if (await addBtn0.isVisible()) { await addBtn0.click(); await page.waitForLoadState('domcontentloaded'); }
 
       await page.goto('/catalog');
       await waitForPageLoad(page);
 
+      // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
       await peluchCards.nth(1).click();
       await waitForPageLoad(page);
-      const addBtn1 = page.locator('button:has-text("Agregar")').first();
+      const addBtn1 = page.getByRole('button', { name: /Agregar/i });
       if (await addBtn1.isVisible()) { await addBtn1.click(); await page.waitForLoadState('domcontentloaded'); }
 
       await page.goto('/cart');

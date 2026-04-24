@@ -142,4 +142,4 @@ def test_sign_up_rejects_short_password(mock_captcha, api_client):
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.json()['error'] == 'Password must be at least 8 characters'
+    assert response.json()['error'] == 'La contraseña debe tener al menos 8 caracteres'

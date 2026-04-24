@@ -27,10 +27,22 @@ const customJestConfig = {
   coverageProvider: 'v8',
   coverageThreshold: {
     global: {
-      branches: 50,
+      branches: 65,
       functions: 50,
-      lines: 50,
-      statements: 50,
+      lines: 65,
+      statements: 65,
+    },
+    './lib/stores/': {
+      branches: 75,
+      functions: 75,
+      lines: 75,
+      statements: 75,
+    },
+    './lib/utils/': {
+      branches: 90,
+      functions: 90,
+      lines: 90,
+      statements: 90,
     },
   },
   coverageReporters: ['text-summary', 'text', 'lcov', 'html', 'json-summary'],

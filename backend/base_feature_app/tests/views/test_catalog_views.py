@@ -2,8 +2,13 @@ import pytest
 from django_attachments.models import Library
 from rest_framework.test import APIClient
 
-from base_feature_app.models import Category, GlobalColor, GlobalSize, Peluch, PeluchSizePrice
-
+from base_feature_app.models import (
+    Category,
+    GlobalColor,
+    GlobalSize,
+    Peluch,
+    PeluchSizePrice,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures

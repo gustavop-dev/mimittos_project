@@ -1,13 +1,11 @@
 import hashlib
-import hmac
-import json
-import pytest
-from datetime import datetime, timezone
+from datetime import datetime
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from base_feature_app.models import Order, WompiTransaction
 from base_feature_app.services.wompi_service import WompiService
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -257,11 +255,12 @@ def test_create_checkout_returns_checkout_url(mock_post, wompi_tx, settings):
     settings.FRONTEND_URL = 'http://localhost:3000'
 
     mock_response = MagicMock()
-    mock_response.json.return_value = {'data': {'url': 'https://checkout.wompi.co/l/testlink'}}
+    mock_response.json.return_value = {'data': {'id': 'testlink'}}
     mock_response.raise_for_status.return_value = None
     mock_post.return_value = mock_response
 
     url = WompiService.create_checkout(wompi_tx)
+    mock_post.assert_called_once()
     assert url == 'https://checkout.wompi.co/l/testlink'
 
 
@@ -273,11 +272,12 @@ def test_create_checkout_saves_url_to_transaction(mock_post, wompi_tx, settings)
     settings.FRONTEND_URL = 'http://localhost:3000'
 
     mock_response = MagicMock()
-    mock_response.json.return_value = {'data': {'url': 'https://checkout.wompi.co/l/saved'}}
+    mock_response.json.return_value = {'data': {'id': 'saved'}}
     mock_response.raise_for_status.return_value = None
     mock_post.return_value = mock_response
 
     WompiService.create_checkout(wompi_tx)
+    mock_post.assert_called_once()
     wompi_tx.refresh_from_db()
     assert wompi_tx.checkout_url == 'https://checkout.wompi.co/l/saved'
 
@@ -289,6 +289,7 @@ def test_create_checkout_raises_on_request_failure(mock_post, wompi_tx, settings
     settings.WOMPI_PRIVATE_KEY = 'prv_test_key'
     settings.FRONTEND_URL = 'http://localhost:3000'
 
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(Exception, match='Connection error'):
         WompiService.create_checkout(wompi_tx)
-    assert exc_info.value is not None
+    wompi_tx.refresh_from_db()
+    assert wompi_tx.checkout_url == ''

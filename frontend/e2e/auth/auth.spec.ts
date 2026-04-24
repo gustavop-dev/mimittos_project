@@ -130,14 +130,10 @@ test.describe('Authentication', () => {
     await waitForPageLoad(page);
 
     await expect(page).toHaveURL(/.*forgot-password/);
-    await expect(page.getByRole('heading', { name: 'Reset Password' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Olvidaste tu contraseña/i })).toBeVisible();
 
-    // Step A: email input and send code button
-    await expect(page.getByPlaceholder('Email')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Send verification code' })).toBeVisible();
-
-    // Link back to sign-in
-    await expect(page.getByRole('link', { name: 'Back to sign in' })).toBeVisible();
+    await expect(page.getByPlaceholder('tu@correo.com')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Enviar código/i })).toBeVisible();
   });
 
   test('should navigate from sign-in to forgot password', { tag: [...AUTH_FORGOT_PASSWORD_FORM] }, async ({ page }) => {
@@ -150,6 +146,33 @@ test.describe('Authentication', () => {
     await page.waitForURL(/.*forgot-password/, { timeout: 10_000 });
 
     await expect(page).toHaveURL(/.*forgot-password/);
-    await expect(page.getByRole('heading', { name: 'Reset Password' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Olvidaste tu contraseña/i })).toBeVisible();
+  });
+
+  test('should show verification step after successful registration', { tag: [...AUTH_SIGN_UP_FORM] }, async ({ page }) => {
+    await page.route('**/api/sign_up/', (route) =>
+      route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ email: 'ana@test.com' }),
+      })
+    );
+
+    await page.goto('/sign-up');
+    await waitForPageLoad(page);
+
+    await page.getByPlaceholder('Sofía').fill('Ana');
+    await page.getByPlaceholder('Martínez').fill('García');
+    await page.locator('input[type="email"]').fill('ana@test.com');
+    await page.getByPlaceholder('Mínimo 8 caracteres').fill('password123');
+    await page.getByPlaceholder('Repite la contraseña').fill('password123');
+
+    // quality: allow-fragile-selector (terms checkbox sibling div, uniquely scoped by adjacent text span)
+    await page.locator('span', { hasText: 'Acepto los' }).locator('..').locator('div').first().click();
+
+    await page.getByRole('button', { name: /Crear mi cuenta/i }).click();
+
+    // After successful submission the app transitions to the email verification step
+    await expect(page.getByPlaceholder('000000')).toBeVisible({ timeout: 10_000 });
   });
 });

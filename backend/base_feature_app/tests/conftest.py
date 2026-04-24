@@ -1,6 +1,18 @@
 import pytest
-from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
+
+from base_feature_app.tests.factories import (
+    AdminUserFactory,
+    DeliveredOrderFactory,
+    GlobalColorFactory,
+    GlobalSizeFactory,
+    OrderItemFactory,
+    PersonalizationMedia,
+    PersonalizationMediaFactory,
+    PeluchFactory,
+    PeluchSizePriceFactory,
+    UserFactory,
+)
 
 
 @pytest.fixture
@@ -10,30 +22,26 @@ def api_client():
 
 @pytest.fixture
 def existing_user(db):
-    """Regular authenticated user for use in tests requiring a logged-in customer."""
-    User = get_user_model()
-    return User.objects.create_user(
-        email='user@example.com',
-        password='existingpassword',
-        first_name='Test',
-        last_name='User',
-    )
+    """Regular authenticated user with a unique email (via factory Sequence)."""
+    return UserFactory()
 
 
 @pytest.fixture
 def admin_user(db):
-    """Staff/admin user for use in tests requiring elevated permissions."""
-    User = get_user_model()
-    user = User.objects.create_user(
-        email='admin@example.com',
-        password='adminpassword',
-        first_name='Admin',
-        last_name='User',
-    )
-    user.is_staff = True
-    user.is_superuser = True
-    user.save(update_fields=['is_staff', 'is_superuser'])
-    return user
+    """Staff/admin user with elevated permissions."""
+    return AdminUserFactory()
+
+
+@pytest.fixture
+def verified_user(db):
+    """Active user — simulates a successfully email-verified account."""
+    return UserFactory(is_active=True)
+
+
+@pytest.fixture
+def unverified_user(db):
+    """Inactive user — simulates an account pending email verification."""
+    return UserFactory(is_active=False)
 
 
 @pytest.fixture
@@ -48,3 +56,29 @@ def admin_client(api_client, admin_user):
     """APIClient pre-authenticated as a staff/admin user."""
     api_client.force_authenticate(user=admin_user)
     return api_client
+
+
+@pytest.fixture
+def order_item_with_huella(db, existing_user):
+    """Delivered order containing an OrderItem linked to a PersonalizationMedia (HUELLA_IMAGE)."""
+    order = DeliveredOrderFactory(customer=existing_user)
+    peluch = PeluchFactory()
+    size = GlobalSizeFactory()
+    color = GlobalColorFactory()
+    PeluchSizePriceFactory(peluch=peluch, size=size)
+    item = OrderItemFactory(
+        order=order,
+        peluch=peluch,
+        size=size,
+        color=color,
+        has_huella=True,
+        huella_type=OrderItemFactory._meta.model.HuellaType.IMAGE,
+    )
+    media = PersonalizationMediaFactory(
+        uploaded_by=existing_user,
+        media_type=PersonalizationMedia.MediaType.HUELLA_IMAGE,
+        is_used=True,
+    )
+    item.huella_media = media
+    item.save(update_fields=['huella_media'])
+    return item
