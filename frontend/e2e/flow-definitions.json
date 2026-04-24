@@ -1,6 +1,6 @@
 {
-  "version": "1.1.0",
-  "lastUpdated": "2026-04-20",
+  "version": "1.2.0",
+  "lastUpdated": "2026-04-24",
   "flows": {
     "home-loads": {
       "name": "Home page loads",
@@ -328,6 +328,166 @@
       "roles": ["shared"],
       "priority": "P3",
       "description": "Wompi redirects to /tracking?order=PELUCH-XXXX; page auto-searches that order number and shows timeline",
+      "expectedSpecs": 0
+    },
+    "auth-login-success": {
+      "name": "Successful sign-in and redirect",
+      "module": "auth",
+      "roles": ["guest"],
+      "priority": "P1",
+      "description": "User submits valid credentials, receives JWT tokens, and is redirected to home/dashboard",
+      "expectedSpecs": 1
+    },
+    "auth-logout": {
+      "name": "Sign out",
+      "module": "auth",
+      "roles": ["user"],
+      "priority": "P2",
+      "description": "Authenticated user clicks Sign Out; tokens cleared from cookies; redirected to home or sign-in",
+      "expectedSpecs": 1
+    },
+    "auth-google-login": {
+      "name": "Google OAuth login",
+      "module": "auth",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "User clicks Google button on sign-in page, completes OAuth, receives JWT, redirected to dashboard",
+      "expectedSpecs": 0
+    },
+    "auth-session-persistence": {
+      "name": "Session persistence across reload",
+      "module": "auth",
+      "roles": ["user"],
+      "priority": "P2",
+      "description": "User with valid cookies navigates to a protected route and remains authenticated after reload",
+      "expectedSpecs": 1
+    },
+    "auth-registration-verify": {
+      "name": "Email verification after sign-up",
+      "module": "auth",
+      "roles": ["guest"],
+      "priority": "P2",
+      "description": "After sign-up, user enters verification code sent to email and account is activated",
+      "expectedSpecs": 0
+    },
+    "app-dashboard-access": {
+      "name": "Dashboard access (authenticated)",
+      "module": "app",
+      "roles": ["user"],
+      "priority": "P2",
+      "description": "Authenticated user navigates to /dashboard and sees dashboard content without redirect",
+      "expectedSpecs": 1
+    },
+    "payment-page-display": {
+      "name": "Payment page display",
+      "module": "payment",
+      "roles": ["shared"],
+      "priority": "P1",
+      "description": "After order created, user lands on /payment and sees available payment methods (Wompi widget or method list)",
+      "expectedSpecs": 1
+    },
+    "order-confirmed-display": {
+      "name": "Order confirmed page",
+      "module": "payment",
+      "roles": ["shared"],
+      "priority": "P1",
+      "description": "After successful Wompi payment, /order-confirmed renders order number and success message",
+      "expectedSpecs": 1
+    },
+    "review-submit": {
+      "name": "Submit peluch review",
+      "module": "reviews",
+      "roles": ["user"],
+      "priority": "P2",
+      "description": "Authenticated user with a delivered order fills rating and comment on peluch detail and submits POST /api/peluches/{slug}/reviews/",
+      "expectedSpecs": 1
+    },
+    "backoffice-login": {
+      "name": "Admin login via /admin-login",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P2",
+      "description": "Staff navigates to /admin-login, submits credentials, receives JWT, is redirected to /backoffice",
+      "expectedSpecs": 1
+    },
+    "backoffice-dashboard-display": {
+      "name": "Backoffice dashboard display",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P2",
+      "description": "Authenticated staff sees /backoffice dashboard with analytics widgets (orders, revenue, top peluches)",
+      "expectedSpecs": 1
+    },
+    "backoffice-order-management": {
+      "name": "Backoffice order management",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P2",
+      "description": "Staff on /backoffice/pedidos views order list and updates status via PATCH /api/orders/{number}/status/",
+      "expectedSpecs": 1
+    },
+    "backoffice-peluch-list": {
+      "name": "Backoffice peluch list",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff views /backoffice/peluches with all peluches in a table; can navigate to detail or create new",
+      "expectedSpecs": 0
+    },
+    "backoffice-peluch-create": {
+      "name": "Backoffice create peluch",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff on /backoffice/peluches/nuevo fills PeluchForm and submits POST /api/peluches/",
+      "expectedSpecs": 0
+    },
+    "backoffice-peluch-edit": {
+      "name": "Backoffice edit peluch",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff on /backoffice/peluches/[slug] edits fields and submits PATCH /api/peluches/{slug}/",
+      "expectedSpecs": 0
+    },
+    "backoffice-category-management": {
+      "name": "Backoffice category management",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff on /backoffice/categorias creates, edits, or deletes a category via categoryAdminService",
+      "expectedSpecs": 0
+    },
+    "backoffice-user-management": {
+      "name": "Backoffice user management",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff on /backoffice/usuarios views user list and updates role/staff/active via userAdminService",
+      "expectedSpecs": 0
+    },
+    "contact-page-display": {
+      "name": "Contact page display",
+      "module": "public",
+      "roles": ["shared"],
+      "priority": "P4",
+      "description": "User navigates to /contact and sees contact form or contact information",
+      "expectedSpecs": 0
+    },
+    "about-page-display": {
+      "name": "About page display",
+      "module": "public",
+      "roles": ["shared"],
+      "priority": "P4",
+      "description": "User navigates to /about and sees the brand history/story content",
+      "expectedSpecs": 0
+    },
+    "terms-page-display": {
+      "name": "Terms and conditions display",
+      "module": "public",
+      "roles": ["shared"],
+      "priority": "P4",
+      "description": "User navigates to /terms and sees the terms and conditions content",
       "expectedSpecs": 0
     }
   }

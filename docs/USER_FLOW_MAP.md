@@ -4,8 +4,8 @@
 
 Use this document to understand each flow's steps, branching conditions, role restrictions, and API contracts before writing or reviewing E2E tests.
 
-**Version:** 1.1.0
-**Last Updated:** 2026-04-20
+**Version:** 1.2.0
+**Last Updated:** 2026-04-24
 
 ---
 
@@ -15,8 +15,10 @@ Use this document to understand each flow's steps, branching conditions, role re
 2. [Auth Module](#auth-module)
 3. [Public Module](#public-module)
 4. [App Module](#app-module)
-5. [Backoffice Module](#backoffice-module)
-6. [Cross-Reference](#cross-reference)
+5. [Payment Module](#payment-module)
+6. [Reviews Module](#reviews-module)
+7. [Backoffice Module](#backoffice-module)
+8. [Cross-Reference](#cross-reference)
 
 ---
 
@@ -50,6 +52,22 @@ Use this document to understand each flow's steps, branching conditions, role re
 | `app-dashboard` | Dashboard | app | P2 | user | `/dashboard` |
 | `backoffice-users-list` | Users List | backoffice | P2 | staff | `/backoffice` |
 | `backoffice-orders-list` | Orders List | backoffice | P2 | staff | `/backoffice` |
+| `auth-login-success` | Successful Sign-In | auth | P1 | guest | `/sign-in` |
+| `auth-registration-verify` | Email Verification | auth | P2 | guest | `/sign-up` |
+| `payment-page-display` | Payment Page | payment | P1 | shared | `/payment` |
+| `order-confirmed-display` | Order Confirmed | payment | P1 | shared | `/order-confirmed` |
+| `review-submit` | Submit Review | reviews | P2 | user | `/peluches/[slug]` |
+| `backoffice-login` | Admin Login | backoffice | P2 | staff | `/admin-login` |
+| `backoffice-dashboard-display` | Backoffice Dashboard | backoffice | P2 | staff | `/backoffice` |
+| `backoffice-order-management` | Order Management | backoffice | P2 | staff | `/backoffice/pedidos` |
+| `backoffice-peluch-list` | Peluch List | backoffice | P3 | staff | `/backoffice/peluches` |
+| `backoffice-peluch-create` | Create Peluch | backoffice | P3 | staff | `/backoffice/peluches/nuevo` |
+| `backoffice-peluch-edit` | Edit Peluch | backoffice | P3 | staff | `/backoffice/peluches/[slug]` |
+| `backoffice-category-management` | Category Management | backoffice | P3 | staff | `/backoffice/categorias` |
+| `backoffice-user-management` | User Management | backoffice | P3 | staff | `/backoffice/usuarios` |
+| `contact-page-display` | Contact Page | public | P4 | shared | `/contact` |
+| `about-page-display` | About Page | public | P4 | shared | `/about` |
+| `terms-page-display` | Terms Page | public | P4 | shared | `/terms` |
 
 ---
 
@@ -195,6 +213,63 @@ Use this document to understand each flow's steps, branching conditions, role re
 | Passwords do not match | Client error — no API call |
 | Password < 8 chars | Client error — no API call |
 | "Back to email" clicked | UI returns to step A |
+
+---
+
+### auth-login-success
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P1 |
+| **Roles** | guest |
+| **Frontend route** | `/sign-in` |
+| **API endpoints** | `POST /api/sign_in/` |
+
+**Preconditions:** User is not authenticated. A registered, active account exists.
+
+**Steps:**
+
+1. User navigates to `/sign-in`.
+2. User fills in valid email and password.
+3. User clicks **Sign in**.
+4. Frontend sends `POST /api/sign_in/` → backend returns `{ access, refresh }` (HTTP 200).
+5. Frontend stores tokens in cookies and redirects to home or dashboard.
+
+**Branching conditions:**
+
+| Condition | Behavior |
+|-----------|----------|
+| Redirect param present | Frontend redirects to original protected URL |
+| No redirect param | Redirects to `/` or `/dashboard` |
+
+---
+
+### auth-registration-verify
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | guest |
+| **Frontend route** | `/sign-up` |
+| **API endpoints** | `POST /api/sign_up/`, `POST /api/verify_registration/`, `POST /api/resend_verification/` |
+
+**Preconditions:** User has just completed sign-up form.
+
+**Steps:**
+
+1. After successful `POST /api/sign_up/`, UI transitions to a verification code input.
+2. Backend sends 6-digit code to user's email.
+3. User enters code and clicks **Verify**.
+4. Frontend sends `POST /api/verify_registration/` with `{ email, code }`.
+5. Backend activates account and returns `{ access, refresh }`.
+6. Frontend stores tokens and redirects to `/dashboard`.
+
+**Branching conditions:**
+
+| Condition | Behavior |
+|-----------|----------|
+| Wrong code | `400 { error: "Invalid or expired code" }` |
+| User clicks resend | `POST /api/resend_verification/` sends new code |
 
 ---
 
@@ -758,6 +833,336 @@ Use this document to understand each flow's steps, branching conditions, role re
 2. Page reads `?order` query param on mount.
 3. Auto-calls `orderService.trackOrder(orderNumber)`.
 4. Timeline shown immediately without manual search.
+
+---
+
+---
+
+## Payment Module
+
+### payment-page-display
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P1 |
+| **Roles** | shared |
+| **Frontend route** | `/payment` |
+| **API endpoints** | `GET /payment/info/{orderNumber}/`, `GET /payment/pse-banks/` |
+
+**Preconditions:** Order has been created (order_number available, typically from Wompi redirect or direct navigation).
+
+**Steps:**
+
+1. User lands on `/payment` (with order_number in query params or state).
+2. Page fetches `GET /payment/info/{orderNumber}/` to load order totals and Wompi acceptance tokens.
+3. Page renders payment method tabs: **Tarjeta**, **Nequi**, **PSE**, **Bancolombia**.
+4. User selects a payment method and fills in the required fields.
+5. On submission, frontend calls the appropriate `paymentService` method (processCard, processNequi, processPse, processBancolombia).
+6. On success, frontend navigates to `/order-confirmed`.
+
+**Branching conditions:**
+
+| Condition | Behavior |
+|-----------|----------|
+| No order number | Redirect back to `/checkout` |
+| API error on load | Error state with retry option |
+| Payment declined | Error message with option to retry |
+| PSE selected | Additional `GET /payment/pse-banks/` call populates bank dropdown |
+
+---
+
+### order-confirmed-display
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P1 |
+| **Roles** | shared |
+| **Frontend route** | `/order-confirmed` |
+| **API endpoints** | None (reads state or URL params) |
+
+**Preconditions:** Payment was processed successfully; order_number is available.
+
+**Steps:**
+
+1. After successful payment, frontend navigates to `/order-confirmed`.
+2. Page displays order confirmation: order_number, success message, total paid.
+3. Links to `/orders` (view my orders) and `/tracking` (track this order) shown.
+4. Cart is cleared at this point.
+
+**Branching conditions:**
+
+| Condition | Behavior |
+|-----------|----------|
+| No order info in state | Shows generic success message |
+| User clicks Track Order | Navigates to `/tracking?order={orderNumber}` |
+
+---
+
+## Reviews Module
+
+### review-submit
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | user |
+| **Frontend route** | `/peluches/[slug]` |
+| **API endpoints** | `POST /api/peluches/{slug}/reviews/` |
+
+**Preconditions:** User is authenticated. User has a delivered order containing this peluch.
+
+**Steps:**
+
+1. User navigates to `/peluches/[slug]`.
+2. Reviews section is visible below product details.
+3. Authenticated user sees a **Write a review** form: star rating (1–5) and comment textarea.
+4. User selects rating and enters comment.
+5. User clicks **Submit**.
+6. Frontend sends `POST /api/peluches/{slug}/reviews/` with `{ rating, comment, order_id? }`.
+7. Backend validates user has a delivered order for this peluch and creates review (is_approved = false).
+8. Success message: "Tu reseña ha sido enviada y está pendiente de aprobación."
+
+**Branching conditions:**
+
+| Condition | Behavior |
+|-----------|----------|
+| Not authenticated | Review form not shown; prompt to sign in |
+| No delivered order | `403` — "Solo puedes reseñar productos que hayas recibido" |
+| Review already submitted | `400 { error: "Ya enviaste una reseña para este producto" }` |
+| Comment too short | Client-side validation before submission |
+
+---
+
+## Backoffice Module (Extended)
+
+### backoffice-login
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | staff |
+| **Frontend route** | `/admin-login` |
+| **API endpoints** | `POST /api/sign_in/` |
+
+**Preconditions:** User has a staff account (`is_staff = true`).
+
+**Steps:**
+
+1. User navigates to `/admin-login`.
+2. Page renders email and password form.
+3. User enters credentials and clicks **Sign in**.
+4. Frontend sends `POST /api/sign_in/` → backend returns tokens.
+5. Frontend stores tokens and redirects to `/backoffice`.
+
+**Branching conditions:**
+
+| Condition | Behavior |
+|-----------|----------|
+| Invalid credentials | `401` error shown below form |
+| Valid but non-staff user | Redirects to `/backoffice`, which then shows 403 on data fetch |
+
+---
+
+### backoffice-dashboard-display
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice` |
+| **API endpoints** | `GET /api/analytics/dashboard/`, `GET /api/orders/list/`, `GET /api/users/` |
+
+**Preconditions:** User is authenticated with `is_staff = true`.
+
+**Steps:**
+
+1. User navigates to `/backoffice`.
+2. `useRequireAuth()` validates token.
+3. Frontend fetches analytics dashboard data.
+4. Dashboard renders KPI widgets: total orders, revenue, top peluches, device types, traffic sources.
+5. Admin sidebar allows navigation to orders, peluches, categories, and users sections.
+
+**Branching conditions:**
+
+| Condition | Behavior |
+|-----------|----------|
+| Not staff | `403` — "Make sure you are signed in with a staff user." |
+| Not authenticated | Redirect to `/sign-in` |
+
+---
+
+### backoffice-order-management
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/pedidos` |
+| **API endpoints** | `GET /api/orders/list/`, `PATCH /api/orders/{number}/status/`, `PATCH /api/orders/{number}/tracking/` |
+
+**Preconditions:** User is authenticated with `is_staff = true`.
+
+**Steps:**
+
+1. User navigates to `/backoffice/pedidos`.
+2. Frontend fetches `GET /api/orders/list/` (with optional status/city filters).
+3. Orders render in a table: order_number, customer_name, status badge, total_amount, created_at.
+4. Staff clicks a status dropdown on a row → `PATCH /api/orders/{number}/status/` updates the status.
+5. Staff enters a tracking number → `PATCH /api/orders/{number}/tracking/` saves carrier + guide.
+
+**Branching conditions:**
+
+| Condition | Behavior |
+|-----------|----------|
+| No orders | "No data" empty row |
+| Status update fails | Error toast |
+
+---
+
+### backoffice-peluch-list
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/peluches` |
+| **API endpoints** | `GET /api/peluches/` |
+
+**Steps:**
+
+1. User navigates to `/backoffice/peluches`.
+2. Frontend fetches all peluches via `peluchAdminService.listAll()`.
+3. Table shows: title, category, is_active, is_featured, display_order.
+4. **Nuevo** button links to `/backoffice/peluches/nuevo`.
+5. Clicking a row links to `/backoffice/peluches/[slug]`.
+
+---
+
+### backoffice-peluch-create
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/peluches/nuevo` |
+| **API endpoints** | `POST /api/peluches/`, `POST /api/peluches/{slug}/color-image/{color}/`, `POST /api/peluches/{slug}/gallery/` |
+
+**Steps:**
+
+1. Staff navigates to `/backoffice/peluches/nuevo`.
+2. `PeluchForm` renders all fields: title, slug, category, lead_description, description (JSON), specifications (JSON), size_prices, available_colors, personalization toggles, etc.
+3. Staff fills form and clicks **Guardar**.
+4. Frontend sends `POST /api/peluches/` → peluch created.
+5. Staff may upload gallery images and color images in subsequent steps.
+6. On success, redirect to `/backoffice/peluches`.
+
+---
+
+### backoffice-peluch-edit
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/peluches/[slug]` |
+| **API endpoints** | `GET /api/peluches/{slug}/`, `PATCH /api/peluches/{slug}/`, gallery/color-image endpoints |
+
+**Steps:**
+
+1. Staff navigates to `/backoffice/peluches/[slug]`.
+2. Page fetches existing peluch data and pre-fills `PeluchForm`.
+3. Staff edits fields and clicks **Guardar**.
+4. Frontend sends `PATCH /api/peluches/{slug}/` with changed fields.
+5. Staff can upload/delete gallery images and color-specific images.
+
+---
+
+### backoffice-category-management
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/categorias` |
+| **API endpoints** | `POST /api/categories/`, `PATCH /api/categories/{id}/`, `DELETE /api/categories/{id}/` |
+
+**Steps:**
+
+1. Staff navigates to `/backoffice/categorias`.
+2. Frontend fetches `GET /api/categories/` and renders categories in a table.
+3. **Create:** Staff fills name/slug/description and clicks **Crear** → `POST /api/categories/`.
+4. **Edit:** Staff changes fields inline and confirms → `PATCH /api/categories/{id}/`.
+5. **Delete:** Staff clicks delete icon and confirms → `DELETE /api/categories/{id}/`.
+
+---
+
+### backoffice-user-management
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/usuarios` |
+| **API endpoints** | `GET /api/users/`, `PATCH /api/users/{id}/` |
+
+**Steps:**
+
+1. Staff navigates to `/backoffice/usuarios`.
+2. Frontend fetches `GET /api/users/` and renders users table: email, role, is_staff, is_active.
+3. Staff updates a user's role, is_staff, or is_active via inline controls → `PATCH /api/users/{id}/`.
+
+---
+
+## Public Module (Extended)
+
+### contact-page-display
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P4 |
+| **Roles** | shared |
+| **Frontend route** | `/contact` |
+| **API endpoints** | `GET /api/content/contact_info/` (optional) |
+
+**Steps:**
+
+1. User navigates to `/contact`.
+2. Page renders contact information or a contact form.
+3. Content may be loaded from `contentService.get('contact_info')`.
+
+---
+
+### about-page-display
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P4 |
+| **Roles** | shared |
+| **Frontend route** | `/about` |
+| **API endpoints** | `GET /api/content/history/` (optional) |
+
+**Steps:**
+
+1. User navigates to `/about`.
+2. Page renders brand history, artisan story, and values.
+3. Content may be loaded from `contentService.get('history')`.
+
+---
+
+### terms-page-display
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P4 |
+| **Roles** | shared |
+| **Frontend route** | `/terms` |
+| **API endpoints** | `GET /api/content/terms/` (optional) |
+
+**Steps:**
+
+1. User navigates to `/terms`.
+2. Page renders terms and conditions content.
+3. Content may be loaded from `contentService.get('terms')`.
 
 ---
 

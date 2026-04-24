@@ -70,3 +70,20 @@ export const CHECKOUT_WOMPI_REDIRECT = ['@flow:checkout-wompi-redirect', '@modul
 export const ORDERS_LIST_VIEW = ['@flow:orders-list-view', '@module:orders', '@priority:P2'];
 export const TRACKING_BY_ORDER_NUMBER = ['@flow:tracking-by-order-number', '@module:orders', '@priority:P2'];
 export const TRACKING_AUTO_FROM_WOMPI = ['@flow:tracking-auto-from-wompi', '@module:orders', '@priority:P3'];
+
+// ── Auth (authenticated) ──
+export const AUTH_LOGIN_SUCCESS = ['@flow:auth-login-success', '@module:auth', '@priority:P1'];
+export const AUTH_LOGOUT = ['@flow:auth-logout', '@module:auth', '@priority:P2'];
+export const AUTH_SESSION_PERSISTENCE = ['@flow:auth-session-persistence', '@module:auth', '@priority:P2'];
+
+// ── App ──
+export const APP_DASHBOARD_ACCESS = ['@flow:app-dashboard-access', '@module:app', '@priority:P2'];
+
+// ── Backoffice ──
+export const BACKOFFICE_LOGIN = ['@flow:backoffice-login', '@module:backoffice', '@priority:P2'];
+export const BACKOFFICE_DASHBOARD_DISPLAY = ['@flow:backoffice-dashboard-display', '@module:backoffice', '@priority:P2'];
+export const BACKOFFICE_ORDER_MANAGEMENT = ['@flow:backoffice-order-management', '@module:backoffice', '@priority:P2'];
+
+// ── Payment ──
+export const PAYMENT_PAGE_DISPLAY = ['@flow:payment-page-display', '@module:payment', '@priority:P1'];
+export const ORDER_CONFIRMED_DISPLAY = ['@flow:order-confirmed-display', '@module:payment', '@priority:P1'];

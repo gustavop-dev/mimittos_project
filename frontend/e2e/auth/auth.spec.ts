@@ -148,4 +148,31 @@ test.describe('Authentication', () => {
     await expect(page).toHaveURL(/.*forgot-password/);
     await expect(page.getByRole('heading', { name: /Olvidaste tu contraseña/i })).toBeVisible();
   });
+
+  test('should show verification step after successful registration', { tag: [...AUTH_SIGN_UP_FORM] }, async ({ page }) => {
+    await page.route('**/api/sign_up/', (route) =>
+      route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ email: 'ana@test.com' }),
+      })
+    );
+
+    await page.goto('/sign-up');
+    await waitForPageLoad(page);
+
+    await page.getByPlaceholder('Sofía').fill('Ana');
+    await page.getByPlaceholder('Martínez').fill('García');
+    await page.locator('input[type="email"]').fill('ana@test.com');
+    await page.getByPlaceholder('Mínimo 8 caracteres').fill('password123');
+    await page.getByPlaceholder('Repite la contraseña').fill('password123');
+
+    // Accept terms and conditions — click the checkbox div (sibling to the span with the link)
+    await page.locator('span', { hasText: 'Acepto los' }).locator('..').locator('div').first().click();
+
+    await page.getByRole('button', { name: /Crear mi cuenta/i }).click();
+
+    // After successful submission the app transitions to the email verification step
+    await expect(page.getByPlaceholder('000000')).toBeVisible({ timeout: 10_000 });
+  });
 });

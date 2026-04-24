@@ -17,13 +17,13 @@ This file captures important patterns, preferences, and project intelligence tha
 - Blog supports dual format: structured JSON (preferred) with HTML fallback via `dangerouslySetInnerHTML` (sanitized with DOMPurify)
 - This avoids the need for a full CMS while keeping content rich and structured
 
-### Single Django App: `content`
-- All models, views, serializers, and services live in the `content` app
+### Single Django App: `base_feature_app`
+- All models, views, serializers, and services live in the `base_feature_app` app
 - This works for now but may need splitting if scope grows significantly
-- Models are already split into individual files under `content/models/`
+- Models are already split into individual files under `base_feature_app/models/`
 
 ### Service Layer Pattern
-- Business logic lives in `content/services/`, not in views
+- Business logic lives in `base_feature_app/services/`, not in views
 - Views are thin FBV wrappers that call service methods
 
 ---
@@ -36,7 +36,7 @@ This file captures important patterns, preferences, and project intelligence tha
 
 ### Frontend: Zustand Stores
 - State management uses Zustand with TypeScript
-- HTTP requests go through centralized API client in `lib/api/`
+- HTTP requests go through centralized API client in `lib/services/http.ts` (Axios instance with JWT interceptors)
 
 ### Bilingual Content Pattern
 - Models have paired fields: `title_en`/`title_es`, `content_json_en`/`content_json_es`, etc.
@@ -45,7 +45,7 @@ This file captures important patterns, preferences, and project intelligence tha
 
 ### Naming Conventions
 - Backend: snake_case for everything (Python standard)
-- Frontend components: PascalCase (`BusinessProposal/Greeting.tsx`)
+- Frontend components: PascalCase (`product/ProductCard.tsx`, `layout/Header.tsx`)
 - Frontend hooks: camelCase with `use` prefix (`useExpirationTimer.ts`)
 - Frontend stores: camelCase (`useProposalStore.ts`)
 
@@ -100,28 +100,33 @@ venv/bin/python <command>
 - Admin can disable specific emails via `is_active` flag
 - Preview rendering available for all templates
 
-### 24h Cooldown Rule
-- `last_automated_email_at` field on `BusinessProposal` tracks last automated email
-- All automated email tasks check this before sending
-- Manual sends (admin clicks "Send") bypass the cooldown
-
-### Automations Pause
-- `automations_paused` flag on `BusinessProposal` stops all automated emails
-- Each Huey task checks this flag early and returns if paused
+### Transactional Emails
+- Order confirmation, status update, and account emails are all transactional
+- Each email type defined in `EmailTemplateRegistry` with default content
+- Admin can override content via `EmailTemplateConfig` model in Django admin
+- Admin can disable specific email types via `is_active` flag
 
 ---
 
-## 6. Proposal System Specifics
+## 6. Mimittos Domain Specifics
 
-### Section Types Are Fixed
-- 12 section types defined in `ProposalSection.SectionType` choices
-- Each maps to a specific React component in `components/BusinessProposal/`
-- Unique together constraint: `(proposal, section_type)` — one of each per proposal
+### Wompi Payment Flow
+- Checkout creates an `Order` + initiates Wompi transaction via `wompi_service`
+- Wompi sends async webhook to `POST /api/payment/wompi-webhook/` on status change
+- Webhook updates `WompiTransaction.status` and triggers `order_service` to update order status
+- Wompi response uses `id` field for transaction identifier (not `transaction_id`)
+- PSE bank list fetched from Wompi API at checkout time
 
-### Heat Score (1-10)
-- Pre-computed and cached in `cached_heat_score` field
-- Updated by tracking endpoint and periodic task (`refresh_all_heat_scores`)
-- Based on: view count, section time, recency, engagement patterns
+### Personalization Media
+- Four customization layers per order item: huella, corazón, audio, size+color
+- Audio and image files uploaded via `POST /api/media/upload/`
+- Files validated (type + 5 MB limit) and stored in `backend/media/`
+- `PersonalizationMedia` model links media files to `OrderItem`
+
+### Review Gate
+- Reviews only allowed after order status is `DELIVERED`
+- Enforced in `review_service` — raises validation error otherwise
+- Staff approves reviews via backoffice before they appear publicly
 
 ---
 
@@ -130,9 +135,14 @@ venv/bin/python <command>
 ### Backend conftest.py
 - Custom coverage report with Unicode progress bars replaces default pytest-cov output
 - `api_client` fixture provides unauthenticated DRF APIClient
-- Content tests have their own `conftest.py` with model-specific fixtures
+- `base_feature_app/tests/` has its own `conftest.py` with model-specific fixtures (factories via factory-boy)
 
 ### E2E Flow Definitions
 - Every navigation flow must be registered in `docs/USER_FLOW_MAP.md` and `frontend/e2e/flow-definitions.json`
 - E2E tests must reflect real user integrations
 - Follow quality standards from `docs/TESTING_QUALITY_STANDARDS.md`
+
+### Spanish Locale is Canonical for Tests
+- All E2E and most unit tests assert Spanish-language strings
+- Wompi responses use `id` (not `transaction_id`) — tests align with this
+- Test fixtures for review tests require an order in `DELIVERED` status

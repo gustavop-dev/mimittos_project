@@ -46,6 +46,11 @@ describe('paymentService', () => {
       expect(mockGet).toHaveBeenCalledWith('/payment/info/ORD-001/')
       expect(result).toEqual(mockPaymentInfo)
     })
+
+    it('throws on network error when fetching payment info', async () => {
+      mockGet.mockRejectedValue(new Error('Network Error'))
+      await expect(paymentService.getInfo('ORD-001')).rejects.toThrow('Network Error')
+    })
   })
 
   describe('getPseBanks', () => {
@@ -93,6 +98,17 @@ describe('paymentService', () => {
       expect(result.acceptance_permalink).toBe('https://wompi.co/terms')
       expect(result.personal_auth_token).toBe('tok-personal')
     })
+
+    it('returns empty strings when Wompi response is missing presigned fields', async () => {
+      const mockFetch = global.fetch as jest.Mock
+      mockFetch.mockResolvedValue({
+        json: jest.fn().mockResolvedValue({ data: {} }),
+      })
+      const result = await paymentService.getAcceptanceTokens()
+      expect(result.acceptance_token).toBe('')
+      expect(result.acceptance_permalink).toBe('')
+      expect(result.personal_auth_token).toBe('')
+    })
   })
 
   describe('processCard', () => {
@@ -108,6 +124,13 @@ describe('paymentService', () => {
         acceptance_personal_auth_token: 'personal-tok',
       })
       expect(result).toEqual(mockPaymentResult)
+    })
+
+    it('throws when card processing returns a server error', async () => {
+      mockPost.mockRejectedValue(new Error('Request failed with status code 500'))
+      await expect(
+        paymentService.processCard('ORD-001', 'card-tok', 'acc-tok', 'personal-tok')
+      ).rejects.toThrow('Request failed with status code 500')
     })
   })
 
@@ -194,6 +217,23 @@ describe('paymentService', () => {
           card_holder: 'ANA GARCIA',
         })
       ).rejects.toThrow('Número de tarjeta inválido.')
+    })
+
+    it('throws generic message when tokenization fails without field-specific messages', async () => {
+      const mockFetch = global.fetch as jest.Mock
+      mockFetch.mockResolvedValue({
+        ok: false,
+        json: jest.fn().mockResolvedValue({ error: { messages: {} } }),
+      })
+      await expect(
+        paymentService.tokenizeCard({
+          number: '4111111111111111',
+          cvc: '123',
+          exp_month: '12',
+          exp_year: '2030',
+          card_holder: 'ANA GARCIA',
+        })
+      ).rejects.toThrow('Datos de tarjeta inválidos.')
     })
   })
 })

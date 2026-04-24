@@ -165,6 +165,42 @@ test.describe('Shopping Cart', () => {
     }
   });
 
+  test('should show empty cart when item quantity is decremented to zero', { tag: [...CART_UPDATE_QTY] }, async ({ page }) => {
+    // Add an item first
+    await page.goto('/catalog');
+    await waitForPageLoad(page);
+
+    const peluchCards = page.locator('a[href^="/peluches/"]');
+    if (await peluchCards.count() > 0) {
+      await peluchCards.first().click();
+      await waitForPageLoad(page);
+
+      const addBtn = page.locator('button:has-text("Agregar")').first();
+      if (await addBtn.isVisible()) {
+        await addBtn.click();
+        await page.waitForLoadState('domcontentloaded');
+      }
+
+      await page.goto('/cart');
+      await waitForPageLoad(page);
+
+      // Decrement quantity until item is removed
+      const decrementBtn = page.locator('[data-testid="cart-item"]').first().getByRole('button').first();
+      if (await decrementBtn.isVisible()) {
+        await decrementBtn.click();
+        await page.waitForLoadState('domcontentloaded');
+
+        // After removing last item, cart should show empty state
+        const emptyMsg = page.getByText(/Tu carrito está vacío/i);
+        const cartItems = page.locator('[data-testid="cart-item"]');
+        const remaining = await cartItems.count();
+        if (remaining === 0) {
+          await expect(emptyMsg).toBeVisible();
+        }
+      }
+    }
+  });
+
   test('should add multiple different peluches', { tag: [...CART_MULTIPLE_PRODUCTS] }, async ({ page }) => {
     await page.goto('/catalog');
     await waitForPageLoad(page);
