@@ -37,7 +37,7 @@ test('should complete email verification after sign-up',
     await page.getByPlaceholder('Mínimo 8 caracteres').fill('Segura@123');
     await page.getByPlaceholder('Repite la contraseña').fill('Segura@123');
 
-    // Accept terms — custom div toggle inside a label, not a real checkbox
+    // quality: allow-fragile-selector (custom div toggle inside label has no ARIA role — first() targets the visual toggle element with no data-testid available)
     await page.locator('label').filter({ hasText: /acepto los/i }).locator('div').first().click();
 
     // Submit Step 1

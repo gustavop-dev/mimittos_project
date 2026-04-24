@@ -1,4 +1,5 @@
 import { test, expect } from '../test-with-coverage';
+import type { Page, Route } from '@playwright/test';
 import { waitForPageLoad } from '../fixtures';
 import { BACKOFFICE_CATEGORY_MANAGEMENT, BACKOFFICE_USER_MANAGEMENT } from '../helpers/flow-tags';
 
@@ -17,11 +18,11 @@ const mockUsers = [
   { id: 2, email: 'carlos@mimittos.co', first_name: 'Carlos', last_name: 'López', role: 'admin', is_staff: true, is_active: true, date_joined: '2026-02-01T00:00:00Z' },
 ];
 
-async function setupStaffAuth(page: any) {
-  await page.route('**/api/validate_token/**', (route: any) =>
+async function setupStaffAuth(page: Page) {
+  await page.route('**/api/validate_token/**', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ user: mockAdmin }) })
   );
-  await page.route('**/api/token/refresh/**', (route: any) =>
+  await page.route('**/api/token/refresh/**', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access: 'fake-admin-access' }) })
   );
   await page.context().addCookies([
@@ -36,7 +37,7 @@ test.describe('Backoffice — Admin Management', () => {
     async ({ page }) => {
       await setupStaffAuth(page);
 
-      await page.route('**/api/categories/**', (route: any) =>
+      await page.route('**/api/categories/**', (route: Route) =>
         route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockCategories) })
       );
 
@@ -53,7 +54,7 @@ test.describe('Backoffice — Admin Management', () => {
     async ({ page }) => {
       await setupStaffAuth(page);
 
-      await page.route('**/api/users/**', (route: any) =>
+      await page.route('**/api/users/**', (route: Route) =>
         route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockUsers) })
       );
 
