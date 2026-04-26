@@ -8,7 +8,7 @@ lives in settings.py; this file only contains production overrides and
 validations.
 """
 
-import os
+from decouple import config
 
 from .settings import BASE_DIR  # noqa: F401
 from .settings import *  # noqa: F401,F403
@@ -21,10 +21,10 @@ DEBUG = False
 # ---------------------------------------------------------------------------
 # Required environment variables — fail fast if missing
 # ---------------------------------------------------------------------------
-if not os.getenv('DJANGO_SECRET_KEY'):
+if not config('DJANGO_SECRET_KEY', default=''):
     raise ValueError("DJANGO_SECRET_KEY is required in production")
 
-if not os.getenv('DJANGO_ALLOWED_HOSTS'):
+if not config('DJANGO_ALLOWED_HOSTS', default=''):
     raise ValueError("DJANGO_ALLOWED_HOSTS is required in production")
 
 # ---------------------------------------------------------------------------
@@ -44,14 +44,14 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # ---------------------------------------------------------------------------
 # Database — MySQL (production)
 # ---------------------------------------------------------------------------
-_db_engine = os.getenv('DJANGO_DB_ENGINE', 'django.db.backends.mysql')
+_db_engine = config('DJANGO_DB_ENGINE', default='django.db.backends.mysql')
 _db_config = {
     'ENGINE': _db_engine,
-    'NAME': os.getenv('DB_NAME', ''),
-    'USER': os.getenv('DB_USER', ''),
-    'PASSWORD': os.getenv('DB_PASSWORD', ''),
-    'HOST': os.getenv('DB_HOST', 'localhost'),
-    'PORT': os.getenv('DB_PORT', '3306'),
+    'NAME': config('DB_NAME', default=''),
+    'USER': config('DB_USER', default=''),
+    'PASSWORD': config('DB_PASSWORD', default=''),
+    'HOST': config('DB_HOST', default='localhost'),
+    'PORT': config('DB_PORT', default='3306'),
     'OPTIONS': {
         'charset': 'utf8mb4',
     },
