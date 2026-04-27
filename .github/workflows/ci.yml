@@ -187,14 +187,19 @@ jobs:
         working-directory: backend
         run: venv/bin/python manage.py migrate --no-input
 
+      - name: Build Next.js app
+        run: npm run build
+        env:
+          NEXT_PUBLIC_BACKEND_ORIGIN: http://127.0.0.1:8000
+
       - name: Install Playwright browsers with system deps
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright E2E tests (${{ matrix.label }})
-        run: npx playwright test ${{ matrix.files }} --reporter='json,./e2e/reporters/flow-coverage-reporter.mjs'
+        run: npx playwright test ${{ matrix.files }}
         env:
           CI: 'true'
-          PLAYWRIGHT_JSON_OUTPUT_NAME: e2e-results/playwright-results.json
+          NEXT_PUBLIC_BACKEND_ORIGIN: http://127.0.0.1:8000
 
       - name: Upload E2E results
         if: always()
@@ -203,7 +208,7 @@ jobs:
           name: coverage-frontend-e2e-${{ matrix.part }}
           path: |
             frontend/e2e-results/flow-coverage.json
-            frontend/e2e-results/playwright-results.json
+            frontend/e2e-results/results.json
           retention-days: 5
 
       - name: Upload test traces (failures only)

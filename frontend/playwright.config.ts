@@ -26,10 +26,13 @@ export default defineConfig({
       stderr: 'ignore',
     },
     {
-      command: 'npm run dev -- --port 3001',
+      // In CI: use pre-built output (next start); locally: use hot-reload dev server
+      command: process.env.CI
+        ? 'npm run start -- --port 3001'
+        : 'npm run dev -- --port 3001',
       url: 'http://localhost:3001',
       reuseExistingServer: !process.env.CI,
-      timeout: 180_000, // 3 minutes for server startup
+      timeout: 180_000,
     },
   ],
   use: {
