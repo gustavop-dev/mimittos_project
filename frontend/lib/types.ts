@@ -34,6 +34,8 @@ export type Category = {
   description: string
   display_order: number
   is_active: boolean
+  is_featured: boolean
+  image_url: string | null
 }
 
 export type PeluchSizePrice = {
@@ -212,6 +214,15 @@ export type Review = {
   user_name: string
   rating: number
   comment: string
+  created_at: string
+}
+
+export type HomeReview = {
+  id: number
+  user_name: string
+  rating: number
+  comment: string
+  peluch_title: string
   created_at: string
 }
 

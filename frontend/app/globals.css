@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "swiper/css";
+@import "swiper/css/pagination";
 
 :root {
   --coral: #D4848A;
@@ -74,4 +76,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 
 .delay-2000 {
   animation-delay: 2000ms;
+}
+
+/* Swiper — brand coral bullets */
+.swiper-pagination-bullet {
+  background: #D4848A;
+  opacity: 0.4;
+}
+.swiper-pagination-bullet-active {
+  background: #D4848A !important;
+  opacity: 1;
 }

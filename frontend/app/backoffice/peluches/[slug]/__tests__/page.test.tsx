@@ -59,7 +59,7 @@ const mockPeluch: PeluchDetail = {
   size_prices: [],
   available_colors: [],
   color_images: [],
-  category: { id: 1, name: 'Osos', slug: 'osos' },
+  category: { id: 1, name: 'Osos', slug: 'osos', description: '', display_order: 0, is_active: true, is_featured: false, image_url: null },
 }
 
 describe('EditarPeluchPage', () => {

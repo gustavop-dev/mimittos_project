@@ -91,7 +91,7 @@ export default function BackofficeDashboard() {
     : []
 
   return (
-    <div style={{ padding: '30px 40px 60px' }}>
+    <div className="px-4 sm:px-8 py-8">
 
       {/* Header row */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
@@ -119,7 +119,7 @@ export default function BackofficeDashboard() {
       {kpisLoading ? (
         <p style={{ color: 'var(--gray-warm)', marginBottom: 28 }}>Cargando métricas...</p>
       ) : kpis && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 32 }}>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
           {[
             { label: 'Pedidos nuevos hoy', value: String(kpis.new_orders ?? 0), color: 'var(--coral)' },
             { label: 'En producción', value: String(kpis.in_production ?? 0), color: '#B8696F' },
@@ -135,7 +135,7 @@ export default function BackofficeDashboard() {
       )}
 
       {/* Accesos rápidos */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 36 }}>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-9">
         {QUICK_LINKS.map(({ href, label, icon, desc }) => (
           <Link key={href} href={href} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: '#fff', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sm)', textDecoration: 'none', border: '1.5px solid transparent' }}>
             <span style={{ fontSize: 24 }}>{icon}</span>
@@ -179,7 +179,7 @@ export default function BackofficeDashboard() {
           </ChartCard>
 
           {/* Row: Nuevos vs recurrentes + Dispositivos */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <ChartCard title="Nuevos vs recurrentes" description="Fidelización de clientes en el período">
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
@@ -206,7 +206,7 @@ export default function BackofficeDashboard() {
           </div>
 
           {/* Row: Peluches más vendidos + Fuentes de tráfico */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <ChartCard title="Peluches más vendidos" description="Unidades vendidas en el período">
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={(data.top_peluches ?? []).slice(0, 8)} layout="vertical">

@@ -3,9 +3,9 @@ import Link from 'next/link'
 
 export default function Footer() {
   return (
-    <footer style={{ background: 'var(--cream-peach)', padding: '70px 0 30px', marginTop: 0 }}>
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.2fr', gap: 50, marginBottom: 50 }}>
+    <footer style={{ background: 'var(--cream-peach)', marginTop: 0 }} className="pt-12 sm:pt-16 lg:pt-[70px] pb-8">
+      <div className="mx-auto px-4 sm:px-8 lg:px-10" style={{ maxWidth: 1360 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-[50px] mb-10 lg:mb-[50px]">
           <div>
             <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
               <Image src="/mimittos/logo-dark-small.png" alt="MIMITTOS" width={40} height={40}
@@ -86,7 +86,7 @@ export default function Footer() {
         <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.5A10 10 0 1 0 12 2zm5.3 14.2c-.2.6-1.3 1.2-1.8 1.3-.5.1-1.1.1-1.7-.1a12 12 0 0 1-4.1-2.4 8 8 0 0 1-2.3-3.2c-.2-.4-.6-1.2-.6-2 0-.8.4-1.2.6-1.4.2-.2.5-.3.7-.3h.4c.2 0 .3 0 .5.4l.8 1.8c.1.2 0 .4-.1.5l-.3.4a.5.5 0 0 0-.1.5c.1.2.5.9 1.1 1.5.7.7 1.4 1 1.6 1.1.2.1.4.1.5 0l.6-.7c.1-.2.4-.2.6-.1.2.1 1.4.7 1.6.8l.4.2c.1.1.1.4 0 .7z" />
         </svg>
-        Hablemos por WhatsApp
+        <span className="hidden sm:inline">Hablemos por WhatsApp</span>
       </a>
     </footer>
   )

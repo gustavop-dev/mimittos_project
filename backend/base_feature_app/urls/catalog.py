@@ -7,6 +7,7 @@ urlpatterns = [
     path('colors/', catalog.colors_list, name='colors-list'),
     path('colors/<int:color_id>/', catalog.color_detail, name='color-detail'),
     path('categories/', catalog.categories, name='categories'),
+    path('categories/featured/', catalog.categories_featured, name='categories-featured'),
     path('categories/<int:category_id>/', catalog.category_detail, name='category-detail'),
     path('peluches/', catalog.peluches, name='peluches'),
     path('peluches/featured/', catalog.peluches_featured, name='peluches-featured'),

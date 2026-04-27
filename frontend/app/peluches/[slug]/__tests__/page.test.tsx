@@ -33,7 +33,7 @@ const mockUseCartStore = useCartStore as unknown as jest.Mock
 const mockPeluchDetail = {
   id: 1, title: 'Osito Coral', slug: 'osito-coral',
   category_name: 'Osito clásico', category_slug: 'osito-clasico',
-  category: { id: 1, name: 'Osito clásico', slug: 'osito-clasico', description: '', display_order: 1, is_active: true },
+  category: { id: 1, name: 'Osito clásico', slug: 'osito-clasico', description: '', display_order: 1, is_active: true, is_featured: false, image_url: null },
   lead_description: 'El oseznito más querido',
   description: ['Un osito adorable hecho a mano'],
   badge: 'bestseller' as const,

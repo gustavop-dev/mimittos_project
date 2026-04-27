@@ -49,6 +49,25 @@ export default function PeluchesAdminPage() {
     setDeleteConfirm(null)
   }
 
+  async function toggleFeatured(peluch: Peluch) {
+    const newVal = !peluch.is_featured
+    if (newVal) {
+      const count = peluches.filter((p) => p.is_featured).length
+      if (count >= 4) {
+        alert('Ya hay 4 peluches destacados. Quita uno antes de destacar otro.')
+        return
+      }
+    }
+    setPeluches((prev) => prev.map((p) => p.slug === peluch.slug ? { ...p, is_featured: newVal } : p))
+    try {
+      await peluchAdminService.update(peluch.slug, { is_featured: newVal })
+    } catch (err: unknown) {
+      setPeluches((prev) => prev.map((p) => p.slug === peluch.slug ? { ...p, is_featured: peluch.is_featured } : p))
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      alert(msg || 'No se pudo actualizar el estado destacado.')
+    }
+  }
+
   function toggleSelect(slug: string) {
     setSelected((prev) => {
       const n = new Set(prev)
@@ -211,7 +230,15 @@ export default function PeluchesAdminPage() {
                     )}
                     {p.badge === 'none' && '—'}
                   </td>
-                  <td style={tdStyle}><span style={{ color: p.is_featured ? '#2E7D32' : 'var(--gray-warm)', fontWeight: 600 }}>{p.is_featured ? 'Sí' : 'No'}</span></td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>
+                    <button
+                      onClick={() => toggleFeatured(p)}
+                      title={p.is_featured ? 'Quitar destacado' : 'Destacar'}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}
+                    >
+                      {p.is_featured ? '⭐' : '☆'}
+                    </button>
+                  </td>
                   <td style={tdStyle}>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <Link href={`/backoffice/peluches/${p.slug}`} style={btnEdit}>Editar</Link>

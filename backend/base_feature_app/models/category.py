@@ -7,6 +7,8 @@ class Category(models.Model):
     description = models.TextField(blank=True)
     display_order = models.PositiveSmallIntegerField(default=0)
     is_active = models.BooleanField(default=True)
+    image = models.ImageField(upload_to='categories/', blank=True, null=True)
+    is_featured = models.BooleanField(default=False)
 
     class Meta:
         verbose_name_plural = 'categories'

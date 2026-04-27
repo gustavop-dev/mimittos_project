@@ -14,7 +14,11 @@ export default function Header() {
   const cartCount = useCartStore((s) => s.items.reduce((acc, item) => acc + item.quantity, 0))
   const pathname = usePathname()
   const [mounted, setMounted] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
   useEffect(() => setMounted(true), [])
+
+  // Close menu on route change
+  useEffect(() => setMenuOpen(false), [pathname])
 
   const navLinks = [
     { href: '/', label: 'Inicio' },
@@ -31,11 +35,7 @@ export default function Header() {
       WebkitBackdropFilter: 'blur(14px)',
       borderBottom: '1px solid rgba(212,132,138,.12)',
     }}>
-      <div style={{
-        maxWidth: 1360, margin: '0 auto',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 40px',
-      }}>
+      <div className="mx-auto flex items-center justify-between px-4 sm:px-8 lg:px-10 py-3" style={{ maxWidth: 1360 }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Image src="/mimittos/logo-dark-small.png" alt="MIMITTOS" width={48} height={48}
             style={{ borderRadius: '50%', boxShadow: 'var(--shadow-sm)' }} />
@@ -45,7 +45,8 @@ export default function Header() {
           }}>MIMITTOS</span>
         </Link>
 
-        <nav style={{ display: 'flex', gap: 36, alignItems: 'center' }}>
+        {/* Desktop nav */}
+        <nav className="hidden md:flex" style={{ gap: 36, alignItems: 'center' }}>
           {navLinks.map(({ href, label }) => (
             <Link key={href} href={href} style={{
               fontWeight: 600, fontSize: 15,
@@ -75,12 +76,66 @@ export default function Header() {
           </Link>
 
           {mounted && (isAuthenticated ? (
-            <Link href="/orders" style={loginBtnStyle}>Mis pedidos</Link>
+            <Link href="/orders" className="hidden sm:inline-flex" style={loginBtnStyle}>Mis pedidos</Link>
           ) : (
-            <Link href="/sign-in" style={loginBtnStyle}>Ingresar</Link>
+            <Link href="/sign-in" className="hidden sm:inline-flex" style={loginBtnStyle}>Ingresar</Link>
           ))}
+
+          {/* Hamburger button — mobile only */}
+          <button
+            className="flex md:hidden"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label="Menú"
+            style={{ ...iconBtnStyle, flexDirection: 'column', gap: 5, padding: 10 }}
+          >
+            <span style={{
+              display: 'block', width: 20, height: 2,
+              background: 'var(--navy)', borderRadius: 2,
+              transition: 'transform .2s, opacity .2s',
+              transform: menuOpen ? 'translateY(7px) rotate(45deg)' : 'none',
+            }} />
+            <span style={{
+              display: 'block', width: 20, height: 2,
+              background: 'var(--navy)', borderRadius: 2,
+              opacity: menuOpen ? 0 : 1, transition: 'opacity .2s',
+            }} />
+            <span style={{
+              display: 'block', width: 20, height: 2,
+              background: 'var(--navy)', borderRadius: 2,
+              transition: 'transform .2s, opacity .2s',
+              transform: menuOpen ? 'translateY(-7px) rotate(-45deg)' : 'none',
+            }} />
+          </button>
         </div>
       </div>
+
+      {/* Mobile menu */}
+      {menuOpen && (
+        <div className="md:hidden" style={{
+          background: 'rgba(255,249,246,.97)',
+          borderTop: '1px solid rgba(212,132,138,.12)',
+          padding: '16px 24px 24px',
+          display: 'flex', flexDirection: 'column', gap: 4,
+        }}>
+          {navLinks.map(({ href, label }) => (
+            <Link key={href} href={href} style={{
+              fontWeight: 600, fontSize: 16,
+              color: pathname === href ? 'var(--coral)' : 'var(--navy)',
+              padding: '12px 0',
+              borderBottom: '1px solid rgba(212,132,138,.08)',
+            }}>
+              {label}
+            </Link>
+          ))}
+          <div style={{ marginTop: 16 }}>
+            {mounted && (isAuthenticated ? (
+              <Link href="/orders" style={{ ...loginBtnStyle, display: 'inline-flex' }}>Mis pedidos</Link>
+            ) : (
+              <Link href="/sign-in" style={{ ...loginBtnStyle, display: 'inline-flex' }}>Ingresar</Link>
+            ))}
+          </div>
+        </div>
+      )}
     </header>
   )
 }
