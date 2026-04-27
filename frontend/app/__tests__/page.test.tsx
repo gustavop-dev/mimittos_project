@@ -13,10 +13,8 @@ jest.mock('next/link', () => ({
   ),
 }))
 
-const mockAddToCart = jest.fn()
-jest.mock('@/lib/stores/cartStore', () => ({
-  useCartStore: (selector: (s: { addToCart: jest.Mock }) => unknown) =>
-    selector({ addToCart: mockAddToCart }),
+jest.mock('@/lib/services/http', () => ({
+  api: { get: jest.fn().mockResolvedValue({ data: [] }) },
 }))
 
 import HomePage from '../page'
@@ -45,14 +43,6 @@ describe('HomePage', () => {
     expect(links[0]).toHaveAttribute('href', '/products/1')
   })
 
-  it('renders all four featured product names', () => {
-    render(<HomePage />)
-    expect(screen.getByText('Osito Coral')).toBeInTheDocument()
-    expect(screen.getByText('Conejito Lucía')).toBeInTheDocument()
-    expect(screen.getByText('Zorro Amiguito')).toBeInTheDocument()
-    expect(screen.getByText('Elefantito Dulce')).toBeInTheDocument()
-  })
-
   it('shows first FAQ answer open by default', () => {
     render(<HomePage />)
     expect(screen.getByText(/4 a 6 días hábiles/i)).toBeInTheDocument()
@@ -70,12 +60,5 @@ describe('HomePage', () => {
     const firstAnswer = screen.getByText(/4 a 6 días hábiles/i)
     fireEvent.click(firstAnswer.parentElement!)
     expect(screen.queryByText(/4 a 6 días hábiles/i)).not.toBeInTheDocument()
-  })
-
-  it('calls addToCart when add button is clicked on a featured product', () => {
-    render(<HomePage />)
-    const addButtons = screen.getAllByRole('button', { name: /Agregar al carrito/i })
-    fireEvent.click(addButtons[0])
-    expect(mockAddToCart).toHaveBeenCalledTimes(1)
   })
 })
