@@ -54,34 +54,18 @@ export function PageCurtain() {
         justifyContent: 'center',
       }}
     >
-      <div ref={textRef} style={{ textAlign: 'center', color: '#fff', opacity: 0 }}>
-        {/* Desktop: una línea */}
+      <div ref={textRef} style={{ textAlign: 'center', color: '#fff', opacity: 0, padding: '0 16px' }}>
         <div
-          className="hidden sm:block"
           style={{
             fontFamily: "'Quicksand', sans-serif",
             fontWeight: 700,
-            fontSize: 'clamp(48px, 8vw, 96px)',
+            fontSize: 'clamp(36px, 10vw, 96px)',
             letterSpacing: '.18em',
             lineHeight: 1,
+            whiteSpace: 'nowrap',
           }}
         >
           MIMITTOS<sup style={{ fontSize: '0.38em', verticalAlign: 'super', letterSpacing: 0 }}>®</sup>
-        </div>
-
-        {/* Mobile: dos líneas */}
-        <div
-          className="block sm:hidden"
-          style={{
-            fontFamily: "'Quicksand', sans-serif",
-            fontWeight: 700,
-            fontSize: 'clamp(52px, 18vw, 80px)',
-            letterSpacing: '.18em',
-            lineHeight: 1.05,
-          }}
-        >
-          <div>MIMI</div>
-          <div>TTOS<sup style={{ fontSize: '0.38em', verticalAlign: 'super', letterSpacing: 0 }}>®</sup></div>
         </div>
       </div>
     </div>
