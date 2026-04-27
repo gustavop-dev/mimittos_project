@@ -49,6 +49,7 @@ export function PageCurtain() {
         background: 'var(--coral)',
         pointerEvents: 'none',
         willChange: 'transform',
+        overflow: 'hidden',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
