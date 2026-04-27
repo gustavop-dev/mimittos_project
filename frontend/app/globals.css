@@ -79,6 +79,21 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   animation-delay: 2000ms;
 }
 
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.promo-ticker-track {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: ticker 55s linear infinite;
+  will-change: transform;
+}
+.promo-ticker-track:hover {
+  animation-play-state: paused;
+}
+
 /* Swiper — brand coral bullets */
 :root {
   --swiper-pagination-color: #D4848A;

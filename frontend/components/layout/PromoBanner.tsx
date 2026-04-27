@@ -35,6 +35,9 @@ export default function PromoBanner({ onLoad }: Props) {
 
   if (!data?.is_active || !data?.message) return null
 
+  const separator = '  ✦  '
+  const repeated = Array(6).fill(data.message + separator).join('')
+
   return (
     <div
       aria-live="polite"
@@ -43,13 +46,16 @@ export default function PromoBanner({ onLoad }: Props) {
         height: BANNER_HEIGHT,
         background: data.bg_color || 'var(--coral)',
         color: data.text_color || '#fff',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        display: 'flex', alignItems: 'center',
+        overflow: 'hidden',
         fontFamily: "'Quicksand', sans-serif", fontWeight: 700,
-        fontSize: 13, letterSpacing: '.03em', padding: '0 16px',
-        textAlign: 'center',
+        fontSize: 13, letterSpacing: '.03em',
       }}
     >
-      {data.message}
+      <span className="promo-ticker-track" aria-hidden>
+        {repeated}{repeated}
+      </span>
+      <span className="sr-only">{data.message}</span>
     </div>
   )
 }
