@@ -17,6 +17,14 @@ jest.mock('@/lib/services/http', () => ({
   api: { get: jest.fn().mockResolvedValue({ data: [] }) },
 }))
 
+jest.mock('@/components/ui/motion', () => ({
+  FadeUp: ({ children, ...p }: { children: React.ReactNode; [k: string]: unknown }) => <div {...p}>{children}</div>,
+  FadeIn: ({ children, ...p }: { children: React.ReactNode; [k: string]: unknown }) => <div {...p}>{children}</div>,
+  SlideIn: ({ children, ...p }: { children: React.ReactNode; [k: string]: unknown }) => <div {...p}>{children}</div>,
+  StaggerContainer: ({ children, ...p }: { children: React.ReactNode; [k: string]: unknown }) => <div {...p}>{children}</div>,
+  StaggerItem: ({ children, ...p }: { children: React.ReactNode; [k: string]: unknown }) => <div {...p}>{children}</div>,
+}))
+
 import HomePage from '../page'
 
 describe('HomePage', () => {

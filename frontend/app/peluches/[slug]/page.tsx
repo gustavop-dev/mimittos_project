@@ -119,7 +119,7 @@ export default function PeluchDetailPage() {
 
   if (loading) {
     return (
-      <main style={{ maxWidth: 1360, margin: '100px auto', padding: '0 40px', textAlign: 'center', color: 'var(--gray-warm)' }}>
+      <main className="mx-auto px-4 sm:px-8 lg:px-10" style={{ maxWidth: 1360, marginTop: 100, textAlign: 'center', color: 'var(--gray-warm)' }}>
         Cargando...
       </main>
     )
@@ -127,7 +127,7 @@ export default function PeluchDetailPage() {
 
   if (error || !peluch) {
     return (
-      <main style={{ maxWidth: 1360, margin: '100px auto', padding: '0 40px', textAlign: 'center' }}>
+      <main className="mx-auto px-4 sm:px-8 lg:px-10" style={{ maxWidth: 1360, marginTop: 100, textAlign: 'center' }}>
         <div style={{ fontSize: 48 }}>🧸</div>
         <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, color: 'var(--navy)', marginTop: 16 }}>
           {error || 'Peluche no encontrado'}
@@ -241,7 +241,7 @@ export default function PeluchDetailPage() {
   return (
     <main>
       {/* Breadcrumb */}
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '20px 40px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-warm)' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 py-5" style={{ maxWidth: 1360, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-warm)' }}>
         <Link href="/" style={{ color: 'var(--gray-warm)' }}>Inicio</Link>
         <span style={{ opacity: .5 }}>/</span>
         <Link href="/catalog" style={{ color: 'var(--gray-warm)' }}>Catálogo</Link>
@@ -250,7 +250,7 @@ export default function PeluchDetailPage() {
       </div>
 
       {/* Product wrap */}
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px 60px', display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: 56, alignItems: 'flex-start' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 pb-16 grid lg:grid-cols-2 gap-8 lg:gap-14" style={{ maxWidth: 1360, alignItems: 'flex-start' }}>
 
         {/* Gallery */}
         <div style={{ position: 'sticky', top: 110 }}>
@@ -491,7 +491,7 @@ export default function PeluchDetailPage() {
       </div>
 
       {/* Tabs */}
-      <section style={{ maxWidth: 1360, margin: '40px auto 0', padding: '0 40px' }}>
+      <section className="mx-auto px-4 sm:px-8 lg:px-10 mt-10" style={{ maxWidth: 1360 }}>
         <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid rgba(212,132,138,.2)', marginBottom: 30 }}>
           {TABS.map((tab, i) => (
             <button key={tab} onClick={() => setActiveTab(i)} style={{ padding: '14px 22px', fontSize: 15, fontWeight: 700, fontFamily: "'Quicksand', sans-serif", color: i === activeTab ? 'var(--coral)' : 'var(--gray-warm)', position: 'relative', background: 'none', border: 'none', cursor: 'pointer', borderBottom: i === activeTab ? '3px solid var(--coral)' : '3px solid transparent', transition: 'color .2s' }}>
@@ -538,7 +538,7 @@ export default function PeluchDetailPage() {
       </section>
 
       {/* Reviews */}
-      <section style={{ maxWidth: 1360, margin: '0 auto 60px', padding: '0 40px' }}>
+      <section className="mx-auto px-4 sm:px-8 lg:px-10 mb-16" style={{ maxWidth: 1360 }}>
         {reviews.length > 0 && (
           <>
             <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--navy)', marginBottom: 20 }}>

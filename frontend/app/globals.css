@@ -79,11 +79,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 /* Swiper — brand coral bullets */
+:root {
+  --swiper-pagination-color: #D4848A;
+  --swiper-pagination-bullet-inactive-color: #D4848A;
+  --swiper-pagination-bullet-inactive-opacity: 0.3;
+  --swiper-theme-color: #D4848A;
+}
 .swiper-pagination-bullet {
   background: #D4848A;
-  opacity: 0.4;
+  opacity: 0.3;
 }
 .swiper-pagination-bullet-active {
   background: #D4848A !important;
-  opacity: 1;
+  opacity: 1 !important;
 }

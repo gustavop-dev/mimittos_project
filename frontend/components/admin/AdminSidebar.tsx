@@ -10,6 +10,7 @@ const NAV = [
   { href: '/backoffice/peluches', label: 'Peluches', icon: '🧸' },
   { href: '/backoffice/categorias', label: 'Categorías', icon: '🏷️' },
   { href: '/backoffice/usuarios', label: 'Usuarios', icon: '👤' },
+  { href: '/backoffice/configuracion', label: 'Configuración', icon: '⚙️' },
 ]
 
 interface AdminSidebarProps {

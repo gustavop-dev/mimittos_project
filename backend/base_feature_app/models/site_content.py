@@ -9,6 +9,8 @@ class SiteContent(models.Model):
         TERMS = 'terms', 'Términos y condiciones'
         WELCOME_TEXT = 'welcome_text', 'Texto de bienvenida'
         CONTACT_INFO = 'contact_info', 'Información de contacto'
+        PROMO_BANNER = 'promo_banner', 'Cinta de promoción'
+        HERO_IMAGE = 'hero_image', 'Imagen del hero'
 
     key = models.CharField(max_length=30, choices=Key.choices, unique=True)
     content_json = models.JSONField(default=dict)

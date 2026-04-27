@@ -89,7 +89,7 @@ export default function CheckoutPage() {
   return (
     <main>
       {/* Breadcrumb */}
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '20px 40px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-warm)' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 py-5" style={{ maxWidth: 1360, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-warm)' }}>
         <Link href="/" style={{ color: 'var(--gray-warm)' }}>Inicio</Link>
         <span style={{ opacity: .5 }}>/</span>
         <Link href="/cart" style={{ color: 'var(--gray-warm)' }}>Carrito</Link>
@@ -97,7 +97,7 @@ export default function CheckoutPage() {
         <b style={{ color: 'var(--navy)', fontWeight: 700 }}>Checkout</b>
       </div>
 
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '20px 40px 30px' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 py-5 pb-8" style={{ maxWidth: 1360 }}>
         <div style={eyebrowStyle}>Último paso</div>
         <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 46, color: 'var(--navy)', letterSpacing: '-.02em', lineHeight: 1.1 }}>
           Un abrazo de distancia ♡

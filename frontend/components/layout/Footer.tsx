@@ -58,9 +58,16 @@ export default function Footer() {
               <li><span style={{ color: 'var(--gray-warm)', fontSize: 14 }}>📍 Medellín, Colombia</span></li>
             </ul>
             <h5 style={{ ...footerHeadStyle, marginTop: 22 }}>Pagamos con</h5>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
-              {['PSE', 'Nequi', 'VISA', 'MasterCard'].map((m) => (
-                <span key={m} style={{ background: '#fff', color: 'var(--navy)', fontSize: 11, fontWeight: 700, padding: '6px 10px', borderRadius: 8, boxShadow: 'var(--shadow-sm)' }}>{m}</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 14 }}>
+              {[
+                { src: '/mimittos/payments/pse.png', alt: 'PSE' },
+                { src: '/mimittos/payments/bancolombia.png', alt: 'Bancolombia' },
+                { src: '/mimittos/payments/nequi.jpeg', alt: 'Nequi' },
+                { src: '/mimittos/payments/card.svg', alt: 'Tarjeta crédito / débito' },
+              ].map(({ src, alt }) => (
+                <span key={alt} style={{ background: '#fff', padding: '6px 10px', borderRadius: 8, boxShadow: 'var(--shadow-sm)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 44 }}>
+                  <Image src={src} alt={alt} width={0} height={0} sizes="100vw" style={{ width: 'auto', height: 28, objectFit: 'contain', display: 'block' }} />
+                </span>
               ))}
             </div>
           </div>

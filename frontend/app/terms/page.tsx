@@ -43,13 +43,13 @@ export default function TermsPage() {
   return (
     <main>
       {/* Breadcrumb */}
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '20px 40px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-warm)' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 py-5" style={{ maxWidth: 1360, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-warm)' }}>
         <Link href="/" style={{ color: 'var(--gray-warm)' }}>Inicio</Link>
         <span style={{ opacity: .5 }}>/</span>
         <b style={{ color: 'var(--navy)', fontWeight: 700 }}>Términos y Condiciones</b>
       </div>
 
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 40px 80px' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 py-5 pb-20" style={{ maxWidth: 900 }}>
         <div style={{ color: 'var(--coral)', fontFamily: "'Quicksand', sans-serif", fontWeight: 600, fontSize: 13, letterSpacing: '.16em', textTransform: 'uppercase', marginBottom: 8 }}>Legal</div>
         <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 48, color: 'var(--navy)', letterSpacing: '-.02em', lineHeight: 1.08, marginBottom: 14 }}>
           Términos y Condiciones
