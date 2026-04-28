@@ -11,6 +11,8 @@ const customJestConfig = {
   testMatch: ['<rootDir>/**/__tests__/**/*.test.(ts|tsx)'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '^gsap$': '<rootDir>/__mocks__/gsap.js',
+    '^gsap/(.*)$': '<rootDir>/__mocks__/gsap.js',
   },
   collectCoverageFrom: [
     'app/**/*.{ts,tsx}',

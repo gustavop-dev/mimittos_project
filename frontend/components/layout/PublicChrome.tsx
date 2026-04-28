@@ -13,7 +13,7 @@ const HEADER_HEIGHT = 72
 export default function PublicChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isAdmin = pathname.startsWith('/backoffice')
-  const isCheckoutFlow = ['/checkout', '/payment', '/order-confirmed'].some(
+  const isCheckoutFlow = ['/cart', '/checkout', '/payment', '/order-confirmed'].some(
     (p) => pathname === p || pathname.startsWith(p + '/')
   )
 

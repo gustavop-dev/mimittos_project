@@ -53,20 +53,20 @@ describe('HomePage', () => {
 
   it('shows first FAQ answer open by default', () => {
     render(<HomePage />)
-    expect(screen.getByText(/4 a 6 días hábiles/i)).toBeInTheDocument()
+    expect(screen.getByText(/Estamos en Bogotá/i)).toBeInTheDocument()
   })
 
   it('renders all FAQ questions', () => {
     render(<HomePage />)
-    expect(screen.getByText(/Cuánto tarda en llegar mi peluche/i)).toBeInTheDocument()
-    expect(screen.getByText(/abono y el contraentrega/i)).toBeInTheDocument()
-    expect(screen.getByText(/materiales son los peluches/i)).toBeInTheDocument()
+    expect(screen.getByText(/Dónde están ubicados/i)).toBeInTheDocument()
+    expect(screen.getByText(/envíos a todo Colombia/i)).toBeInTheDocument()
+    expect(screen.getByText(/puedo personalizar/i)).toBeInTheDocument()
   })
 
   it('hides first FAQ answer after clicking its container', () => {
     render(<HomePage />)
-    const firstAnswer = screen.getByText(/4 a 6 días hábiles/i)
-    fireEvent.click(firstAnswer.parentElement!)
-    expect(screen.queryByText(/4 a 6 días hábiles/i)).not.toBeInTheDocument()
+    const firstAnswer = screen.getByText(/Estamos en Bogotá/i)
+    fireEvent.click(firstAnswer.closest('[style*="cursor: pointer"]')! as HTMLElement)
+    expect(screen.queryByText(/Estamos en Bogotá/i)).not.toBeInTheDocument()
   })
 })

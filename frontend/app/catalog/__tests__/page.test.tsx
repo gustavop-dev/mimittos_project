@@ -48,7 +48,7 @@ describe('CatalogPage', () => {
     mockPeluchService.listPeluches.mockResolvedValue([])
     render(<CatalogPage />)
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /Encuentra al peluche/i })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /Descubre el peluche/i })).toBeInTheDocument()
     })
   })
 
