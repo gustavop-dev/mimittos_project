@@ -1,14 +1,89 @@
-# Mimittos — Claude Code Configuration
+# MIMITTOS — Claude Code Configuration
 
 ## Project Identity
 
 - **Name**: MIMITTOS — Más que un peluche, un recuerdo
-- **Domain**: Peluches artesanales hechos a mano en Colombia, personalizados para ti.
-- **Stack**: Django + DRF (backend) / Next.js + React + TypeScript (frontend) / MySQL 8 / Redis / Huey
-- **Server path**: `/home/ryzepeck/webapps/base_django_react_next_feature_staging` (staging only)
-- **Services**: `base_django_react_next_feature_staging` (Gunicorn), `base_django_react_next_feature-staging-huey`
+- **Domain**: E-commerce de peluches artesanales hechos a mano en Colombia, personalizados para el cliente.
+- **Stack**: Django 5 + DRF (backend) / Next.js 14 App Router + React + TypeScript (frontend) / SQLite (dev) / MySQL 8 (prod) / Redis / Huey
+- **Payment gateway**: Wompi (Colombia) — webhook-based, no polling
+- **Status**: En desarrollo activo. Frontend y backend integrados en feature branch.
 
-> Note: server paths and systemd service names are inherited from the base template; real Mimittos infrastructure is pending.
+---
+
+## Dev Commands
+
+### Backend
+
+```bash
+cd backend && source venv/bin/activate
+
+# Start server
+python manage.py runserver 0.0.0.0:8000
+
+# Migrations
+python manage.py makemigrations && python manage.py migrate
+
+# Seed everything (primera vez o acumulativo)
+python manage.py seed_all
+
+# Seed con imágenes reales de Unsplash (requiere internet)
+python manage.py seed_all
+
+# Seed rápido sin descargas ni analytics
+python manage.py seed_all --skip-featured --skip-analytics --skip-color-images
+
+# Resetear peluches/órdenes y re-sembrar
+python manage.py seed_all --reset
+
+# Comandos individuales disponibles:
+python manage.py seed_demo          # categorías, colores, tallas, 4 peluches, usuario demo, 3 órdenes
+python manage.py seed_featured      # imágenes Unsplash para categorías + 4 peluches destacados
+python manage.py seed_analytics     # 30 días de analytics falsos
+python manage.py seed_color_images  # imágenes placeholder por peluch+color
+python manage.py seed_all           # todos los anteriores en orden
+
+# Demo user: demo@mimittos.com / Demo1234!
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm run dev        # http://localhost:3000
+npm run build
+npm run lint
+```
+
+---
+
+## Directory Structure
+
+```
+mimittos_project/
+├── backend/
+│   ├── base_feature_app/          # única Django app — modelos, vistas, servicios
+│   │   ├── models/                # un archivo por modelo
+│   │   ├── views/                 # vistas FBV organizadas por dominio
+│   │   ├── services/              # lógica de negocio (catalog, order, payment, content)
+│   │   ├── serializers/
+│   │   ├── management/commands/   # seed_all, seed_demo, seed_featured, etc.
+│   │   ├── migrations/
+│   │   └── tests/
+│   ├── base_feature_project/      # configuración Django (settings, urls, wsgi)
+│   └── venv/
+└── frontend/
+    ├── app/                       # Next.js App Router
+    │   ├── (public)/              # rutas públicas con PublicChrome layout
+    │   ├── backoffice/            # panel admin
+    │   └── globals.css
+    ├── components/
+    │   ├── layout/                # PublicChrome, Header, Footer, PromoBanner
+    │   ├── ui/                    # PageCurtain, componentes reutilizables
+    │   └── admin/                 # AdminSidebar, componentes backoffice
+    └── lib/
+        ├── stores/                # Zustand: authStore, cartStore
+        └── services/              # http.ts (axios), contentService, etc.
+```
 
 ---
 
@@ -17,10 +92,10 @@
 These should be respected ALWAYS:
 1. Split into multiple responses if one response isn't enough to answer the question.
 2. IMPROVEMENTS and FURTHER PROGRESSIONS:
-- S1: Suggest ways to improve code stability or scalability.
-- S2: Offer strategies to enhance performance or security.
-- S3: Recommend methods for improving readability or maintainability.
-- Recommend areas for further investigation
+   - S1: Suggest ways to improve code stability or scalability.
+   - S2: Offer strategies to enhance performance or security.
+   - S3: Recommend methods for improving readability or maintainability.
+   - Recommend areas for further investigation
 
 ---
 
@@ -39,77 +114,33 @@ load_dotenv()
 
 SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 DATABASE_URL = os.environ['DATABASE_URL']
-STRIPE_API_KEY = os.environ['STRIPE_SECRET_KEY']
+WOMPI_PRIVATE_KEY = os.environ['WOMPI_PRIVATE_KEY']
 
 # ❌ NEVER do this
 SECRET_KEY = 'django-insecure-abc123xyz'
-DATABASE_URL = 'mysql://root:password123@localhost/mydb'
 ```
 
 ```typescript
 // ✅ Next.js — use env vars
 const apiUrl = process.env.NEXT_PUBLIC_API_URL
-const secretKey = process.env.API_SECRET_KEY  // server-only, no NEXT_PUBLIC_ prefix
 
 // ❌ NEVER do this
 const API_KEY = 'sk-live-abc123xyz'
-fetch('https://api.stripe.com/v1/charges', {
-  headers: { Authorization: 'Bearer sk-live-abc123xyz' }
-})
 ```
 
 ### .env rules
 
 - `.env` files MUST be in `.gitignore`. Always verify before committing
 - Use `.env.example` with placeholder values for documentation
-- Separate env files per environment: `.env.local`, `.env.staging`, `.env.production`
-- Server secrets (API keys, DB passwords) NEVER go in client-side env vars
 - In Next.js: only `NEXT_PUBLIC_*` vars are exposed to the browser
 
-### Input Validation
-
-NEVER trust user input. Validate on both server AND client.
-
-#### Django/DRF
+### Input Validation — Django/DRF
 
 ```python
 # ✅ Serializer validates input
 class OrderSerializer(serializers.Serializer):
     email = serializers.EmailField()
     quantity = serializers.IntegerField(min_value=1, max_value=100)
-    product_id = serializers.IntegerField()
-
-    def validate_product_id(self, value):
-        if not Product.objects.filter(id=value, is_active=True).exists():
-            raise serializers.ValidationError('Product not found')
-        return value
-
-# ❌ Using raw request data
-def create_order(request):
-    product_id = request.data['product_id']  # no validation
-    Order.objects.create(product_id=product_id)  # SQL injection risk
-```
-
-#### React
-
-```typescript
-// ✅ Validate before sending
-import { z } from 'zod'
-
-const orderSchema = z.object({
-  email: z.string().email(),
-  quantity: z.number().int().min(1).max(100),
-  productId: z.number().int().positive(),
-})
-
-const handleSubmit = (data: unknown) => {
-  const result = orderSchema.safeParse(data)
-  if (!result.success) {
-    setErrors(result.error.flatten().fieldErrors)
-    return
-  }
-  await submitOrder(result.data)
-}
 ```
 
 ### SQL Injection Prevention
@@ -118,11 +149,6 @@ const handleSubmit = (data: unknown) => {
 # ✅ Django ORM — always safe
 users = User.objects.filter(email=user_input)
 
-# ✅ If raw SQL is needed, use parameterized queries
-from django.db import connection
-with connection.cursor() as cursor:
-    cursor.execute("SELECT * FROM users WHERE email = %s", [user_input])
-
 # ❌ NEVER interpolate user input into SQL
 cursor.execute(f"SELECT * FROM users WHERE email = '{user_input}'")
 ```
@@ -130,103 +156,18 @@ cursor.execute(f"SELECT * FROM users WHERE email = '{user_input}'")
 ### XSS Prevention
 
 ```typescript
-// ✅ React auto-escapes by default — JSX is safe
+// ✅ React auto-escapes by default
 return <p>{userInput}</p>
 
 // ❌ NEVER use dangerouslySetInnerHTML with user input
 return <div dangerouslySetInnerHTML={{ __html: userInput }} />
-
-// If you MUST render HTML, sanitize first
-import DOMPurify from 'dompurify'
-const clean = DOMPurify.sanitize(userInput)
 ```
 
 ### CSRF Protection
 
 ```python
-# ✅ Django — CSRF middleware is on by default, keep it
-MIDDLEWARE = [
-    'django.middleware.csrf.CsrfViewMiddleware',  # NEVER remove
-    ...
-]
-
-# ✅ DRF — use SessionAuthentication or JWT
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
-}
-
-# ❌ NEVER disable CSRF globally
-@csrf_exempt  # only for webhooks from external services with signature verification
-```
-
-### Authentication and Authorization
-
-```python
-# ✅ Always check permissions
-from rest_framework.permissions import IsAuthenticated
-
-class OrderViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        # Users can only see their own orders
-        return Order.objects.filter(user=self.request.user)
-```
-
-### Sensitive Data Exposure
-
-```python
-# ✅ Exclude sensitive fields from serializers
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'email', 'name']
-        # password, tokens, internal IDs are excluded
-
-# ❌ Exposing everything
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = '__all__'  # leaks password hash, tokens, etc.
-```
-
-### HTTP Security Headers (Django)
-
-```python
-# settings.py — enable all security headers
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
-SECURE_HSTS_SECONDS = 31536000  # 1 year
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_SSL_REDIRECT = True  # in production
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_HTTPONLY = True
-```
-
-### Dependency Security
-
-- Run `pip audit` (Python) and `npm audit` (Node) regularly
-- Never use `*` for dependency versions — pin exact versions
-- Review new dependencies before adding them
-- Keep dependencies updated, especially security patches
-
-### File Upload Security
-
-```python
-# ✅ Validate file type and size
-ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.pdf'}
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-
-def validate_upload(file):
-    ext = Path(file.name).suffix.lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        raise ValidationError(f'File type {ext} not allowed')
-    if file.size > MAX_FILE_SIZE:
-        raise ValidationError('File too large')
+# ✅ CSRF middleware — NEVER remove
+MIDDLEWARE = ['django.middleware.csrf.CsrfViewMiddleware', ...]
 ```
 
 ### Security Checklist — Before Every Deployment
@@ -235,15 +176,12 @@ def validate_upload(file):
 - [ ] `.env` is in `.gitignore`
 - [ ] All user input is validated (server + client)
 - [ ] No raw SQL with user input
-- [ ] No `dangerouslySetInnerHTML` with user data
 - [ ] CSRF protection enabled
 - [ ] Authentication required on all sensitive endpoints
 - [ ] Serializers exclude sensitive fields
-- [ ] Security headers configured
 - [ ] `pip audit` / `npm audit` clean
 - [ ] File uploads validated
 - [ ] DEBUG = False in production
-- [ ] ALLOWED_HOSTS configured properly
 
 ---
 
@@ -261,57 +199,26 @@ flowchart TD
     TC --> AC[active_context.md]
     AC --> ER[error-documentation.md]
     AC --> LL[lessons-learned.md]
-    subgraph LIT[ docs/literature ]
-        L1[...]
-        L2[...]
-    end
-    subgraph RFC[ tasks/rfc/ ]
-        R1[...]
-        R2[...]
-    end
-    PC --o LIT
-    TC --o RFC
 ```
 
 ### Core Files (Required)
 
 | # | File | Purpose |
 |---|------|---------|
-| 1 | `docs/methodology/product_requirement_docs.md` | PRD: why this project exists, core requirements, scope |
-| 2 | `docs/methodology/architecture.md` | System architecture, component relationships, Mermaid diagrams |
-| 3 | `docs/methodology/technical.md` | Tech stack, dev setup, design patterns, technical constraints |
-| 4 | `tasks/tasks_plan.md` | Task backlog, progress tracking, known issues |
-| 5 | `tasks/active_context.md` | Current work focus, recent changes, next steps |
-| 6 | `docs/methodology/error-documentation.md` | Known errors, their context, and resolutions |
-| 7 | `docs/methodology/lessons-learned.md` | Project intelligence, patterns, preferences |
-
-### Context Files (Optional)
-
-- `docs/literature/` — Literature survey and research (LaTeX files)
-- `tasks/rfc/` — RFCs for individual tasks (LaTeX files)
-
-### When to Read Memory Files
-
-- Before significant implementation tasks, read the relevant core files
-- Before planning tasks, read `docs/methodology/` and `tasks/`
-- When debugging, check `docs/methodology/error-documentation.md` for previously solved issues
+| 1 | `docs/methodology/product_requirement_docs.md` | PRD: por qué existe este proyecto, requerimientos, alcance |
+| 2 | `docs/methodology/architecture.md` | Arquitectura del sistema, diagramas Mermaid |
+| 3 | `docs/methodology/technical.md` | Stack, setup, patrones técnicos, restricciones |
+| 4 | `tasks/tasks_plan.md` | Backlog, progreso, problemas conocidos |
+| 5 | `tasks/active_context.md` | Foco actual, cambios recientes, próximos pasos |
+| 6 | `docs/methodology/error-documentation.md` | Errores conocidos y sus resoluciones |
+| 7 | `docs/methodology/lessons-learned.md` | Inteligencia del proyecto, patrones, preferencias |
 
 ### When to Update Memory Files
 
 1. After discovering new project patterns
 2. After implementing significant changes
 3. When the user requests with **update memory files** (review ALL core files)
-4. When context needs clarification
-5. After a significant part of a plan is verified
-
-Focus particularly on `tasks/active_context.md` and `tasks/tasks_plan.md` as they track current state. And `docs/methodology/architecture.md` has a section of current workflow that also gets updated by any code changes.
-
----
-
-## Directory Structure
-
-- Backend: `content/` Django app, `base_feature_project/` Django project
-- Frontend: `app/` (Next.js App Router), `components/`, `lib/stores/`, `e2e/`
+4. After a significant part of a plan is verified
 
 ---
 
@@ -328,8 +235,6 @@ Focus particularly on `tasks/active_context.md` and `tasks/tasks_plan.md` as the
 
 ### Quality Standards
 
-Full reference: `docs/TESTING_QUALITY_STANDARDS.md`
-
 - Each test verifies **ONE specific behavior**
 - **No conjunctions** in test names — split into separate tests
 - Assert **observable outcomes** (status codes, DB state, rendered UI)
@@ -339,53 +244,102 @@ Full reference: `docs/TESTING_QUALITY_STANDARDS.md`
 
 ---
 
-## Lessons Learned — Mimittos
+## Lessons Learned — MIMITTOS
 
 ### Architecture Patterns
 
-#### Content Storage: Structured JSON over CMS
-- Structured JSON storage for content (JSONField pattern)
-
-#### Single Django App: `content`
-- All models, views, serializers, and services live in the `content` app
-- Models are split into individual files under `content/models/`
+#### Single Django App: `base_feature_app`
+- Todos los modelos, vistas, servicios y serializers viven en `base_feature_app`
+- Los modelos están divididos en archivos individuales bajo `base_feature_app/models/`
+- NO existe una app `content/` — el nombre del cascarón era diferente
 
 #### Service Layer Pattern
-- Business logic lives in `content/services/`, not in views
-- Views are thin FBV wrappers that call service methods
+- La lógica de negocio vive en `base_feature_app/services/`, NO en las vistas
+- Las vistas son wrappers FBV delgados que llaman métodos de servicio
+- Servicios principales: `catalog_service`, `order_service`, `payment_service`, `content_service`
 
-### Code Style & Conventions
+#### SiteContent — JSON configurable desde admin
+- Modelo `SiteContent` con `key` (TextChoices) y `content_json` (JSONField)
+- Keys actuales: `promo_banner`, `hero_image`
+- El frontend lee `/content/<key>/` y renderiza según el JSON
+- Seedeado en `seed_all` → Step 5
 
-#### Bilingual Content Pattern
-- Models have paired fields: `title_en`/`title_es`, `content_json_en`/`content_json_es`, etc.
-- Frontend reads the appropriate field based on current locale
+#### Content Storage: Structured JSON
+- Contenido configurable almacenado como JSON en `SiteContent.content_json`
+- No hay CMS ni sistema de plantillas de email propio — correos via SMTP directo
 
-### Email System
+### Modelos clave
 
-#### Template Registry Pattern
-- All emails defined in `EmailTemplateRegistry` with default content
-- Admin can override content via `EmailTemplateConfig` model
+#### Peluch
+- `badge`: `none | bestseller | new | limited_edition`
+- Personalizaciones opcionales: `has_huella`, `has_corazon`, `has_audio` (con `extra_cost` cada uno)
+- Precios por talla via `PeluchSizePrice` (FK a `GlobalSize`)
+- Colores via M2M `available_colors` → `GlobalColor`
+- Imágenes via `django-attachments` Library/Attachment
+- Imágenes por color via `PeluchColorImage` (generadas con `seed_color_images`)
 
-#### 24h Cooldown Rule
-- `last_automated_email_at` field tracks last automated email
-- All automated email tasks check this before sending
-- Manual sends bypass the cooldown
+#### Order
+- Flujo de estados: `pending_payment → payment_confirmed → in_production → shipped → delivered`
+- `total_amount` = suma de items; `deposit_amount` = 50% (calculado por `OrderService.calculate_deposit`)
+- Cada cambio de estado se registra en `OrderStatusHistory`
+- Un `WompiTransaction` por orden (puede ser `PENDING` → `APPROVED`)
 
-### Proposal System
+### Pago — Wompi
 
-- 12 section types defined in `ProposalSection.SectionType` choices with unique constraint
-- Heat Score (1-10): pre-computed and cached
-- 20+ change log types tracked
+- **Webhook es la fuente de verdad** — NO hacer polling al API de Wompi
+- Flujo: crear `WompiTransaction` con `status=PENDING` → redirigir a checkout → webhook actualiza a `APPROVED`
+- El frontend solo verifica el estado UNA VEZ cuando el usuario regresa del checkout (no loop)
+- Wompi NO soporta códigos de descuento (verificado)
+
+### Frontend — Layout público
+
+- `PublicChrome` gestiona `bannerActive` state y pasa `bannerHeight` al `Header`
+- `PromoBanner` llama `onLoad(true/false)` tras la respuesta de la API
+- `Header` recibe `bannerHeight` prop para su `top` CSS (se desplaza debajo del banner)
+- `PageCurtain` (GSAP): cortina coral con "MIMITTOS®" centrado, `overflow: hidden` obligatorio
+
+### Frontend — Estilos
+
+- Variables CSS en `globals.css`: `--coral`, `--navy`, `--cream-peach`, `--gray-warm`, etc.
+- Fuentes: `Quicksand` (headings/brand) + `Nunito` (body)
+- El ticker del promo banner usa `@keyframes ticker` con `-50% translateX` y texto duplicado
+- Responsive: Tailwind `px-4 sm:px-8 lg:px-10`, mobile-first siempre
+
+### Seed Commands
+
+| Comando | Qué hace | Destructivo |
+|---------|----------|-------------|
+| `seed_all` | Orquesta todos los seeders en orden | No (salvo `--reset`) |
+| `seed_featured` | Categorías + peluches con imágenes Unsplash | No |
+| `seed_demo` | Demo user + 3 órdenes + peluches básicos | No (salvo `--reset`) |
+| `seed_analytics` | 30 días de analytics falsos | No |
+| `seed_color_images` | Imágenes placeholder por peluch+color | No |
+| `seed_peluches` | ⚠️ BORRA todo y re-crea productos | **Sí** — no incluir en flujos automatizados |
+| `create_fake_data` | Faker: usuarios, blogs, peluches, órdenes masivas | No |
 
 ---
 
-## Error Documentation — Mimittos
+## Error Documentation — MIMITTOS
 
-No documented errors (clean template).
+### Catalog 500 — `no such column: base_feature_app_category.image`
+- **Causa**: El servidor Django arrancó antes de aplicar la migración `0009`
+- **Solución**: `python manage.py migrate` y reiniciar el servidor
+- **Estado**: Resuelto
+
+### URL conflict — `/content/hero-image/upload/` vs `/content/<str:key>/`
+- **Causa**: La ruta dinámica capturaba la específica si se declaraba después
+- **Solución**: Declarar la ruta específica ANTES de la dinámica en `urls/content.py`
+- **Estado**: Resuelto
+
+### Mobile horizontal overflow
+- **Causa**: `whiteSpace: nowrap` en PageCurtain sin `overflow: hidden` en el contenedor + falta de `overflow-x: hidden` en body
+- **Solución**: Agregar `overflow: hidden` al div contenedor de PageCurtain y `overflow-x: hidden` en `html, body` en `globals.css`
+- **Estado**: Resuelto
 
 ---
 
 ## Methodology Maintenance
 
-- Memory Bank based on [rules_template](https://github.com/Bhartendu-Kumar/rules_template)
-- Refresh memory files after adding a new Django app, significant test changes, or when file counts drift >10%
+- Memory Bank basado en [rules_template](https://github.com/Bhartendu-Kumar/rules_template)
+- Actualizar `tasks/active_context.md` y `tasks/tasks_plan.md` tras cambios significativos
+- Actualizar `docs/methodology/architecture.md` cuando cambien flujos o componentes clave

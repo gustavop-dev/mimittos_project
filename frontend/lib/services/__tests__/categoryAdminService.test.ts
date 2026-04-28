@@ -21,21 +21,35 @@ describe('categoryAdminService', () => {
   })
 
   describe('create', () => {
-    it('posts a new category with payload', async () => {
+    it('posts a new category with FormData and multipart header', async () => {
       const mockCategory = { id: 1, name: 'Ositos', slug: 'ositos' }
       mockPost.mockResolvedValue({ data: mockCategory })
-      const result = await categoryAdminService.create({ name: 'Ositos', display_order: 1, is_active: true })
-      expect(mockPost).toHaveBeenCalledWith('/categories/', { name: 'Ositos', display_order: 1, is_active: true })
+      const formData = new FormData()
+      formData.append('name', 'Ositos')
+      formData.append('display_order', '1')
+      formData.append('is_active', 'true')
+      const result = await categoryAdminService.create(formData)
+      expect(mockPost).toHaveBeenCalledWith(
+        '/categories/',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      )
       expect(result).toEqual(mockCategory)
     })
   })
 
   describe('update', () => {
-    it('patches an existing category by id', async () => {
+    it('patches an existing category by id with FormData and multipart header', async () => {
       const mockUpdated = { id: 1, name: 'Ositos Clásicos', slug: 'ositos-clasicos' }
       mockPatch.mockResolvedValue({ data: mockUpdated })
-      const result = await categoryAdminService.update(1, { name: 'Ositos Clásicos' })
-      expect(mockPatch).toHaveBeenCalledWith('/categories/1/', { name: 'Ositos Clásicos' })
+      const formData = new FormData()
+      formData.append('name', 'Ositos Clásicos')
+      const result = await categoryAdminService.update(1, formData)
+      expect(mockPatch).toHaveBeenCalledWith(
+        '/categories/1/',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      )
       expect(result).toEqual(mockUpdated)
     })
   })

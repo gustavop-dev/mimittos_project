@@ -4,7 +4,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from base_feature_app.models import Peluch, Review, Order
-from base_feature_app.serializers.review import ReviewSerializer, ReviewCreateSerializer
+from base_feature_app.serializers.review import ReviewSerializer, ReviewCreateSerializer, HomeReviewSerializer
 from base_feature_app.services.review_service import ReviewService
 
 
@@ -48,6 +48,18 @@ def peluch_reviews(request, slug: str):
         return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response(ReviewSerializer(review).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def home_reviews(request):
+    reviews = (
+        Review.objects
+        .filter(is_approved=True)
+        .select_related('user', 'peluch')
+        .order_by('-rating', '-created_at')[:6]
+    )
+    return Response(HomeReviewSerializer(reviews, many=True).data)
 
 
 @api_view(['PATCH'])

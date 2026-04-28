@@ -121,7 +121,7 @@ function TrackingContent() {
   const doneCount = tracking ? currentStepCount(tracking.status) : 0
 
   return (
-    <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px 80px', display: 'grid', gridTemplateColumns: tracking ? '1fr 1fr' : '1fr', gap: 50 }}>
+    <div className={`mx-auto px-4 sm:px-8 lg:px-10 pb-20 ${tracking ? 'lg:grid lg:grid-cols-2 lg:gap-12' : ''}`} style={{ maxWidth: 1360 }}>
       {/* Search + timeline */}
       <div>
         {/* Search */}
@@ -340,13 +340,13 @@ export default function TrackingPage() {
   return (
     <main>
       {/* Breadcrumb */}
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '20px 40px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-warm)' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 py-5" style={{ maxWidth: 1360, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-warm)' }}>
         <Link href="/" style={{ color: 'var(--gray-warm)' }}>Inicio</Link>
         <span style={{ opacity: .5 }}>/</span>
         <b style={{ color: 'var(--navy)', fontWeight: 700 }}>Seguimiento de pedido</b>
       </div>
 
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '20px 40px 30px' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 py-5 pb-8" style={{ maxWidth: 1360 }}>
         <div style={eyebrowStyle}>Seguimiento</div>
         <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 46, color: 'var(--navy)', letterSpacing: '-.02em', lineHeight: 1.1 }}>
           ¿Dónde está tu peluche?

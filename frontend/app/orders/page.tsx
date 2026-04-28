@@ -62,13 +62,13 @@ export default function OrdersPage() {
   return (
     <main>
       {/* Breadcrumb */}
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '20px 40px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-warm)' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 py-5" style={{ maxWidth: 1360, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-warm)' }}>
         <Link href="/" style={{ color: 'var(--gray-warm)' }}>Inicio</Link>
         <span style={{ opacity: .5 }}>/</span>
         <b style={{ color: 'var(--navy)', fontWeight: 700 }}>Mis pedidos</b>
       </div>
 
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px 20px' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 pb-5" style={{ maxWidth: 1360 }}>
         <div style={eyebrowStyle}>Tu historia con nosotros</div>
         <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 46, color: 'var(--navy)', letterSpacing: '-.02em', lineHeight: 1.1, marginBottom: 10 }}>
           Hola, {user?.first_name ?? 'amigo'} ♡
@@ -78,9 +78,10 @@ export default function OrdersPage() {
         </p>
       </div>
 
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px 60px', display: 'grid', gridTemplateColumns: '260px 1fr', gap: 40, alignItems: 'flex-start' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 pb-16 lg:grid lg:gap-10" style={{ maxWidth: 1360, gridTemplateColumns: '260px 1fr', alignItems: 'flex-start' }}>
+
         {/* Sidebar */}
-        <aside style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 22, boxShadow: 'var(--shadow-sm)', position: 'sticky', top: 110 }}>
+        <aside className="hidden lg:block" style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 22, boxShadow: 'var(--shadow-sm)', position: 'sticky', top: 110 }}>
           <div style={{ paddingBottom: 18, borderBottom: '1px dashed rgba(212,132,138,.25)', marginBottom: 14 }}>
             <strong style={{ display: 'block', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--navy)' }}>{fullName}</strong>
             <span style={{ fontSize: 12, color: 'var(--gray-warm)' }}>{user?.email}</span>
@@ -137,7 +138,7 @@ export default function OrdersPage() {
             return (
               <div key={order.order_number} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', marginBottom: 16, overflow: 'hidden' }}>
                 {/* Header */}
-                <div style={{ padding: '18px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 20, alignItems: 'center', background: 'var(--cream-warm)', borderBottom: '1px dashed rgba(212,132,138,.2)' }}>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" style={{ padding: '18px 24px', alignItems: 'center', background: 'var(--cream-warm)', borderBottom: '1px dashed rgba(212,132,138,.2)' }}>
                   <div><div style={cellLbl}>Pedido</div><div style={cellVal}>{order.order_number}</div></div>
                   <div><div style={cellLbl}>Fecha</div><div style={cellVal}>{fmtDate(order.created_at)}</div></div>
                   <div><div style={cellLbl}>Total</div><div style={{ ...cellVal, color: 'var(--terracotta)', fontSize: 16 }}>{fmt(order.total_amount)}</div></div>

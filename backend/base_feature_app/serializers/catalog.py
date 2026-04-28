@@ -73,10 +73,19 @@ class GlobalColorSerializer(serializers.ModelSerializer):
 
 class CategorySerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(required=False)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Category
-        fields = ['id', 'name', 'slug', 'description', 'display_order', 'is_active']
+        fields = ['id', 'name', 'slug', 'description', 'display_order', 'is_active', 'is_featured', 'image_url']
+
+    def get_image_url(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
 
     def _unique_slug(self, base_slug, exclude_id=None):
         slug = base_slug

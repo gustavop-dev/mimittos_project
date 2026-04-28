@@ -3,9 +3,9 @@ import Link from 'next/link'
 
 export default function Footer() {
   return (
-    <footer style={{ background: 'var(--cream-peach)', padding: '70px 0 30px', marginTop: 0 }}>
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.2fr', gap: 50, marginBottom: 50 }}>
+    <footer style={{ background: 'var(--cream-peach)', marginTop: 0 }} className="pt-12 sm:pt-16 lg:pt-[70px] pb-8">
+      <div className="mx-auto px-4 sm:px-8 lg:px-10" style={{ maxWidth: 1360 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-[50px] mb-10 lg:mb-[50px]">
           <div>
             <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
               <Image src="/mimittos/logo-dark-small.png" alt="MIMITTOS" width={40} height={40}
@@ -58,9 +58,16 @@ export default function Footer() {
               <li><span style={{ color: 'var(--gray-warm)', fontSize: 14 }}>📍 Medellín, Colombia</span></li>
             </ul>
             <h5 style={{ ...footerHeadStyle, marginTop: 22 }}>Pagamos con</h5>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14 }}>
-              {['PSE', 'Nequi', 'VISA', 'MasterCard'].map((m) => (
-                <span key={m} style={{ background: '#fff', color: 'var(--navy)', fontSize: 11, fontWeight: 700, padding: '6px 10px', borderRadius: 8, boxShadow: 'var(--shadow-sm)' }}>{m}</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 14 }}>
+              {[
+                { src: '/mimittos/payments/pse.png', alt: 'PSE' },
+                { src: '/mimittos/payments/bancolombia.png', alt: 'Bancolombia' },
+                { src: '/mimittos/payments/nequi.jpeg', alt: 'Nequi' },
+                { src: '/mimittos/payments/card.svg', alt: 'Tarjeta crédito / débito' },
+              ].map(({ src, alt }) => (
+                <span key={alt} style={{ background: '#fff', padding: '6px 10px', borderRadius: 8, boxShadow: 'var(--shadow-sm)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 44 }}>
+                  <Image src={src} alt={alt} width={0} height={0} sizes="100vw" style={{ width: 'auto', height: 28, objectFit: 'contain', display: 'block' }} />
+                </span>
               ))}
             </div>
           </div>
@@ -75,18 +82,30 @@ export default function Footer() {
         </div>
       </div>
 
-      <a href="https://wa.me/573000000000" aria-label="WhatsApp" style={{
-        position: 'fixed', bottom: 28, right: 28, zIndex: 40,
-        background: '#25D366', color: '#fff', height: 60, borderRadius: 30,
-        padding: '0 22px 0 18px', display: 'flex', alignItems: 'center', gap: 10,
-        boxShadow: '0 14px 36px rgba(37,211,102,.4)',
-        fontWeight: 700, fontSize: 14, fontFamily: "'Quicksand', sans-serif",
-        textDecoration: 'none',
-      }}>
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.5A10 10 0 1 0 12 2zm5.3 14.2c-.2.6-1.3 1.2-1.8 1.3-.5.1-1.1.1-1.7-.1a12 12 0 0 1-4.1-2.4 8 8 0 0 1-2.3-3.2c-.2-.4-.6-1.2-.6-2 0-.8.4-1.2.6-1.4.2-.2.5-.3.7-.3h.4c.2 0 .3 0 .5.4l.8 1.8c.1.2 0 .4-.1.5l-.3.4a.5.5 0 0 0-.1.5c.1.2.5.9 1.1 1.5.7.7 1.4 1 1.6 1.1.2.1.4.1.5 0l.6-.7c.1-.2.4-.2.6-.1.2.1 1.4.7 1.6.8l.4.2c.1.1.1.4 0 .7z" />
+      <a
+        href="https://wa.me/573238122373"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Contáctanos por WhatsApp"
+        className="group"
+        style={{
+          position: 'fixed', bottom: 20, right: 20, zIndex: 50,
+          width: 52, height: 52, borderRadius: '50%',
+          background: '#22c55e',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 0 15px 4px rgba(34,197,94,0.6)',
+          transition: 'transform .2s ease',
+          textDecoration: 'none',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+        onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+      >
+        <svg viewBox="0 0 448 512" xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true" width="26" height="26" focusable={false}
+          style={{ fill: '#fff' }}>
+          <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157m-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1s56.2 81.2 56.1 130.5c0 101.8-84.9 184.6-186.6 184.6m101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8s-14.3 18-17.6 21.8c-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7s-12.5-30.1-17.1-41.2c-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2s-9.7 1.4-14.8 6.9c-5.1 5.6-19.4 19-19.4 46.3s19.9 53.7 22.6 57.4c2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4s4.6-24.1 3.2-26.4c-1.3-2.5-5-3.9-10.5-6.6" />
         </svg>
-        Hablemos por WhatsApp
+        <span className="sr-only">Contáctanos por WhatsApp</span>
       </a>
     </footer>
   )

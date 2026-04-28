@@ -89,7 +89,7 @@ export default function CheckoutPage() {
   return (
     <main>
       {/* Breadcrumb */}
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '20px 40px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-warm)' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 py-5" style={{ maxWidth: 1360, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-warm)' }}>
         <Link href="/" style={{ color: 'var(--gray-warm)' }}>Inicio</Link>
         <span style={{ opacity: .5 }}>/</span>
         <Link href="/cart" style={{ color: 'var(--gray-warm)' }}>Carrito</Link>
@@ -97,7 +97,7 @@ export default function CheckoutPage() {
         <b style={{ color: 'var(--navy)', fontWeight: 700 }}>Checkout</b>
       </div>
 
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '20px 40px 30px' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 py-5 pb-8" style={{ maxWidth: 1360 }}>
         <div style={eyebrowStyle}>Último paso</div>
         <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 46, color: 'var(--navy)', letterSpacing: '-.02em', lineHeight: 1.1 }}>
           Un abrazo de distancia ♡
@@ -108,8 +108,8 @@ export default function CheckoutPage() {
       </div>
 
       {/* Steps */}
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 30 }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10" style={{ maxWidth: 1360 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 30, flexWrap: 'wrap' }}>
           {[['Carrito', true, true], ['Datos y envío', true, false], ['Pago Wompi', false, false], ['Confirmación', false, false]].map(([label, done, passed], i) => (
             <React.Fragment key={String(label)}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -125,14 +125,14 @@ export default function CheckoutPage() {
       </div>
 
       <form onSubmit={onSubmit}>
-        <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px 60px', display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 40, alignItems: 'flex-start' }}>
+        <div className="mx-auto px-4 sm:px-8 lg:px-10 pb-16 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-8 items-start" style={{ maxWidth: 1360 }}>
           {/* Left */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Contact */}
             <div style={cardStyle}>
               <h3 style={cardHeadStyle}><span style={cardNumStyle}>1</span> Contacto</h3>
               <p style={{ color: 'var(--gray-warm)', fontSize: 14, marginBottom: 20 }}>Usaremos estos datos para enviarte notificaciones sobre tu pedido</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
                 <div style={fieldWrap}><label style={fieldLabel}>Nombre completo</label><input value={name} onChange={(e) => setName(e.target.value)} style={fieldInput} required /></div>
                 <div style={fieldWrap}><label style={fieldLabel}>Correo electrónico</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={fieldInput} required /></div>
                 <div style={fieldWrap}><label style={fieldLabel}>Celular</label><input value={phone} onChange={(e) => setPhone(e.target.value)} style={fieldInput} required /></div>
@@ -143,7 +143,7 @@ export default function CheckoutPage() {
             <div style={cardStyle}>
               <h3 style={cardHeadStyle}><span style={cardNumStyle}>2</span> Dirección de envío</h3>
               <p style={{ color: 'var(--gray-warm)', fontSize: 14, marginBottom: 20 }}>¿A dónde le llevamos el abrazo?</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-[14px]">
                 <div style={fieldWrap}>
                   <label style={fieldLabel}>Departamento</label>
                   <select value={department} onChange={(e) => setDepartment(e.target.value)} style={fieldInput}>

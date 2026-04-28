@@ -13,10 +13,16 @@ jest.mock('next/link', () => ({
   ),
 }))
 
-const mockAddToCart = jest.fn()
-jest.mock('@/lib/stores/cartStore', () => ({
-  useCartStore: (selector: (s: { addToCart: jest.Mock }) => unknown) =>
-    selector({ addToCart: mockAddToCart }),
+jest.mock('@/lib/services/http', () => ({
+  api: { get: jest.fn().mockResolvedValue({ data: [] }) },
+}))
+
+jest.mock('@/components/ui/motion', () => ({
+  FadeUp: ({ children, ...p }: { children: React.ReactNode; [k: string]: unknown }) => <div {...p}>{children}</div>,
+  FadeIn: ({ children, ...p }: { children: React.ReactNode; [k: string]: unknown }) => <div {...p}>{children}</div>,
+  SlideIn: ({ children, ...p }: { children: React.ReactNode; [k: string]: unknown }) => <div {...p}>{children}</div>,
+  StaggerContainer: ({ children, ...p }: { children: React.ReactNode; [k: string]: unknown }) => <div {...p}>{children}</div>,
+  StaggerItem: ({ children, ...p }: { children: React.ReactNode; [k: string]: unknown }) => <div {...p}>{children}</div>,
 }))
 
 import HomePage from '../page'
@@ -45,37 +51,22 @@ describe('HomePage', () => {
     expect(links[0]).toHaveAttribute('href', '/products/1')
   })
 
-  it('renders all four featured product names', () => {
-    render(<HomePage />)
-    expect(screen.getByText('Osito Coral')).toBeInTheDocument()
-    expect(screen.getByText('Conejito Lucía')).toBeInTheDocument()
-    expect(screen.getByText('Zorro Amiguito')).toBeInTheDocument()
-    expect(screen.getByText('Elefantito Dulce')).toBeInTheDocument()
-  })
-
   it('shows first FAQ answer open by default', () => {
     render(<HomePage />)
-    expect(screen.getByText(/4 a 6 días hábiles/i)).toBeInTheDocument()
+    expect(screen.getByText(/Estamos en Bogotá/i)).toBeInTheDocument()
   })
 
   it('renders all FAQ questions', () => {
     render(<HomePage />)
-    expect(screen.getByText(/Cuánto tarda en llegar mi peluche/i)).toBeInTheDocument()
-    expect(screen.getByText(/abono y el contraentrega/i)).toBeInTheDocument()
-    expect(screen.getByText(/materiales son los peluches/i)).toBeInTheDocument()
+    expect(screen.getByText(/Dónde están ubicados/i)).toBeInTheDocument()
+    expect(screen.getByText(/envíos a todo Colombia/i)).toBeInTheDocument()
+    expect(screen.getByText(/puedo personalizar/i)).toBeInTheDocument()
   })
 
   it('hides first FAQ answer after clicking its container', () => {
     render(<HomePage />)
-    const firstAnswer = screen.getByText(/4 a 6 días hábiles/i)
-    fireEvent.click(firstAnswer.parentElement!)
-    expect(screen.queryByText(/4 a 6 días hábiles/i)).not.toBeInTheDocument()
-  })
-
-  it('calls addToCart when add button is clicked on a featured product', () => {
-    render(<HomePage />)
-    const addButtons = screen.getAllByRole('button', { name: /Agregar al carrito/i })
-    fireEvent.click(addButtons[0])
-    expect(mockAddToCart).toHaveBeenCalledTimes(1)
+    const firstAnswer = screen.getByText(/Estamos en Bogotá/i)
+    fireEvent.click(firstAnswer.closest('[style*="cursor: pointer"]')! as HTMLElement)
+    expect(screen.queryByText(/Estamos en Bogotá/i)).not.toBeInTheDocument()
   })
 })

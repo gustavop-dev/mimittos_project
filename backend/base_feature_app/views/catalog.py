@@ -115,16 +115,38 @@ def color_detail(request, color_id: int):
 def categories(request):
     if request.method == 'GET':
         qs = Category.objects.filter(is_active=True)
-        return Response(CategorySerializer(qs, many=True).data)
+        return Response(CategorySerializer(qs, many=True, context={'request': request}).data)
 
     if not request.user.is_authenticated or not request.user.is_staff:
         return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
 
-    serializer = CategorySerializer(data=request.data)
+    is_featured = request.data.get('is_featured') in (True, 'true', 'True', '1')
+    if is_featured:
+        count = Category.objects.filter(is_featured=True).count()
+        if count >= 4:
+            return Response({'detail': 'Solo se pueden tener máximo 4 categorías destacadas.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = CategorySerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        instance = serializer.save()
+        image_file = request.FILES.get('image')
+        if image_file:
+            if image_file.size > _IMG_MAX_BYTES:
+                return Response({'detail': 'La imagen supera el límite de 5 MB.'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                instance.image = _optimize_image(image_file)
+                instance.save(update_fields=['image'])
+            except Exception:
+                return Response({'detail': 'Imagen inválida o corrupta.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(CategorySerializer(instance, context={'request': request}).data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def categories_featured(request):
+    qs = Category.objects.filter(is_active=True, is_featured=True).order_by('display_order')[:4]
+    return Response(CategorySerializer(qs, many=True, context={'request': request}).data)
 
 
 @api_view(['PUT', 'PATCH', 'DELETE'])
@@ -142,10 +164,25 @@ def category_detail(request, category_id: int):
         category.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    serializer = CategorySerializer(category, data=request.data, partial=(request.method == 'PATCH'))
+    is_featured = request.data.get('is_featured') in (True, 'true', 'True', '1')
+    if is_featured and not category.is_featured:
+        count = Category.objects.filter(is_featured=True).count()
+        if count >= 4:
+            return Response({'detail': 'Solo se pueden tener máximo 4 categorías destacadas.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = CategorySerializer(category, data=request.data, partial=(request.method == 'PATCH'), context={'request': request})
     if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data)
+        instance = serializer.save()
+        image_file = request.FILES.get('image')
+        if image_file:
+            if image_file.size > _IMG_MAX_BYTES:
+                return Response({'detail': 'La imagen supera el límite de 5 MB.'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                instance.image = _optimize_image(image_file)
+                instance.save(update_fields=['image'])
+            except Exception:
+                return Response({'detail': 'Imagen inválida o corrupta.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(CategorySerializer(instance, context={'request': request}).data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -247,6 +284,12 @@ def peluch_detail(request, slug: str):
     if request.method == 'DELETE':
         peluch.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    is_featured_new = request.data.get('is_featured') in (True, 'true', 'True', '1')
+    if is_featured_new and not peluch.is_featured:
+        count = Peluch.objects.filter(is_featured=True).count()
+        if count >= 4:
+            return Response({'detail': 'Solo se pueden tener máximo 4 peluches destacados.'}, status=status.HTTP_400_BAD_REQUEST)
 
     serializer = PeluchCreateUpdateSerializer(peluch, data=request.data, partial=(request.method == 'PATCH'))
     if serializer.is_valid():

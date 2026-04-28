@@ -19,14 +19,14 @@ export default function CartPage() {
   return (
     <main>
       {/* Breadcrumb */}
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '20px 40px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-warm)' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 py-5 flex items-center gap-2" style={{ maxWidth: 1360, fontSize: 13, color: 'var(--gray-warm)' }}>
         <Link href="/" style={{ color: 'var(--gray-warm)' }}>Inicio</Link>
         <span style={{ opacity: .5 }}>/</span>
         <b style={{ color: 'var(--navy)', fontWeight: 700 }}>Carrito de compra</b>
       </div>
 
       {/* Page title */}
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '20px 40px 30px' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 pt-2 pb-8" style={{ maxWidth: 1360 }}>
         <div style={eyebrowStyle}>Tu carrito</div>
         <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 46, color: 'var(--navy)', letterSpacing: '-.02em', lineHeight: 1.1 }}>
           Ya casi los tienes en tus brazos 🧸
@@ -37,8 +37,8 @@ export default function CartPage() {
       </div>
 
       {/* Steps */}
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 30, flexWrap: 'wrap' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10" style={{ maxWidth: 1360 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 30, flexWrap: 'wrap' }}>
           {['Carrito', 'Datos y envío', 'Pago Wompi', 'Confirmación'].map((s, i) => (
             <React.Fragment key={s}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -54,7 +54,7 @@ export default function CartPage() {
       </div>
 
       {/* Main */}
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px 60px', display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 40, alignItems: 'flex-start' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 pb-16 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-8 items-start" style={{ maxWidth: 1360 }}>
         {/* Cart list */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {items.length === 0 ? (

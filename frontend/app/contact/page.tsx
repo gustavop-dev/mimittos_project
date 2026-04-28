@@ -4,14 +4,14 @@ export default function ContactPage() {
   return (
     <main>
       {/* Breadcrumb */}
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '20px 40px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-warm)' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 py-5 flex items-center gap-2" style={{ maxWidth: 1360, fontSize: 13, color: 'var(--gray-warm)' }}>
         <Link href="/" style={{ color: 'var(--gray-warm)' }}>Inicio</Link>
         <span style={{ opacity: .5 }}>/</span>
         <b style={{ color: 'var(--navy)', fontWeight: 700 }}>Contacto</b>
       </div>
 
       {/* Page title */}
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '20px 40px 50px' }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 pt-2 pb-10" style={{ maxWidth: 1360 }}>
         <div style={eyebrowStyle}>Estamos aquí para ti</div>
         <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 56, color: 'var(--navy)', letterSpacing: '-.02em', lineHeight: 1.08, maxWidth: 700 }}>
           Escríbenos — nos encanta escucharte.
@@ -22,12 +22,12 @@ export default function ContactPage() {
       </div>
 
       {/* Content */}
-      <div style={{ maxWidth: 1360, margin: '0 auto', padding: '0 40px 80px', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 60 }}>
+      <div className="mx-auto px-4 sm:px-8 lg:px-10 pb-16 grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-10" style={{ maxWidth: 1360 }}>
         {/* Form */}
         <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 40, boxShadow: 'var(--shadow-sm)' }}>
           <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--navy)', marginBottom: 24 }}>Envíanos un mensaje</h2>
           <form style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-[14px]">
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <label style={fieldLabelStyle}>Nombre completo</label>
                 <input style={fieldInputStyle} placeholder="Tu nombre" />

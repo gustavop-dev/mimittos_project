@@ -5,12 +5,12 @@ export default function AboutPage() {
   return (
     <main>
       {/* Hero */}
-      <section style={{ position: 'relative', padding: '80px 40px 100px', background: 'linear-gradient(135deg,var(--cream-warm) 0%,var(--pink-melo) 60%,var(--coral-warm) 100%)', overflow: 'hidden', textAlign: 'center' }}>
+      <section className="px-4 sm:px-8 py-16 md:py-[80px]" style={{ position: 'relative', background: 'linear-gradient(135deg,var(--cream-warm) 0%,var(--pink-melo) 60%,var(--coral-warm) 100%)', overflow: 'hidden', textAlign: 'center' }}>
         <div style={{ maxWidth: 900, margin: '0 auto', position: 'relative', zIndex: 1 }}>
           <span style={{ display: 'inline-block', padding: '8px 18px', background: 'rgba(255,255,255,.7)', backdropFilter: 'blur(8px)', borderRadius: 999, fontSize: 12, fontWeight: 700, color: 'var(--coral)', letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 22 }}>
             Nuestra historia
           </span>
-          <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 72, lineHeight: 1, color: 'var(--navy)', marginBottom: 18, letterSpacing: '-.02em' }}>
+          <h1 className="text-[42px] md:text-[72px]" style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, lineHeight: 1, color: 'var(--navy)', marginBottom: 18, letterSpacing: '-.02em' }}>
             Más que peluches,<br /><em style={{ fontStyle: 'italic', color: 'var(--coral)' }}>guardianes</em> de recuerdos.
           </h1>
           <p style={{ fontSize: 19, color: 'var(--gray-warm)', lineHeight: 1.6, maxWidth: 680, margin: '0 auto' }}>
@@ -20,7 +20,7 @@ export default function AboutPage() {
       </section>
 
       {/* Mission */}
-      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 40px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60, alignItems: 'center' }}>
+      <section className="mx-auto px-4 sm:px-8 py-16 md:py-[80px] grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-[60px] items-center" style={{ maxWidth: 1200 }}>
         <div style={{ aspectRatio: '4/5', borderRadius: 24, overflow: 'hidden', background: 'var(--pink-melo)', position: 'relative' }}>
           <Image src="https://images.unsplash.com/photo-1596463059283-da257325bab8?w=900&q=80" alt="Taller MIMITTOS" fill className="object-cover" />
         </div>
@@ -44,8 +44,8 @@ export default function AboutPage() {
       </section>
 
       {/* Stats */}
-      <section style={{ padding: '70px 40px', background: 'var(--navy)', color: '#fff' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 40, textAlign: 'center' }}>
+      <section className="px-4 sm:px-8 py-16" style={{ background: 'var(--navy)', color: '#fff' }}>
+        <div className="mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center" style={{ maxWidth: 1100 }}>
           {[['+ 2.400', 'peluches creados'], ['+1.800', 'familias felices'], ['8', 'años de historia'], ['4.9★', 'valoración media']].map(([num, label]) => (
             <div key={num}>
               <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 54, color: 'var(--coral-warm)', lineHeight: 1 }}>{num}</div>
@@ -56,12 +56,12 @@ export default function AboutPage() {
       </section>
 
       {/* Values */}
-      <section style={{ padding: '90px 40px', background: 'var(--cream-warm)' }}>
+      <section className="px-4 sm:px-8 py-16 md:py-[90px]" style={{ background: 'var(--cream-warm)' }}>
         <div style={{ maxWidth: 780, margin: '0 auto 60px', textAlign: 'center' }}>
           <div style={eyebrowStyle}>Nuestros valores</div>
           <h2 style={h2Style}>Lo que nos guía cada día.</h2>
         </div>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 24 }}>
+        <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" style={{ maxWidth: 1200 }}>
           {[
             { emoji: '🧵', title: 'Artesanía', desc: 'Cada punto es una decisión. No producimos en masa — creamos pieza por pieza con dedicación.' },
             { emoji: '♡', title: 'Cariño', desc: 'Ponemos el corazón en cada creación. Porque sabemos que alguien especial lo va a abrazar.' },
@@ -78,7 +78,7 @@ export default function AboutPage() {
       </section>
 
       {/* Timeline */}
-      <section style={{ background: '#fff', padding: '90px 40px' }}>
+      <section className="px-4 sm:px-8 py-16 md:py-[90px]" style={{ background: '#fff' }}>
         <div style={{ maxWidth: 780, margin: '0 auto 60px', textAlign: 'center' }}>
           <div style={eyebrowStyle}>Nuestra trayectoria</div>
           <h2 style={h2Style}>8 años creando abrazos a mano.</h2>
@@ -103,7 +103,7 @@ export default function AboutPage() {
       </section>
 
       {/* CTA */}
-      <section style={{ padding: '90px 40px', textAlign: 'center', background: 'var(--cream-peach)' }}>
+      <section className="px-4 sm:px-8 py-16 md:py-[90px]" style={{ textAlign: 'center', background: 'var(--cream-peach)' }}>
         <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 48, color: 'var(--navy)', marginBottom: 16 }}>
           ¿Listo para crear tu recuerdo?
         </h2>

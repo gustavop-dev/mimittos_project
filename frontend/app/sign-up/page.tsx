@@ -236,9 +236,9 @@ function SignUpContent() {
 
   return (
     <main style={{ background: 'linear-gradient(135deg,var(--cream-warm) 0%,var(--pink-melo) 100%)', minHeight: 'calc(100vh - 88px)' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center', maxWidth: 1200, margin: '0 auto', padding: '40px', gap: 48 }}>
-      {/* Left — marketing */}
-      <div>
+      <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-10 mx-auto px-4 sm:px-8 py-10 md:py-[40px]" style={{ maxWidth: 1200 }}>
+      {/* Left — marketing, hidden on mobile */}
+      <div className="hidden md:block">
         <div style={{ width: 120, height: 120, marginBottom: 28, animation: 'floatY 4s ease-in-out infinite', position: 'relative' }}>
           <Image src="/mimittos/logo-dark-big.png" alt="MIMITTOS" fill style={{ objectFit: 'contain' }} />
         </div>
@@ -277,7 +277,7 @@ function SignUpContent() {
         )}
 
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label style={labelStyle}>Nombre</label>
               <div style={{ position: 'relative' }}>
