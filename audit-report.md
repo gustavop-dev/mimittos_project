@@ -133,12 +133,65 @@ These should be addressed in a dedicated upgrade PR with breaking-change validat
 
 ## Updates Applied
 
-(filled in after Step D)
+### Frontend (`frontend/package.json`)
+
+Applied via `npm audit fix` and `npx npm-check-updates -u --target minor`:
+
+- @playwright/test ^1.58.2 → ^1.59.1
+- @react-oauth/google ^0.13.4 → ^0.13.5
+- @tailwindcss/postcss ^4.2.1 → ^4.2.4
+- @testing-library/dom ^10.0.0 → ^10.4.1
+- @testing-library/jest-dom ^6.4.2 → ^6.9.1
+- @testing-library/user-event ^14.5.2 → ^14.6.1
+- @types/node ^25.3.0 → ^25.6.0
+- axios ^1.13.5 → ^1.15.2
+- eslint ^9.39.3 → ^9.39.4
+- eslint-config-next 16.1.6 → 16.2.4
+- eslint-plugin-playwright ^2.7.1 → ^2.10.2
+- jest ^30.2.0 → ^30.3.0
+- jest-environment-jsdom ^30.2.0 → ^30.3.0
+- next 16.1.6 → 16.2.4
+- next-intl ^4.8.3 → ^4.11.0
+- react 19.2.4 → 19.2.5
+- react-dom 19.2.4 → 19.2.5
+- swiper ^12.1.3 → ^12.1.4
+- tailwindcss ^4.2.1 → ^4.2.4
+- zustand ^5.0.11 → ^5.0.12
+
+### Backend (`backend/requirements.txt`)
+
+- Django 6.0.2 → 6.0.4
+- djangorestframework 3.16.1 → 3.17.1
+- Faker 40.5.1 → 40.15.0
+- pillow 12.1.1 → 12.2.0
+- pytest 9.0.2 → 9.0.3
+- pytest-cov 7.0.0 → 7.1.0
+- coverage 7.13.4 → 7.13.5
+- ruff 0.15.2 → 0.15.12
+- requests 2.32.5 → 2.33.1
+
+### Post-update CVE status
+
+- **Backend pip-audit**: 0 vulnerabilities (was 10).
+- **Frontend npm audit**: 3 moderate (was 8 — 3 high, 5 moderate). All 3 high vulns resolved.
+  - Remaining: postcss 8.4.31 transitive under `next@16.2.4` (next bundles its own postcss). Cannot resolve without major upgrade or `overrides` (avoided per policy and to skip force).
 
 ## Build & Test Verification
 
-(filled in after Step E)
+### Frontend
+
+- `npm run build`: SUCCESS (Next.js 16.2.4 Turbopack, 25 routes generated).
+- `npm run test`: 60 suites / 324 tests PASS.
+- `npm run lint`: pre-existing errors in `scripts/*.cjs` (require-style imports) — not introduced by this update; not fixed in this scope.
+
+### Backend
+
+- `python manage.py check`: SUCCESS (0 issues).
+- `pytest`: 459 passed, 9 warnings (210s). All green.
 
 ## Rollbacks
 
-(filled in after Step E)
+None. All proposed patch+minor bumps installed cleanly and passed verification.
+
+Notes on pydub: pydub 0.25.1 remained unchanged (not flagged as outdated). Native `ffmpeg` is a runtime requirement; not a security concern for this audit.
+
