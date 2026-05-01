@@ -62,6 +62,11 @@ test.describe('Authentication', () => {
     const submitBtn = page.locator('button[type="submit"]');
     await submitBtn.click();
 
+    // Production behavior: page renders an inline error and stays on /sign-in
+    // (no redirect, no query string). Wait for the error to appear, then assert URL.
+    await expect(
+      page.getByText(/Correo o contraseña incorrectos|completa el captcha/i)
+    ).toBeVisible({ timeout: 10_000 });
     await expect(page).toHaveURL(/.*sign-in/);
   });
 
