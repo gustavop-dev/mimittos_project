@@ -123,7 +123,7 @@ jobs:
           retention-days: 5
 
   # ───────────────────────────────────────────
-  # Frontend — Playwright E2E tests (4 grupos en paralelo)
+  # Frontend — Playwright E2E tests (6 grupos en paralelo)
   # ───────────────────────────────────────────
   frontend-e2e-tests:
     runs-on: ubuntu-latest
@@ -134,17 +134,23 @@ jobs:
         include:
           - part: 1
             label: public
-            files: "e2e/public/smoke.spec.ts e2e/public/navigation.spec.ts e2e/public/blogs.spec.ts"
+            files: "e2e/public/smoke.spec.ts e2e/public/navigation.spec.ts e2e/public/blogs.spec.ts e2e/public/public-pages.spec.ts"
           - part: 2
             label: catalog
-            files: "e2e/public/products.spec.ts e2e/app/user-flows.spec.ts"
+            files: "e2e/public/products.spec.ts e2e/app/user-flows.spec.ts e2e/app/peluch-detail.spec.ts"
           - part: 3
             label: auth
-            files: "e2e/auth/auth.spec.ts"
+            files: "e2e/auth/auth.spec.ts e2e/auth/auth-success.spec.ts e2e/auth/auth-verification.spec.ts"
           - part: 4
             label: purchase
-            files: "e2e/app/cart.spec.ts e2e/app/checkout.spec.ts e2e/app/complete-purchase.spec.ts"
-    name: E2E ${{ matrix.part }}/4 — ${{ matrix.label }}
+            files: "e2e/app/cart.spec.ts e2e/app/checkout.spec.ts e2e/app/complete-purchase.spec.ts e2e/app/payment.spec.ts"
+          - part: 5
+            label: app
+            files: "e2e/app/dashboard.spec.ts e2e/app/orders.spec.ts e2e/app/reviews.spec.ts"
+          - part: 6
+            label: backoffice
+            files: "e2e/backoffice/backoffice.spec.ts e2e/backoffice/backoffice-admin.spec.ts e2e/backoffice/backoffice-catalog.spec.ts"
+    name: E2E ${{ matrix.part }}/6 — ${{ matrix.label }}
     defaults:
       run:
         working-directory: frontend
