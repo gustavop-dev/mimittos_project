@@ -5,53 +5,67 @@ description: Current work focus, recent changes, active decisions, and next step
 
 # Active Context — Mimittos
 
-Last updated: 2026-04-24
+Last updated: 2026-05-01
 
 ---
 
 ## Current Focus
 
-Final quality review on branch `double-check-22042026` before merging to `main`.
+Stabilizing CI on branch `double-check-30042026`. The 1 failing E2E (`auth-login-invalid`) is fixed and the CI matrix now exercises all 20 e2e spec files — projected 61/61 flow coverage on next CI run.
 
-All major features are complete. The current effort is verifying test coverage and quality across backend, frontend unit, and E2E layers.
+Pending product decisions from flow audit (2026-05-01) before registering 4 new flows in `flow-definitions.json` / `USER_FLOW_MAP.md`.
 
 ---
 
-## Recent Changes (from git log)
+## Recent Changes (this branch)
 
 | Commit | Change |
 |--------|--------|
-| `257da4f` | Add `delivered_order_with_peluch` fixture to satisfy purchase validation in review test |
-| `a6423b8` | Achieve 100% E2E flow coverage — add orders, peluch-detail, checkout-wompi tests; fix auth Spanish locators |
-| `281a734` | Improve test quality to pass quality gate at 99/100 |
-| `fe7e810` | Fix captcha test to expect Spanish password error message |
-| `f3c4b86` | Fix tests to match Spanish auth messages, Wompi `id` key, and refactored order view |
+| `9598e89` | ci(e2e): expand matrix from 4 → 6 shards, every spec file runs |
+| `701e083` | fix: http.ts 401 interceptor was refreshing tokens on unauthenticated requests, causing sign-in failures to redirect to home |
+| `fdfb66e` | test(e2e): mock `sign_in/` to force deterministic 401 path |
+| `5526eb7` | test(e2e): assert non-redirect invariant for invalid credentials |
+| `b62eed4` | chore: gitignore coverage artifact files |
+| `8e35d85` | ci(quality-gate): trigger on every PR/push, drop paths filter |
+| `b05e492` | ci: adopt blob+merge-reports pattern with custom matrix |
 
 ---
 
 ## Active Decisions
 
-- **Spanish locale is canonical for tests**: All E2E and unit tests assert Spanish-language strings (error messages, labels). English translations exist in code but tests don't cover them separately.
+- **Spanish locale is canonical for tests**: All E2E and unit tests assert Spanish-language strings. English translations exist in code but tests don't cover them separately.
 - **Wompi uses `id` field**: Wompi transaction responses return `id`, not `transaction_id`. Tests and serializers align with this.
 - **E2E flow definitions are the contract**: Every navigable user flow must be registered in `frontend/e2e/flow-definitions.json` and documented in `docs/USER_FLOW_MAP.md` before writing E2E tests.
+- **401 interceptor only refreshes when Authorization header was on the request** (`frontend/lib/services/http.ts`) — public endpoints returning 401 (sign_in, sign_up, google_login) reject directly so the page can render the error message.
+- **CI E2E matrix is explicit, not glob-based** — each spec file is listed by name in `.github/workflows/ci.yml` to avoid double-runs and to keep shard balance visible.
 
 ---
 
 ## Architecture State
 
-- All 19 models implemented and migrated
-- 58+ API endpoints across 13 URL modules
-- 26 frontend routes (App Router)
-- 5 Zustand stores, 13 API services, 2 custom hooks
+| Layer | Count |
+|-------|-------|
+| Backend models | 19 |
+| View files (FBV organized by domain) | 16 |
+| Service modules | 7 |
+| Serializer files | 18 |
+| Migrations | 10 |
+| Management commands | 13 |
+| URL modules | 13 (~60+ paths) |
+| Frontend pages (App Router) | 27 |
+| Frontend components | 20 |
+| Zustand stores | 10 |
+| Frontend services (axios + helpers) | 13 |
 
 ---
 
 ## Next Steps
 
-1. Implement test infrastructure fixes from /new-feature-checklist audit (see tasks_plan.md backlog)
-   - Phase 1: Backend factories.py + conftest.py update
-   - Phase 2: 3 missing page tests + usePageView + paymentService + jest thresholds
-   - Phase 3: E2E authenticated flows (auth-logout, session-persistence, backoffice, dashboard)
-2. Merge `double-check-22042026` + test fixes → `main`
-3. Deploy to staging
-4. Verify deployment with smoke tests
+1. Wait for CI to confirm 61/61 flow coverage on `9598e89`.
+2. Get product decisions on flow-audit findings (see `tasks_plan.md` "Flow Audit Findings"):
+   - Whether to wire a backend handler for the contact form (or remove the form).
+   - Whether to build backoffice blog management UI (or remove the unused endpoints).
+   - Whether to register `app-dashboard-access` rename.
+3. After decisions: register the 4 new flows in `flow-definitions.json` + `USER_FLOW_MAP.md` and add specs.
+4. Expand the 6 partial-coverage specs (CRUD/submit assertions, not just page-render).
+5. Merge `double-check-30042026` → `main`.

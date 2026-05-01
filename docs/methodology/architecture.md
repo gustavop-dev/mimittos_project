@@ -112,7 +112,7 @@ erDiagram
 
 ```
 frontend/
-├── app/                       # Next.js App Router (26 routes)
+├── app/                       # Next.js App Router (27 routes)
 │   ├── layout.tsx             # Root layout
 │   ├── page.tsx               # Home (/)
 │   ├── catalog/               # /catalog
@@ -124,11 +124,12 @@ frontend/
 │   ├── blogs/                 # /blogs, /blogs/[blogId]
 │   ├── sign-in|sign-up|...    # Auth routes
 │   └── backoffice/            # Staff-only admin area
-├── components/                # 9 shared components
+├── components/                # 12 shared components
 │   ├── admin/                 # AdminSidebar, PeluchForm
 │   ├── blog/                  # BlogCard, BlogCarousel
-│   ├── layout/                # Header, Footer, PublicChrome
-│   └── product/               # ProductCard, ProductCarousel
+│   ├── layout/                # Header, Footer, PublicChrome, PromoBanner
+│   ├── product/               # ProductCard, ProductCarousel
+│   └── ui/                    # PageCurtain, motion
 └── lib/
     ├── stores/                # 5 Zustand stores
     ├── hooks/                 # 2 custom hooks

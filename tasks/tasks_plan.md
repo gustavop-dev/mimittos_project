@@ -5,7 +5,7 @@ description: Task backlog, feature completion status, known issues, and test cov
 
 # Tasks Plan — Mimittos
 
-Last updated: 2026-04-24
+Last updated: 2026-05-01
 
 ---
 
@@ -47,34 +47,29 @@ Last updated: 2026-04-24
 
 | Metric | Count |
 |--------|-------|
-| Test files | 57 |
-| Page tests | 24 |
-| Component tests | 8 |
-| Store tests | 5 |
-| Hook tests | 2 |
-| Service tests | 13 |
-| Other (utils, i18n, scripts, app) | 5 |
+| Test files | 60 |
+| Categories | page, component, store, hook, service, util, i18n, app |
 
 ### E2E (Playwright)
 
 | Metric | Count |
 |--------|-------|
-| Test files | 11 |
-| Flow coverage | 100% (all flows in `flow-definitions.json`) |
+| Test files | 20 |
+| CI matrix shards | 6 (public, catalog, auth, purchase, app, backoffice) |
+| Flow coverage | 61/61 in `flow-definitions.json` |
 | Test quality gate | 99/100 |
 
 ---
 
 ## Current Work
 
-**Branch**: `double-check-22042026`
-**Status**: Final quality review before merge to main
+**Branch**: `double-check-30042026`
+**Status**: Stabilizing CI before merge to main
 
 Recent completions on this branch:
-- 100% E2E flow coverage achieved
-- Test quality gate reached 99/100
-- Spanish locale locators fixed across all E2E tests
-- Wompi `id` key usage corrected (not `transaction_id`)
+- Fixed `http.ts` 401 interceptor refreshing on unauthenticated requests (caused sign-in error to redirect to home instead of showing message) — `701e083`
+- Expanded CI E2E matrix from 4 → 6 shards so all 20 spec files run, lifting CI flow coverage from 33/61 to 61/61 — `9598e89`
+- Made invalid-credentials E2E test deterministic by mocking `sign_in/` to return 401 — `fdfb66e`
 
 ---
 
@@ -100,11 +95,24 @@ None documented.
 - [ ] Add network-error / 500-error scenarios to `paymentService.test.ts`
 - [ ] Raise Jest thresholds from 50% to 65% global (stores 75%, utils 90%)
 
-#### E2E
-- [ ] Add flow constants to `flow-tags.ts`: `AUTH_LOGIN_SUCCESS`, `AUTH_LOGOUT`, `AUTH_SESSION_PERSISTENCE`, `APP_DASHBOARD_ACCESS`, `BACKOFFICE_LOGIN`, `BACKOFFICE_DASHBOARD_DISPLAY`, `BACKOFFICE_ORDER_MANAGEMENT`, `PAYMENT_PAGE_DISPLAY`, `ORDER_CONFIRMED_DISPLAY`, `REVIEW_SUBMIT`
-- [ ] Create `e2e/auth/auth-success.spec.ts` — auth-login-success (mock API), auth-logout (cookie clear), auth-session-persistence
-- [ ] Create `e2e/app/dashboard.spec.ts` — app-dashboard-access (mock auth cookies)
-- [ ] Create `e2e/backoffice/backoffice.spec.ts` — backoffice-login, backoffice-dashboard-display, backoffice-order-management
-- [ ] Fix `auth.spec.ts` — auth-sign-up complete form submission (happy path with mocked API)
+#### E2E (from /new-feature-checklist audit 2026-04-24 — most items now resolved)
+- [x] Flow constants added; `auth-success.spec.ts`, `dashboard.spec.ts`, `backoffice/*.spec.ts` all exist and pass
 - [ ] Add cart quantity=0 removes item test to `cart.spec.ts`
 - [ ] Update USER_FLOW_MAP.md note: flow-definitions.json is authoritative source; IDs in USER_FLOW_MAP map to flow-definitions keys
+
+### Flow Audit Findings (2026-05-01) — pending product decisions
+
+**New flows to register** (4):
+- `backoffice-site-configuration` — promo banner + hero image management (`frontend/app/backoffice/configuracion/page.tsx`)
+- `catalog-filter-by-category` and `catalog-sort-products` — filter/sort interactions on `/catalog`
+- `auth-forgot-password-submit` — submission path beyond the form-display flow
+
+**Partial-coverage flows** (existing IDs, specs only assert page renders):
+- `backoffice-category-management`, `backoffice-user-management`, `backoffice-peluch-create`, `backoffice-peluch-edit`, `payment-page-display`, `checkout-wompi-redirect`
+
+**Cleanup**:
+- `app-dashboard-access` flow id is misleading — `/dashboard` route does not exist; tests actually exercise `/orders` redirect
+
+**Product bugs surfaced by audit**:
+- Contact form (`frontend/app/contact/page.tsx`) has no backend handler — submit is silent no-op
+- Backoffice has no UI for blog management despite full CRUD endpoints in `backend/base_feature_app/urls/blog.py`
