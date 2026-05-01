@@ -47,6 +47,8 @@ static_root/
 .pytest_cache/
 .coverage
 .coverage.*
+.coverage_*.json
+.catalog_cov.json
 htmlcov/
 .tox/
 .hypothesis/
