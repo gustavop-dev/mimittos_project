@@ -42,8 +42,9 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error?.config as (typeof error.config & { _retry?: boolean }) | undefined;
     const status = error?.response?.status;
+    const hadAuthHeader = Boolean(originalRequest?.headers?.Authorization);
 
-    if (status !== 401 || !originalRequest || originalRequest._retry) {
+    if (status !== 401 || !originalRequest || originalRequest._retry || !hadAuthHeader) {
       return Promise.reject(error);
     }
 
