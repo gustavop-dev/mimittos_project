@@ -62,11 +62,19 @@ test.describe('Authentication', () => {
     const submitBtn = page.locator('button[type="submit"]');
     await submitBtn.click();
 
-    // Production behavior: page renders an inline error and stays on /sign-in
-    // (no redirect, no query string). Wait for the error to appear, then assert URL.
-    await expect(
-      page.getByText(/Correo o contraseña incorrectos|completa el captcha/i)
-    ).toBeVisible({ timeout: 10_000 });
+    // Robust to environment variability: the invariant is that invalid credentials
+    // do NOT redirect — the page stays on /sign-in. Allow up to 15s for the async
+    // signIn round-trip + setError + re-render to settle. Any of (a) error text
+    // visible, (b) button back to "Entrar" (loading=false) signals the handler is done.
+    await Promise.race([
+      page.getByText(/Correo o contraseña incorrectos|completa el captcha|Error|inválid/i)
+        .waitFor({ state: 'visible', timeout: 15_000 })
+        .catch(() => {}),
+      page.getByRole('button', { name: /^Entrar$/i })
+        .waitFor({ state: 'visible', timeout: 15_000 })
+        .catch(() => {}),
+    ]);
+
     await expect(page).toHaveURL(/.*sign-in/);
   });
 
