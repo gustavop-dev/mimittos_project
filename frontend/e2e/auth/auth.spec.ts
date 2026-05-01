@@ -50,31 +50,27 @@ test.describe('Authentication', () => {
   });
 
   test('should handle invalid credentials gracefully', { tag: [...AUTH_LOGIN_INVALID] }, async ({ page }) => {
+    // Force a deterministic 401 from the auth endpoint, independent of CI seed data.
+    // This isolates the test to the FRONTEND error-handling path: signIn rejects,
+    // catch block runs, setError fires, page does NOT navigate.
+    await page.route('**/sign_in/', async (route) => {
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Correo o contraseña incorrectos' }),
+      });
+    });
+
     await page.goto('/sign-in');
     await waitForPageLoad(page);
 
-    const emailInput = page.locator('input[type="email"]');
-    await emailInput.fill('invalid@example.com');
+    await page.locator('input[type="email"]').fill('invalid@example.com');
+    await page.locator('input[type="password"]').fill('wrongpassword');
+    await page.locator('button[type="submit"]').click();
 
-    const passwordInput = page.locator('input[type="password"]');
-    await passwordInput.fill('wrongpassword');
-
-    const submitBtn = page.locator('button[type="submit"]');
-    await submitBtn.click();
-
-    // Robust to environment variability: the invariant is that invalid credentials
-    // do NOT redirect — the page stays on /sign-in. Allow up to 15s for the async
-    // signIn round-trip + setError + re-render to settle. Any of (a) error text
-    // visible, (b) button back to "Entrar" (loading=false) signals the handler is done.
-    await Promise.race([
-      page.getByText(/Correo o contraseña incorrectos|completa el captcha|Error|inválid/i)
-        .waitFor({ state: 'visible', timeout: 15_000 })
-        .catch(() => {}),
-      page.getByRole('button', { name: /^Entrar$/i })
-        .waitFor({ state: 'visible', timeout: 15_000 })
-        .catch(() => {}),
-    ]);
-
+    await expect(
+      page.getByText(/Correo o contraseña incorrectos|completa el captcha/i)
+    ).toBeVisible({ timeout: 10_000 });
     await expect(page).toHaveURL(/.*sign-in/);
   });
 
