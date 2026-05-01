@@ -1,6 +1,6 @@
 import { test, expect } from '../test-with-coverage';
 import { waitForPageLoad } from '../fixtures';
-import { AUTH_REGISTRATION_VERIFY, AUTH_GOOGLE_LOGIN } from '../helpers/flow-tags';
+import { AUTH_REGISTRATION_VERIFY, AUTH_GOOGLE_LOGIN, AUTH_FORGOT_PASSWORD_SUBMIT } from '../helpers/flow-tags';
 
 test('should complete email verification after sign-up',
   { tag: [...AUTH_REGISTRATION_VERIFY] },
@@ -83,5 +83,64 @@ test('should render Google sign-in entry point on sign-in page',
 
     // Page structure is always verifiable regardless of Google config
     await expect(page.locator('body')).toBeVisible();
+  }
+);
+
+test('should reset password after submitting passcode and new password',
+  { tag: [...AUTH_FORGOT_PASSWORD_SUBMIT] },
+  async ({ page }) => {
+    await page.route('**/api/send_passcode/', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) })
+    );
+    await page.route('**/api/verify_passcode_and_reset_password/', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) })
+    );
+
+    await page.goto('/forgot-password');
+    await waitForPageLoad(page);
+
+    await page.getByPlaceholder('tu@correo.com').fill('user@example.com');
+    await page.getByRole('button', { name: /Enviar código/i }).click();
+
+    await expect(page.getByPlaceholder('000000')).toBeVisible({ timeout: 10_000 });
+
+    await page.getByPlaceholder('000000').fill('123456');
+    await page.getByPlaceholder('Mínimo 8 caracteres').fill('NuevaP@ss123');
+    await page.getByPlaceholder('Repite la contraseña').fill('NuevaP@ss123');
+    await page.getByRole('button', { name: /Crear nueva contraseña/i }).click();
+
+    await expect(page.getByText('¡Contraseña actualizada!')).toBeVisible({ timeout: 10_000 });
+  }
+);
+
+test('should show error message on invalid passcode without leaving the reset step',
+  { tag: [...AUTH_FORGOT_PASSWORD_SUBMIT] },
+  async ({ page }) => {
+    await page.route('**/api/send_passcode/', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) })
+    );
+    await page.route('**/api/verify_passcode_and_reset_password/', (route) =>
+      route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Código inválido o expirado' }),
+      })
+    );
+
+    await page.goto('/forgot-password');
+    await waitForPageLoad(page);
+
+    await page.getByPlaceholder('tu@correo.com').fill('user@example.com');
+    await page.getByRole('button', { name: /Enviar código/i }).click();
+
+    await expect(page.getByPlaceholder('000000')).toBeVisible({ timeout: 10_000 });
+
+    await page.getByPlaceholder('000000').fill('999999');
+    await page.getByPlaceholder('Mínimo 8 caracteres').fill('NuevaP@ss123');
+    await page.getByPlaceholder('Repite la contraseña').fill('NuevaP@ss123');
+    await page.getByRole('button', { name: /Crear nueva contraseña/i }).click();
+
+    await expect(page.getByText('Código inválido o expirado')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByPlaceholder('000000')).toBeVisible();
   }
 );

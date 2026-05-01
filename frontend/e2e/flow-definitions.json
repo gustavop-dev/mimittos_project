@@ -1,6 +1,6 @@
 {
-  "version": "1.2.0",
-  "lastUpdated": "2026-04-24",
+  "version": "1.3.0",
+  "lastUpdated": "2026-05-01",
   "flows": {
     "home-loads": {
       "name": "Home page loads",
@@ -488,6 +488,38 @@
       "roles": ["shared"],
       "priority": "P4",
       "description": "User navigates to /terms and sees the terms and conditions content",
+      "expectedSpecs": 1
+    },
+    "backoffice-site-configuration": {
+      "name": "Backoffice site configuration",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff edits the promo banner and uploads a hero image from /backoffice/configuracion; changes persist via /api/content/ endpoints",
+      "expectedSpecs": 1
+    },
+    "catalog-filter-by-category": {
+      "name": "Filter catalog by category",
+      "module": "catalog",
+      "roles": ["shared"],
+      "priority": "P2",
+      "description": "User clicks a category label on /catalog; product list reloads with peluches matching only that category",
+      "expectedSpecs": 1
+    },
+    "catalog-sort-products": {
+      "name": "Sort catalog products",
+      "module": "catalog",
+      "roles": ["shared"],
+      "priority": "P3",
+      "description": "User changes the sort dropdown on /catalog (e.g. price ascending); product list re-orders accordingly",
+      "expectedSpecs": 1
+    },
+    "auth-forgot-password-submit": {
+      "name": "Forgot password full reset",
+      "module": "auth",
+      "roles": ["shared"],
+      "priority": "P2",
+      "description": "User requests a passcode by email, submits the code with a new password, and the password is reset",
       "expectedSpecs": 1
     }
   }

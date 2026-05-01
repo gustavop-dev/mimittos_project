@@ -137,7 +137,7 @@ jobs:
             files: "e2e/public/smoke.spec.ts e2e/public/navigation.spec.ts e2e/public/blogs.spec.ts e2e/public/public-pages.spec.ts"
           - part: 2
             label: catalog
-            files: "e2e/public/products.spec.ts e2e/app/user-flows.spec.ts e2e/app/peluch-detail.spec.ts"
+            files: "e2e/public/products.spec.ts e2e/public/catalog-filters.spec.ts e2e/app/user-flows.spec.ts e2e/app/peluch-detail.spec.ts"
           - part: 3
             label: auth
             files: "e2e/auth/auth.spec.ts e2e/auth/auth-success.spec.ts e2e/auth/auth-verification.spec.ts"

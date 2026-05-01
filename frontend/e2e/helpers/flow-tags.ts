@@ -108,3 +108,13 @@ export const BACKOFFICE_USER_MANAGEMENT = ['@flow:backoffice-user-management', '
 export const CONTACT_PAGE_DISPLAY = ['@flow:contact-page-display', '@module:public', '@priority:P4'];
 export const ABOUT_PAGE_DISPLAY = ['@flow:about-page-display', '@module:public', '@priority:P4'];
 export const TERMS_PAGE_DISPLAY = ['@flow:terms-page-display', '@module:public', '@priority:P4'];
+
+// ── Backoffice (site configuration) ──
+export const BACKOFFICE_SITE_CONFIG = ['@flow:backoffice-site-configuration', '@module:backoffice', '@priority:P3'];
+
+// ── Catalog (filter & sort) ──
+export const CATALOG_FILTER_CATEGORY = ['@flow:catalog-filter-by-category', '@module:catalog', '@priority:P2'];
+export const CATALOG_SORT_PRODUCTS = ['@flow:catalog-sort-products', '@module:catalog', '@priority:P3'];
+
+// ── Auth (forgot password submit) ──
+export const AUTH_FORGOT_PASSWORD_SUBMIT = ['@flow:auth-forgot-password-submit', '@module:auth', '@priority:P2'];

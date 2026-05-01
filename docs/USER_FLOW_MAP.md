@@ -1183,3 +1183,51 @@ Use this document to understand each flow's steps, branching conditions, role re
 - **Modifying a flow:** Update steps and branches in this document first, then update tests accordingly.
 - **Removing a flow:** Remove from this document, `e2e/flow-definitions.json`, and all `@flow:` tags in specs.
 - **Bump `Version` and `Last Updated`** on every change.
+
+---
+
+## Flows added in version 1.3.0 (2026-05-01)
+
+### auth-forgot-password-submit
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | guest |
+| **Frontend route** | `/forgot-password` |
+| **API endpoints** | `POST /api/send_passcode/`, `POST /api/verify_passcode_and_reset_password/` |
+
+Covers the full reset path beyond the form-display check captured by `auth-forgot-password-form`. User enters email, receives a passcode, then submits passcode + new password. On success the page transitions to the `done` step and shows "¡Contraseña actualizada!". Invalid-passcode response (400) keeps the user on step `reset` and renders the backend error message; passwords-mismatch and password-length client validations are out of scope here (see `auth-forgot-password` for the full branching matrix).
+
+### catalog-filter-by-category
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | shared |
+| **Frontend route** | `/catalog` |
+| **API endpoints** | `GET /api/categories/`, `GET /api/peluches/?category=<slug>` |
+
+User lands on `/catalog`, sees all peluches, then clicks a category label in the filter sidebar. The list re-renders showing only peluches whose `category_slug` matches. Clicking the same label again toggles back to "Todos". Mobile devices show a "Mostrar filtros" toggle that exposes the same panel.
+
+### catalog-sort-products
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | shared |
+| **Frontend route** | `/catalog` |
+| **API endpoints** | `GET /api/peluches/?sort=<value>` |
+
+User changes the sort dropdown (`<select>` with options `popular`, `new`, `price_asc`, `price_desc`, `top_rated`). The state change triggers a re-fetch with the new `sort` param; the backend returns the list in the requested order. Other active filters (category, size, price, has_huella) are preserved in the same request.
+
+### backoffice-site-configuration
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/configuracion` |
+| **API endpoints** | `GET/PUT /api/content/promo_banner/`, `GET /api/content/hero_image/`, `POST /api/content/hero-image/upload/` |
+
+Staff opens the site-configuration page, edits the promo banner (toggle active, message, background/text color), and clicks "Guardar cinta" — frontend calls `PUT /api/content/promo_banner/` with the new `content_json`. Button label transitions Guardar → Guardando… → ✓ Guardado (auto-resets after 3s). Hero-image upload uses a separate multipart `POST` and updates the preview on success.
