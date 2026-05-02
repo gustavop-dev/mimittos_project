@@ -94,7 +94,7 @@ test('should re-order product list when sort dropdown changes to price ascending
 
     await page.getByRole('combobox').selectOption('price_asc');
 
-    const titles = page.getByRole('heading', { level: 4 });
+    const titles = page.locator('section').getByRole('heading', { level: 4 });
     await expect(titles.first()).toHaveText(/Oso Café/); // quality: disable fragile_locator (sort-order test requires positional assertion on first result)
   }
 );
