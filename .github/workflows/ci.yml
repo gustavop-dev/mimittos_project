@@ -123,12 +123,16 @@ jobs:
           retention-days: 5
 
   # ───────────────────────────────────────────
-  # Frontend — Playwright E2E tests (single shard, ~84 tests)
+  # Frontend — Playwright E2E tests (2 shards in parallel)
   # ───────────────────────────────────────────
   frontend-e2e-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    name: E2E
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    name: E2E (shard ${{ matrix.shard }}/2)
     defaults:
       run:
         working-directory: frontend
@@ -179,8 +183,8 @@ jobs:
       - name: Install Playwright browsers with system deps
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright E2E tests
-        run: npx playwright test e2e/ --reporter=blob
+      - name: Run Playwright E2E tests (shard ${{ matrix.shard }}/2)
+        run: npx playwright test e2e/ --shard=${{ matrix.shard }}/2 --reporter=blob
         env:
           CI: 'true'
           NEXT_PUBLIC_BACKEND_ORIGIN: http://127.0.0.1:8000
@@ -189,7 +193,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-blob
+          name: playwright-blob-${{ matrix.shard }}
           path: frontend/blob-report/
           retention-days: 1
 
@@ -197,7 +201,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-traces
+          name: playwright-traces-${{ matrix.shard }}
           path: frontend/test-results/
           retention-days: 7
 
@@ -224,11 +228,12 @@ jobs:
         run: npm ci
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
-      - name: Download blob report
+      - name: Download all blob reports
         uses: actions/download-artifact@v4
         with:
-          name: playwright-blob
+          pattern: playwright-blob-*
           path: frontend/all-blob-reports
+          merge-multiple: true
       - name: Merge into JSON + flow-coverage
         run: npx playwright merge-reports --reporter='json,./e2e/reporters/flow-coverage-reporter.mjs' all-blob-reports
         env:
