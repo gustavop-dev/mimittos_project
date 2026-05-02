@@ -112,6 +112,7 @@ export default function ConfiguracionPage() {
 
         <label style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, cursor: 'pointer' }}>
           <div
+            data-testid="banner-toggle"
             onClick={() => setBannerActive(!bannerActive)}
             style={{
               width: 44, height: 24, borderRadius: 999,
@@ -212,7 +213,7 @@ export default function ConfiguracionPage() {
             {heroFile ? heroFile.name : 'Haz clic para elegir una imagen'}
           </div>
           <div style={{ fontSize: 12, color: 'var(--gray-warm)' }}>JPG o PNG · máx. 5 MB · recomendado 1400×900 px</div>
-          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={onFileChange} style={{ display: 'none' }} />
+          <input data-testid="hero-file-input" ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={onFileChange} style={{ display: 'none' }} />
         </div>
 
         {heroError && <p style={{ color: '#c23b3b', fontSize: 13, marginBottom: 12 }}>{heroError}</p>}

@@ -81,8 +81,8 @@ describe('ConfiguracionPage', () => {
     const user = userEvent.setup()
     render(<ConfiguracionPage />)
 
-    const labelText = await screen.findByText(/Cinta desactivada/i)
-    const toggleSwitch = labelText.closest('label')?.querySelector('div') as HTMLElement
+    await screen.findByText(/Cinta desactivada/i)
+    const toggleSwitch = screen.getByTestId('banner-toggle')
     await user.click(toggleSwitch)
 
     expect(screen.getByText(/Cinta activa — visible/i)).toBeInTheDocument()
@@ -123,7 +123,7 @@ describe('ConfiguracionPage', () => {
     const user = userEvent.setup()
     render(<ConfiguracionPage />)
 
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+    const fileInput = screen.getByTestId('hero-file-input') as HTMLInputElement
     const file = new File(['x'], 'hero.jpg', { type: 'image/jpeg' })
     await user.upload(fileInput, file)
 
@@ -140,7 +140,7 @@ describe('ConfiguracionPage', () => {
     const user = userEvent.setup()
     render(<ConfiguracionPage />)
 
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+    const fileInput = screen.getByTestId('hero-file-input') as HTMLInputElement
     const file = new File(['x'], 'hero.jpg', { type: 'image/jpeg' })
     await user.upload(fileInput, file)
 

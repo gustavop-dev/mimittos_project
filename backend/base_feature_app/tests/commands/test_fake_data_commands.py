@@ -71,6 +71,7 @@ def test_create_fake_data_orders_have_valid_totals():
 
 @pytest.mark.django_db
 def test_create_fake_data_legacy_aliases_map_to_peluches_and_orders():
+    """'products' and 'orders' kwargs are accepted as legacy aliases for peluches/orders counts."""
     out = StringIO()
 
     call_command(

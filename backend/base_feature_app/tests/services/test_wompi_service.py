@@ -3,6 +3,7 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.test import override_settings
 
 from base_feature_app.models import Order, WompiTransaction
 from base_feature_app.services.wompi_service import WompiService
@@ -81,37 +82,37 @@ def wompi_tx(db, existing_order):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
-def test_verify_signature_returns_true_for_valid_checksum(settings):
-    settings.WOMPI_EVENTS_SECRET = 'secret123'
+@override_settings(WOMPI_EVENTS_SECRET='secret123')
+def test_verify_signature_returns_true_for_valid_checksum():
     event_data = _make_event_data('secret123')
     assert WompiService.verify_signature(event_data) is True
 
 
 @pytest.mark.django_db
-def test_verify_signature_returns_false_for_tampered_checksum(settings):
-    settings.WOMPI_EVENTS_SECRET = 'secret123'
+@override_settings(WOMPI_EVENTS_SECRET='secret123')
+def test_verify_signature_returns_false_for_tampered_checksum():
     event_data = _make_event_data('secret123')
     event_data['signature']['checksum'] = 'bad' * 16
     assert WompiService.verify_signature(event_data) is False
 
 
 @pytest.mark.django_db
-def test_verify_signature_returns_false_for_wrong_secret(settings):
-    settings.WOMPI_EVENTS_SECRET = 'correct_secret'
+@override_settings(WOMPI_EVENTS_SECRET='correct_secret')
+def test_verify_signature_returns_false_for_wrong_secret():
     event_data = _make_event_data('wrong_secret')
     assert WompiService.verify_signature(event_data) is False
 
 
 @pytest.mark.django_db
-def test_verify_signature_returns_false_when_secret_not_configured(settings):
-    settings.WOMPI_EVENTS_SECRET = ''
+@override_settings(WOMPI_EVENTS_SECRET='')
+def test_verify_signature_returns_false_when_secret_not_configured():
     event_data = _make_event_data('any')
     assert WompiService.verify_signature(event_data) is False
 
 
 @pytest.mark.django_db
-def test_verify_signature_returns_false_for_malformed_event(settings):
-    settings.WOMPI_EVENTS_SECRET = 'secret123'
+@override_settings(WOMPI_EVENTS_SECRET='secret123')
+def test_verify_signature_returns_false_for_malformed_event():
     assert WompiService.verify_signature({}) is False
     assert WompiService.verify_signature({'signature': {}}) is False
 
@@ -134,6 +135,7 @@ def test_process_event_ignores_non_transaction_event(wompi_tx):
 
 @pytest.mark.django_db
 def test_process_event_updates_status_to_approved(wompi_tx):
+    """process_event marks the transaction APPROVED and triggers order status update."""
     event_data = {
         'event': 'transaction.updated',
         'data': {
@@ -154,6 +156,7 @@ def test_process_event_updates_status_to_approved(wompi_tx):
 
 @pytest.mark.django_db
 def test_process_event_updates_status_to_declined(wompi_tx):
+    """process_event marks the transaction DECLINED without triggering order status update."""
     event_data = {
         'event': 'transaction.updated',
         'data': {
@@ -172,6 +175,7 @@ def test_process_event_updates_status_to_declined(wompi_tx):
 
 @pytest.mark.django_db
 def test_process_event_does_not_update_order_for_declined(wompi_tx, existing_order):
+    """process_event skips OrderService.update_status when the transaction is declined."""
     event_data = {
         'event': 'transaction.updated',
         'data': {
@@ -191,6 +195,7 @@ def test_process_event_does_not_update_order_for_declined(wompi_tx, existing_ord
 
 @pytest.mark.django_db
 def test_process_event_logs_warning_for_missing_reference(wompi_tx):
+    """process_event leaves the transaction unchanged when the reference does not exist in DB."""
     event_data = {
         'event': 'transaction.updated',
         'data': {
@@ -209,6 +214,7 @@ def test_process_event_logs_warning_for_missing_reference(wompi_tx):
 
 @pytest.mark.django_db
 def test_process_event_stores_wompi_id(wompi_tx):
+    """process_event persists the Wompi transaction ID onto the WompiTransaction record."""
     event_data = {
         'event': 'transaction.updated',
         'data': {
@@ -227,6 +233,7 @@ def test_process_event_stores_wompi_id(wompi_tx):
 
 @pytest.mark.django_db
 def test_process_event_stores_payment_method_type(wompi_tx):
+    """process_event persists the payment method type (CARD, PSE, NEQUI, etc.) on the record."""
     event_data = {
         'event': 'transaction.updated',
         'data': {
@@ -249,11 +256,8 @@ def test_process_event_stores_payment_method_type(wompi_tx):
 
 @pytest.mark.django_db
 @patch('base_feature_app.services.wompi_service.requests.post')
-def test_create_checkout_returns_checkout_url(mock_post, wompi_tx, settings):
-    settings.WOMPI_API_URL = 'https://sandbox.wompi.co/v1'
-    settings.WOMPI_PRIVATE_KEY = 'prv_test_key'
-    settings.FRONTEND_URL = 'http://localhost:3000'
-
+@override_settings(WOMPI_API_URL='https://sandbox.wompi.co/v1', WOMPI_PRIVATE_KEY='prv_test_key', FRONTEND_URL='http://localhost:3000')
+def test_create_checkout_returns_checkout_url(mock_post, wompi_tx):
     mock_response = MagicMock()
     mock_response.json.return_value = {'data': {'id': 'testlink'}}
     mock_response.raise_for_status.return_value = None
@@ -266,11 +270,8 @@ def test_create_checkout_returns_checkout_url(mock_post, wompi_tx, settings):
 
 @pytest.mark.django_db
 @patch('base_feature_app.services.wompi_service.requests.post')
-def test_create_checkout_saves_url_to_transaction(mock_post, wompi_tx, settings):
-    settings.WOMPI_API_URL = 'https://sandbox.wompi.co/v1'
-    settings.WOMPI_PRIVATE_KEY = 'prv_test_key'
-    settings.FRONTEND_URL = 'http://localhost:3000'
-
+@override_settings(WOMPI_API_URL='https://sandbox.wompi.co/v1', WOMPI_PRIVATE_KEY='prv_test_key', FRONTEND_URL='http://localhost:3000')
+def test_create_checkout_saves_url_to_transaction(mock_post, wompi_tx):
     mock_response = MagicMock()
     mock_response.json.return_value = {'data': {'id': 'saved'}}
     mock_response.raise_for_status.return_value = None
@@ -284,11 +285,8 @@ def test_create_checkout_saves_url_to_transaction(mock_post, wompi_tx, settings)
 
 @pytest.mark.django_db
 @patch('base_feature_app.services.wompi_service.requests.post', side_effect=Exception('Connection error'))
-def test_create_checkout_raises_on_request_failure(mock_post, wompi_tx, settings):
-    settings.WOMPI_API_URL = 'https://sandbox.wompi.co/v1'
-    settings.WOMPI_PRIVATE_KEY = 'prv_test_key'
-    settings.FRONTEND_URL = 'http://localhost:3000'
-
+@override_settings(WOMPI_API_URL='https://sandbox.wompi.co/v1', WOMPI_PRIVATE_KEY='prv_test_key', FRONTEND_URL='http://localhost:3000')
+def test_create_checkout_raises_on_request_failure(mock_post, wompi_tx):
     with pytest.raises(Exception, match='Connection error'):
         WompiService.create_checkout(wompi_tx)
     wompi_tx.refresh_from_db()

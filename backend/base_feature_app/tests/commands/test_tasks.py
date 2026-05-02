@@ -3,6 +3,7 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+from django.test import override_settings
 from freezegun import freeze_time
 
 
@@ -37,9 +38,9 @@ def _setup_silk_mocks(mock_request_cls, mock_sql_query_cls, *, slow_queries, n_p
 # silk_garbage_collection
 # ---------------------------------------------------------------------------
 
-def test_silk_garbage_collection_skips_when_silk_disabled(settings):
+@override_settings(ENABLE_SILK=False)
+def test_silk_garbage_collection_skips_when_silk_disabled():
     """silk_garbage_collection returns early without calling call_command when ENABLE_SILK is False."""
-    settings.ENABLE_SILK = False
     from base_feature_project.tasks import silk_garbage_collection
 
     with patch('django.core.management.call_command') as mock_call_command:
@@ -48,9 +49,9 @@ def test_silk_garbage_collection_skips_when_silk_disabled(settings):
     assert mock_call_command.call_count == 0
 
 
-def test_silk_garbage_collection_calls_command_with_seven_days(settings):
+@override_settings(ENABLE_SILK=True)
+def test_silk_garbage_collection_calls_command_with_seven_days():
     """silk_garbage_collection calls silk_garbage_collect with --days=7 when ENABLE_SILK is True."""
-    settings.ENABLE_SILK = True
     from base_feature_project.tasks import silk_garbage_collection
 
     with patch('django.core.management.call_command') as mock_call_command:
@@ -67,10 +68,11 @@ def test_silk_garbage_collection_calls_command_with_seven_days(settings):
 # weekly_slow_queries_report
 # ---------------------------------------------------------------------------
 
-def test_weekly_slow_queries_report_skips_when_silk_disabled(settings, tmp_path):
+@override_settings(ENABLE_SILK=False)
+def test_weekly_slow_queries_report_skips_when_silk_disabled(tmp_path, monkeypatch):
     """weekly_slow_queries_report returns early without writing a log when ENABLE_SILK is False."""
-    settings.ENABLE_SILK = False
-    settings.BASE_DIR = tmp_path
+    from django.conf import settings as django_settings
+    monkeypatch.setattr(django_settings, 'BASE_DIR', tmp_path)
     from base_feature_project.tasks import weekly_slow_queries_report
 
     weekly_slow_queries_report.call_local()
@@ -79,12 +81,11 @@ def test_weekly_slow_queries_report_skips_when_silk_disabled(settings, tmp_path)
 
 
 @freeze_time('2025-06-09')
-def test_weekly_slow_queries_report_creates_log_file(settings, tmp_path):
+@override_settings(ENABLE_SILK=True, SLOW_QUERY_THRESHOLD_MS=500, N_PLUS_ONE_THRESHOLD=10)
+def test_weekly_slow_queries_report_creates_log_file(tmp_path, monkeypatch):
     """weekly_slow_queries_report creates the log file under BASE_DIR/logs/ when ENABLE_SILK is True."""
-    settings.ENABLE_SILK = True
-    settings.SLOW_QUERY_THRESHOLD_MS = 500
-    settings.N_PLUS_ONE_THRESHOLD = 10
-    settings.BASE_DIR = tmp_path
+    from django.conf import settings as django_settings
+    monkeypatch.setattr(django_settings, 'BASE_DIR', tmp_path)
 
     with (
         patch('silk.models.Request') as mock_request_cls,
@@ -98,12 +99,11 @@ def test_weekly_slow_queries_report_creates_log_file(settings, tmp_path):
 
 
 @freeze_time('2025-06-09')
-def test_weekly_slow_queries_report_log_contains_header(settings, tmp_path):
+@override_settings(ENABLE_SILK=True, SLOW_QUERY_THRESHOLD_MS=500, N_PLUS_ONE_THRESHOLD=10)
+def test_weekly_slow_queries_report_log_contains_header(tmp_path, monkeypatch):
     """The generated log file contains the WEEKLY QUERY REPORT header."""
-    settings.ENABLE_SILK = True
-    settings.SLOW_QUERY_THRESHOLD_MS = 500
-    settings.N_PLUS_ONE_THRESHOLD = 10
-    settings.BASE_DIR = tmp_path
+    from django.conf import settings as django_settings
+    monkeypatch.setattr(django_settings, 'BASE_DIR', tmp_path)
 
     with (
         patch('silk.models.Request') as mock_request_cls,
@@ -118,12 +118,11 @@ def test_weekly_slow_queries_report_log_contains_header(settings, tmp_path):
 
 
 @freeze_time('2025-06-09')
-def test_weekly_slow_queries_report_no_slow_queries_message(settings, tmp_path):
+@override_settings(ENABLE_SILK=True, SLOW_QUERY_THRESHOLD_MS=500, N_PLUS_ONE_THRESHOLD=10)
+def test_weekly_slow_queries_report_no_slow_queries_message(tmp_path, monkeypatch):
     """Report contains the 'No slow queries found' message when there are no slow queries."""
-    settings.ENABLE_SILK = True
-    settings.SLOW_QUERY_THRESHOLD_MS = 500
-    settings.N_PLUS_ONE_THRESHOLD = 10
-    settings.BASE_DIR = tmp_path
+    from django.conf import settings as django_settings
+    monkeypatch.setattr(django_settings, 'BASE_DIR', tmp_path)
 
     with (
         patch('silk.models.Request') as mock_request_cls,
@@ -138,12 +137,11 @@ def test_weekly_slow_queries_report_no_slow_queries_message(settings, tmp_path):
 
 
 @freeze_time('2025-06-09')
-def test_weekly_slow_queries_report_no_n_plus_one_message(settings, tmp_path):
+@override_settings(ENABLE_SILK=True, SLOW_QUERY_THRESHOLD_MS=500, N_PLUS_ONE_THRESHOLD=10)
+def test_weekly_slow_queries_report_no_n_plus_one_message(tmp_path, monkeypatch):
     """Report contains the 'No N+1 patterns detected' message when there are no N+1 suspects."""
-    settings.ENABLE_SILK = True
-    settings.SLOW_QUERY_THRESHOLD_MS = 500
-    settings.N_PLUS_ONE_THRESHOLD = 10
-    settings.BASE_DIR = tmp_path
+    from django.conf import settings as django_settings
+    monkeypatch.setattr(django_settings, 'BASE_DIR', tmp_path)
 
     with (
         patch('silk.models.Request') as mock_request_cls,
@@ -158,12 +156,11 @@ def test_weekly_slow_queries_report_no_n_plus_one_message(settings, tmp_path):
 
 
 @freeze_time('2025-06-09')
-def test_weekly_slow_queries_report_includes_slow_query_data(settings, tmp_path):
+@override_settings(ENABLE_SILK=True, SLOW_QUERY_THRESHOLD_MS=500, N_PLUS_ONE_THRESHOLD=10)
+def test_weekly_slow_queries_report_includes_slow_query_data(tmp_path, monkeypatch):
     """Report includes the endpoint path and duration of each detected slow query."""
-    settings.ENABLE_SILK = True
-    settings.SLOW_QUERY_THRESHOLD_MS = 500
-    settings.N_PLUS_ONE_THRESHOLD = 10
-    settings.BASE_DIR = tmp_path
+    from django.conf import settings as django_settings
+    monkeypatch.setattr(django_settings, 'BASE_DIR', tmp_path)
 
     slow_query = SimpleNamespace(
         time_taken=1200.0,
@@ -190,12 +187,11 @@ def test_weekly_slow_queries_report_includes_slow_query_data(settings, tmp_path)
 
 
 @freeze_time('2025-06-09')
-def test_weekly_slow_queries_report_includes_n_plus_one_suspects(settings, tmp_path):
+@override_settings(ENABLE_SILK=True, SLOW_QUERY_THRESHOLD_MS=500, N_PLUS_ONE_THRESHOLD=10)
+def test_weekly_slow_queries_report_includes_n_plus_one_suspects(tmp_path, monkeypatch):
     """Report includes the endpoint path and query count of each detected N+1 suspect."""
-    settings.ENABLE_SILK = True
-    settings.SLOW_QUERY_THRESHOLD_MS = 500
-    settings.N_PLUS_ONE_THRESHOLD = 10
-    settings.BASE_DIR = tmp_path
+    from django.conf import settings as django_settings
+    monkeypatch.setattr(django_settings, 'BASE_DIR', tmp_path)
 
     suspect = SimpleNamespace(query_count=25, path='/api/sales/')
 

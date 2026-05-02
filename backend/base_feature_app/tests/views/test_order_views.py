@@ -223,6 +223,7 @@ def test_my_orders_returns_401_for_anonymous(anon_client):
 
 @pytest.mark.django_db
 def test_my_orders_only_returns_own_orders(authenticated_client, db, existing_user, admin_user):
+    """GET /api/orders/my/ returns only orders belonging to the authenticated user, not other users."""
     Order.objects.create(
         order_number='PELUCH-20260420-ADMN',
         customer=admin_user,

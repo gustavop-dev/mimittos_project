@@ -76,6 +76,7 @@ test.describe('Backoffice', () => {
     }
   );
 
+  // quality: disable test_too_long (banner config flow: auth + toggle + type message + save + verify success state)
   test(
     'should save promo banner configuration from backoffice settings',
     { tag: [...BACKOFFICE_SITE_CONFIG] },

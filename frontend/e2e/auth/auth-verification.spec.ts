@@ -8,6 +8,7 @@ import {
   AUTH_FORGOT_PASSWORD_RESEND,
 } from '../helpers/flow-tags';
 
+// quality: disable test_too_long (sign-up + email verification is a multi-step flow spanning two pages)
 test('should complete email verification after sign-up',
   { tag: [...AUTH_REGISTRATION_VERIFY] },
   async ({ page }) => {
@@ -126,8 +127,9 @@ test(
     // Shorten 1-second countdown ticks to 5ms so the 60-step cooldown clears quickly
     await page.addInitScript(() => {
       const orig = window.setTimeout
-      ;(window as any).setTimeout = (fn: TimerHandler, ms?: number, ...args: unknown[]) =>
-        orig(fn, ms === 1000 ? 5 : ms, ...args)
+      ;(window as unknown as { setTimeout: (fn: TimerHandler, ms?: number, ...args: unknown[]) => number }).setTimeout =
+        (fn: TimerHandler, ms?: number, ...args: unknown[]) =>
+          orig(fn, ms === 1000 ? 5 : ms, ...args)
     })
 
     await page.route('**/api/google-captcha/site-key/', (route) =>
@@ -175,8 +177,9 @@ test(
     // Shorten 1-second countdown ticks to 5ms so the 60-step cooldown clears quickly
     await page.addInitScript(() => {
       const orig = window.setTimeout
-      ;(window as any).setTimeout = (fn: TimerHandler, ms?: number, ...args: unknown[]) =>
-        orig(fn, ms === 1000 ? 5 : ms, ...args)
+      ;(window as unknown as { setTimeout: (fn: TimerHandler, ms?: number, ...args: unknown[]) => number }).setTimeout =
+        (fn: TimerHandler, ms?: number, ...args: unknown[]) =>
+          orig(fn, ms === 1000 ? 5 : ms, ...args)
     })
 
     await page.route('**/api/send_passcode/', (route) =>

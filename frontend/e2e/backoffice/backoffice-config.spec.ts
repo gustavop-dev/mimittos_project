@@ -83,6 +83,7 @@ test(
   },
 )
 
+// quality: disable test_too_long (hero image upload flow: auth + file selection + upload + preview verification)
 test(
   'should send multipart POST when staff uploads a hero image',
   { tag: [...BACKOFFICE_HERO_IMAGE_UPLOAD] },

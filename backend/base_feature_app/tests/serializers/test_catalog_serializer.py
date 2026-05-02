@@ -196,6 +196,7 @@ def test_peluch_create_syncs_size_prices(cat, db):
 
 @pytest.mark.django_db
 def test_peluch_update_syncs_colors(cat, db):
+    """Partial update via PeluchCreateUpdateSerializer replaces the M2M color set atomically."""
     library = Library.objects.create(title='Update Gallery')
     peluch = Peluch.objects.create(
         title='Old Peluch', slug='old-peluch', category=cat, lead_description='Old', gallery=library,

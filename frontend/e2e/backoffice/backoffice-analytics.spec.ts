@@ -60,8 +60,8 @@ test(
     await expect(page.locator('body')).toBeVisible()
     await expect(page).not.toHaveURL(/sign-in/)
 
-    const dateFromInput = page.locator('input[type="date"]').first()
-    const dateToInput = page.locator('input[type="date"]').last()
+    const dateFromInput = page.getByTestId('date-from')
+    const dateToInput = page.getByTestId('date-to')
 
     if (await dateFromInput.isVisible({ timeout: 5_000 }).catch(() => false)) {
       await dateFromInput.fill('2026-04-01')

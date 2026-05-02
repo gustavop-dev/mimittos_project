@@ -21,6 +21,7 @@ def _make_fake_file(name='test.jpg', content=b'fake', content_type='image/jpeg')
 @pytest.mark.django_db
 @patch('PIL.Image')
 def test_optimize_image_returns_in_memory_uploaded_file(mock_image_module):
+    """optimize_image returns an InMemoryUploadedFile with correct name and content type."""
     fake_img = MagicMock()
     fake_img.mode = 'RGB'
     fake_img.size = (800, 800)
@@ -57,6 +58,7 @@ def test_optimize_image_output_name_has_jpg_extension(mock_image_module):
 @pytest.mark.django_db
 @patch('PIL.Image')
 def test_optimize_image_converts_rgba_to_rgb(mock_image_module):
+    """optimize_image converts RGBA images to RGB before JPEG compression to avoid mode errors."""
     rgba_img = MagicMock()
     rgba_img.mode = 'RGBA'
     rgba_img.size = (100, 100)
