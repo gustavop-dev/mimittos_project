@@ -2,6 +2,7 @@ import hashlib
 import json
 
 import pytest
+from django.test import override_settings
 from django_attachments.models import Library
 from rest_framework.test import APIClient
 
@@ -305,8 +306,8 @@ def _make_wompi_event(secret: str, event_type: str = 'transaction.updated',
 
 
 @pytest.mark.django_db
-def test_wompi_webhook_returns_400_for_invalid_signature(api_client, settings):
-    settings.WOMPI_EVENTS_SECRET = 'test_secret'
+@override_settings(WOMPI_EVENTS_SECRET='test_secret')
+def test_wompi_webhook_returns_400_for_invalid_signature(api_client):
     event = _make_wompi_event('wrong_secret')
     response = api_client.post(
         '/api/payment/wompi/webhook/',
@@ -317,8 +318,8 @@ def test_wompi_webhook_returns_400_for_invalid_signature(api_client, settings):
 
 
 @pytest.mark.django_db
-def test_wompi_webhook_returns_200_for_valid_signature(api_client, settings):
-    settings.WOMPI_EVENTS_SECRET = 'test_secret'
+@override_settings(WOMPI_EVENTS_SECRET='test_secret')
+def test_wompi_webhook_returns_200_for_valid_signature(api_client):
     event = _make_wompi_event('test_secret', event_type='other.event')
     response = api_client.post(
         '/api/payment/wompi/webhook/',

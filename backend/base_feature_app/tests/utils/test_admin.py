@@ -1,7 +1,7 @@
 import pytest
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core.exceptions import PermissionDenied
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from django_attachments.models import Library
 
 from base_feature_app.admin import (
@@ -125,13 +125,14 @@ def test_user_admin_impersonate_link_renders_admin_url():
 
 
 @pytest.mark.django_db
-def test_user_admin_login_as_redirects_to_frontend(settings):
+@override_settings(FRONTEND_URL='http://localhost:3000')
+def test_user_admin_login_as_redirects_to_frontend():
+    """login_as_user_view returns a 302 redirect to FRONTEND_URL with JWT tokens in query params."""
     factory = RequestFactory()
     admin_user = User.objects.create_superuser(email='admin@example.com', password='pass1234')
     target_user = User.objects.create_user(email='target@example.com', password='pass1234')
     request = factory.get('/admin/')
     request.user = admin_user
-    settings.FRONTEND_URL = 'http://localhost:3000'
 
     admin = BaseFeatureUserAdmin(User, admin_site)
     response = admin.login_as_user_view(request, target_user.id)

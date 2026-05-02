@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
+from django.test import override_settings
 from django.utils import timezone
 
 from base_feature_app.models import Order
@@ -142,8 +143,8 @@ def test_notify_order_shipped_respects_cooldown(mock_mail, order_with_recent_ema
 
 @pytest.mark.django_db
 @patch('base_feature_app.services.notification_service.send_mail')
-def test_notify_new_order_admin_sends_email_when_configured(mock_mail, base_order, settings):
-    settings.ADMIN_EMAIL = 'admin@peluchelandia.com'
+@override_settings(ADMIN_EMAIL='admin@peluchelandia.com')
+def test_notify_new_order_admin_sends_email_when_configured(mock_mail, base_order):
     result = NotificationService.notify_new_order_admin(base_order)
     assert result is True
     mock_mail.assert_called_once()
@@ -151,8 +152,8 @@ def test_notify_new_order_admin_sends_email_when_configured(mock_mail, base_orde
 
 @pytest.mark.django_db
 @patch('base_feature_app.services.notification_service.send_mail')
-def test_notify_new_order_admin_skips_when_no_email_configured(mock_mail, base_order, settings):
-    settings.ADMIN_EMAIL = ''
+@override_settings(ADMIN_EMAIL='')
+def test_notify_new_order_admin_skips_when_no_email_configured(mock_mail, base_order):
     result = NotificationService.notify_new_order_admin(base_order)
     assert result is False
     mock_mail.assert_not_called()
@@ -160,8 +161,8 @@ def test_notify_new_order_admin_skips_when_no_email_configured(mock_mail, base_o
 
 @pytest.mark.django_db
 @patch('base_feature_app.services.notification_service.send_mail', side_effect=Exception('SMTP error'))
-def test_notify_new_order_admin_returns_false_on_smtp_error(mock_mail, base_order, settings):
-    settings.ADMIN_EMAIL = 'admin@peluchelandia.com'
+@override_settings(ADMIN_EMAIL='admin@peluchelandia.com')
+def test_notify_new_order_admin_returns_false_on_smtp_error(mock_mail, base_order):
     result = NotificationService.notify_new_order_admin(base_order)
     assert result is False
 

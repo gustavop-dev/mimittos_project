@@ -85,6 +85,7 @@ test.describe('Checkout Flow', () => {
     }
   });
 
+  // quality: disable test_too_long (full checkout journey: cart → form → API mock → Wompi redirect)
   test('should call orders API and receive Wompi redirect URL on checkout submit',
     { tag: [...CHECKOUT_WOMPI_REDIRECT] },
     async ({ page }) => {

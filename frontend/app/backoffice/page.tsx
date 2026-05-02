@@ -104,9 +104,9 @@ export default function BackofficeDashboard() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', background: '#fff', borderRadius: 10, padding: '10px 14px', boxShadow: 'var(--shadow-sm)' }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)' }}>Período:</span>
-            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={dateInput} />
+            <input data-testid="date-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={dateInput} />
             <span style={{ color: 'var(--gray-warm)', fontSize: 12 }}>→</span>
-            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={dateInput} />
+            <input data-testid="date-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} style={dateInput} />
             <button onClick={loadAnalytics} style={{ padding: '7px 14px', background: 'var(--coral)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit' }}>Aplicar</button>
           </div>
           <button onClick={handleExport} disabled={exporting} style={{ padding: '10px 16px', background: '#E8F5E9', color: '#2E7D32', border: '1px solid #C8E6C9', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>

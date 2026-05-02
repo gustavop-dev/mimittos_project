@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+from django.test import override_settings
 from django_attachments.models import Library
 
 from base_feature_app.models import (
@@ -127,8 +128,8 @@ def test_generate_order_number_suffix_is_uppercase():
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
-def test_calculate_deposit_returns_half_of_total(settings):
-    settings.DEPOSIT_PERCENTAGE = 50
+@override_settings(DEPOSIT_PERCENTAGE=50)
+def test_calculate_deposit_returns_half_of_total():
     result = OrderService.calculate_deposit(100000)
     assert result == 50000
 
@@ -140,8 +141,8 @@ def test_calculate_deposit_rounds_to_nearest_100():
 
 
 @pytest.mark.django_db
-def test_calculate_deposit_uses_deposit_percentage_setting(settings):
-    settings.DEPOSIT_PERCENTAGE = 30
+@override_settings(DEPOSIT_PERCENTAGE=30)
+def test_calculate_deposit_uses_deposit_percentage_setting():
     result = OrderService.calculate_deposit(100000)
     assert result == 30000
 
@@ -180,8 +181,8 @@ def test_create_order_calculates_total_from_price(mock_media, base_order_data):
 
 @pytest.mark.django_db
 @patch('base_feature_app.services.order_service.OrderService.mark_media_as_used')
-def test_create_order_deposit_is_50_percent(mock_media, base_order_data, settings):
-    settings.DEPOSIT_PERCENTAGE = 50
+@override_settings(DEPOSIT_PERCENTAGE=50)
+def test_create_order_deposit_is_50_percent(mock_media, base_order_data):
     order = OrderService.create_order(base_order_data)
     assert order.deposit_amount == 40000
     assert order.balance_amount == 40000

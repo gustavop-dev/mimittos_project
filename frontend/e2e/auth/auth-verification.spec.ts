@@ -1,7 +1,14 @@
 import { test, expect } from '../test-with-coverage';
 import { waitForPageLoad } from '../fixtures';
-import { AUTH_REGISTRATION_VERIFY, AUTH_GOOGLE_LOGIN } from '../helpers/flow-tags';
+import {
+  AUTH_REGISTRATION_VERIFY,
+  AUTH_GOOGLE_LOGIN,
+  AUTH_FORGOT_PASSWORD_SUBMIT,
+  AUTH_RESEND_VERIFICATION_CODE,
+  AUTH_FORGOT_PASSWORD_RESEND,
+} from '../helpers/flow-tags';
 
+// quality: disable test_too_long (sign-up + email verification is a multi-step flow spanning two pages)
 test('should complete email verification after sign-up',
   { tag: [...AUTH_REGISTRATION_VERIFY] },
   async ({ page }) => {
@@ -83,5 +90,151 @@ test('should render Google sign-in entry point on sign-in page',
 
     // Page structure is always verifiable regardless of Google config
     await expect(page.locator('body')).toBeVisible();
+  }
+);
+
+test('should reset password after submitting passcode and new password',
+  { tag: [...AUTH_FORGOT_PASSWORD_SUBMIT] },
+  async ({ page }) => {
+    await page.route('**/api/send_passcode/', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) })
+    );
+    await page.route('**/api/verify_passcode_and_reset_password/', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) })
+    );
+
+    await page.goto('/forgot-password');
+    await waitForPageLoad(page);
+
+    await page.getByPlaceholder('tu@correo.com').fill('user@example.com');
+    await page.getByRole('button', { name: /Enviar código/i }).click();
+
+    await expect(page.getByPlaceholder('000000')).toBeVisible({ timeout: 10_000 });
+
+    await page.getByPlaceholder('000000').fill('123456');
+    await page.getByPlaceholder('Mínimo 8 caracteres').fill('NuevaP@ss123');
+    await page.getByPlaceholder('Repite la contraseña').fill('NuevaP@ss123');
+    await page.getByRole('button', { name: /Crear nueva contraseña/i }).click();
+
+    await expect(page.getByText('¡Contraseña actualizada!')).toBeVisible({ timeout: 10_000 });
+  }
+);
+
+test(
+  'should resend verification code during sign-up step 2',
+  { tag: [...AUTH_RESEND_VERIFICATION_CODE] },
+  async ({ page }) => {
+    // Shorten 1-second countdown ticks to 5ms so the 60-step cooldown clears quickly
+    await page.addInitScript(() => {
+      const orig = window.setTimeout
+      ;(window as unknown as { setTimeout: (fn: TimerHandler, ms?: number, ...args: unknown[]) => number }).setTimeout =
+        (fn: TimerHandler, ms?: number, ...args: unknown[]) =>
+          orig(fn, ms === 1000 ? 5 : ms, ...args)
+    })
+
+    await page.route('**/api/google-captcha/site-key/', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ site_key: null }) })
+    )
+    await page.route('**/api/sign_up/', (route) =>
+      route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ email: 'nueva@ejemplo.com' }) })
+    )
+    await page.route('**/api/resend_verification/', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ message: 'sent' }) })
+    )
+
+    await page.goto('/sign-up')
+    await waitForPageLoad(page)
+
+    await page.getByPlaceholder('Sofía').fill('María')
+    await page.getByPlaceholder('Martínez').fill('Rodríguez')
+    await page.getByPlaceholder('sofia@ejemplo.com').fill('nueva@ejemplo.com')
+    await page.getByPlaceholder('+57 300 000 0000').fill('+57 312 000 0001')
+    await page.getByPlaceholder('Mínimo 8 caracteres').fill('Segura@123')
+    await page.getByPlaceholder('Repite la contraseña').fill('Segura@123')
+    // quality: allow-fragile-selector (custom div toggle inside label has no ARIA role)
+    await page.locator('label').filter({ hasText: /acepto los/i }).locator('div').first().click()
+    await page.getByRole('button', { name: /crear mi cuenta/i }).click()
+
+    await expect(page.getByPlaceholder('000000')).toBeVisible({ timeout: 10_000 })
+
+    // Wait for the cooldown to clear (60 ticks × 5ms ≈ 300ms, large timeout for CI headroom)
+    const resendBtn = page.getByRole('button', { name: /Reenviar código/i })
+    await expect(resendBtn).toBeVisible({ timeout: 10_000 })
+
+    const resendRequest = page.waitForRequest(
+      (req) => req.url().includes('/api/resend_verification/') && req.method() === 'POST',
+      { timeout: 10_000 },
+    )
+    await resendBtn.click()
+    await resendRequest
+  },
+)
+
+test(
+  'should resend passcode during forgot-password step 2',
+  { tag: [...AUTH_FORGOT_PASSWORD_RESEND] },
+  async ({ page }) => {
+    // Shorten 1-second countdown ticks to 5ms so the 60-step cooldown clears quickly
+    await page.addInitScript(() => {
+      const orig = window.setTimeout
+      ;(window as unknown as { setTimeout: (fn: TimerHandler, ms?: number, ...args: unknown[]) => number }).setTimeout =
+        (fn: TimerHandler, ms?: number, ...args: unknown[]) =>
+          orig(fn, ms === 1000 ? 5 : ms, ...args)
+    })
+
+    await page.route('**/api/send_passcode/', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) })
+    )
+
+    await page.goto('/forgot-password')
+    await waitForPageLoad(page)
+
+    await page.getByPlaceholder('tu@correo.com').fill('user@example.com')
+    await page.getByRole('button', { name: /Enviar código/i }).click()
+
+    await expect(page.getByPlaceholder('000000')).toBeVisible({ timeout: 10_000 })
+
+    // Wait for the cooldown to clear (60 ticks × 5ms ≈ 300ms)
+    const resendBtn = page.getByRole('button', { name: /Reenviar código/i })
+    await expect(resendBtn).toBeVisible({ timeout: 10_000 })
+
+    const resendRequest = page.waitForRequest(
+      (req) => req.url().includes('/api/send_passcode/') && req.method() === 'POST',
+      { timeout: 10_000 },
+    )
+    await resendBtn.click()
+    await resendRequest
+  },
+)
+
+test('should show error message on invalid passcode without leaving the reset step',
+  { tag: [...AUTH_FORGOT_PASSWORD_SUBMIT] },
+  async ({ page }) => {
+    await page.route('**/api/send_passcode/', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) })
+    );
+    await page.route('**/api/verify_passcode_and_reset_password/', (route) =>
+      route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Código inválido o expirado' }),
+      })
+    );
+
+    await page.goto('/forgot-password');
+    await waitForPageLoad(page);
+
+    await page.getByPlaceholder('tu@correo.com').fill('user@example.com');
+    await page.getByRole('button', { name: /Enviar código/i }).click();
+
+    await expect(page.getByPlaceholder('000000')).toBeVisible({ timeout: 10_000 });
+
+    await page.getByPlaceholder('000000').fill('999999');
+    await page.getByPlaceholder('Mínimo 8 caracteres').fill('NuevaP@ss123');
+    await page.getByPlaceholder('Repite la contraseña').fill('NuevaP@ss123');
+    await page.getByRole('button', { name: /Crear nueva contraseña/i }).click();
+
+    await expect(page.getByText('Código inválido o expirado')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByPlaceholder('000000')).toBeVisible();
   }
 );

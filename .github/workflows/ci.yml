@@ -123,28 +123,16 @@ jobs:
           retention-days: 5
 
   # ───────────────────────────────────────────
-  # Frontend — Playwright E2E tests (4 grupos en paralelo)
+  # Frontend — Playwright E2E tests (2 shards in parallel)
   # ───────────────────────────────────────────
   frontend-e2e-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - part: 1
-            label: public
-            files: "e2e/public/smoke.spec.ts e2e/public/navigation.spec.ts e2e/public/blogs.spec.ts"
-          - part: 2
-            label: catalog
-            files: "e2e/public/products.spec.ts e2e/app/user-flows.spec.ts"
-          - part: 3
-            label: auth
-            files: "e2e/auth/auth.spec.ts"
-          - part: 4
-            label: purchase
-            files: "e2e/app/cart.spec.ts e2e/app/checkout.spec.ts e2e/app/complete-purchase.spec.ts"
-    name: E2E ${{ matrix.part }}/4 — ${{ matrix.label }}
+        shard: [1, 2]
+    name: E2E (shard ${{ matrix.shard }}/2)
     defaults:
       run:
         working-directory: frontend
@@ -195,36 +183,78 @@ jobs:
       - name: Install Playwright browsers with system deps
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright E2E tests (${{ matrix.label }})
-        run: npx playwright test ${{ matrix.files }}
+      - name: Run Playwright E2E tests (shard ${{ matrix.shard }}/2)
+        run: npx playwright test e2e/ --shard=${{ matrix.shard }}/2 --reporter=blob
         env:
           CI: 'true'
           NEXT_PUBLIC_BACKEND_ORIGIN: http://127.0.0.1:8000
 
-      - name: Upload E2E results
+      - name: Upload blob report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-frontend-e2e-${{ matrix.part }}
-          path: |
-            frontend/e2e-results/flow-coverage.json
-            frontend/e2e-results/results.json
-          retention-days: 5
+          name: playwright-blob-${{ matrix.shard }}
+          path: frontend/blob-report/
+          retention-days: 1
 
       - name: Upload test traces (failures only)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-traces-${{ matrix.part }}
+          name: playwright-traces-${{ matrix.shard }}
           path: frontend/test-results/
           retention-days: 7
+
+  # ───────────────────────────────────────────
+  # E2E Merge Reports — combine blob reports into JSON + flow-coverage
+  # ───────────────────────────────────────────
+  e2e-merge-reports:
+    if: always()
+    needs: [frontend-e2e-tests]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      - name: Download all blob reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: playwright-blob-*
+          path: frontend/all-blob-reports
+          merge-multiple: true
+      - name: Merge into JSON + flow-coverage
+        run: npx playwright merge-reports --reporter='json,./e2e/reporters/flow-coverage-reporter.mjs' all-blob-reports
+        env:
+          CI: 'true'
+          PLAYWRIGHT_JSON_OUTPUT_NAME: e2e-results/playwright-results.json
+      - name: Upload E2E flow coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-frontend-e2e
+          path: |
+            frontend/e2e-results/flow-coverage.json
+            frontend/e2e-results/playwright-results.json
+          retention-days: 5
 
   # ───────────────────────────────────────────
   # Coverage Summary — aggregates all reports
   # ───────────────────────────────────────────
   coverage-summary:
     if: always()
-    needs: [backend-tests, frontend-unit-tests, frontend-e2e-tests]
+    needs: [backend-tests, frontend-unit-tests, e2e-merge-reports]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -256,9 +286,8 @@ jobs:
       - name: Download frontend-e2e coverage
         uses: actions/download-artifact@v4
         with:
-          pattern: coverage-frontend-e2e-*
+          name: coverage-frontend-e2e
           path: coverage-artifacts/frontend-e2e
-          merge-multiple: true
         continue-on-error: true
 
       - name: Generate coverage summary

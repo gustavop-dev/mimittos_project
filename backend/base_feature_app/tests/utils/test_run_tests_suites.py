@@ -106,6 +106,7 @@ def test_load_resume_state_returns_none_when_missing(tmp_path):
 
 
 def test_select_suites_for_resume_filters_non_ok():
+    """select_suites_for_resume excludes suites that previously finished with status OK."""
     suite_runners = [
         ("backend", partial(make_step_result, "backend")),
         ("frontend-unit", partial(make_step_result, "frontend-unit")),
@@ -279,6 +280,7 @@ def test_read_backend_summary_total_metric(tmp_path, monkeypatch):
 
 
 def test_read_flow_summary_formats_flow_percent(tmp_path):
+    """read_flow_summary returns a formatted percentage string from the flow-coverage JSON report."""
     summary_path = tmp_path / "e2e-results" / "flow-coverage.json"
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(
@@ -306,6 +308,7 @@ def test_read_flow_summary_formats_flow_percent(tmp_path):
 
 
 def test_run_backend_triggers_erase_when_enabled(tmp_path, monkeypatch):
+    """run_backend calls erase_backend_data before pytest when erase=True is passed."""
     calls = []
     captured = {}
     (tmp_path / "base_feature_app").mkdir()
@@ -338,6 +341,7 @@ def test_run_backend_triggers_erase_when_enabled(tmp_path, monkeypatch):
 
 
 def test_run_backend_skips_erase_when_disabled(tmp_path, monkeypatch):
+    """run_backend skips erase_backend_data entirely when erase=False, leaving coverage data intact."""
     calls = []
     captured = {}
     (tmp_path / "base_feature_app").mkdir()
@@ -369,6 +373,7 @@ def test_run_backend_skips_erase_when_disabled(tmp_path, monkeypatch):
 
 
 def test_erase_backend_data_invokes_report_module(tmp_path, monkeypatch):
+    """erase_backend_data erases the coverage file and invokes the coverage report module."""
     captured = {}
 
     class FakeCoverage:
@@ -398,6 +403,7 @@ def test_build_log_separator_includes_suite_metadata():
 
 
 def test_record_suite_result_writes_resume_file(tmp_path):
+    """record_suite_result serializes the suite result to the resume JSON file for later reruns."""
     resume_path = tmp_path / "reports" / run_tests_all_suites.RESUME_FILENAME
     backend_log = tmp_path / "backend.log"
     result_backend = make_step_result("backend", log_path=backend_log)
@@ -443,6 +449,7 @@ def test_run_command_writes_log_separator(tmp_path):
 
 
 def test_extract_backend_report_table_reads_header(tmp_path):
+    """extract_backend_report_table parses the COVERAGE REPORT header line from the pytest log."""
     log_path = tmp_path / "backend.log"
     log_path.write_text(
         "\n".join(

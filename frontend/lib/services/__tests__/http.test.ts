@@ -122,7 +122,7 @@ describe('http service', () => {
 
     await import('../http');
 
-    const error = { response: { status: 401 }, config: {} };
+    const error = { response: { status: 401 }, config: { headers: { Authorization: 'Bearer expired' } } };
 
     const result = await responseErrorInterceptor?.(error);
 
@@ -144,8 +144,8 @@ describe('http service', () => {
 
     await import('../http');
 
-    const errorOne = { response: { status: 401 }, config: { headers: {} } };
-    const errorTwo = { response: { status: 401 }, config: { headers: {} } };
+    const errorOne = { response: { status: 401 }, config: { headers: { Authorization: 'Bearer expired' } } };
+    const errorTwo = { response: { status: 401 }, config: { headers: { Authorization: 'Bearer expired' } } };
 
     const firstAttempt = responseErrorInterceptor?.(errorOne);
     const secondAttempt = responseErrorInterceptor?.(errorTwo);
@@ -165,7 +165,7 @@ describe('http service', () => {
 
     await import('../http');
 
-    const error = { response: { status: 401 }, config: { headers: {} } };
+    const error = { response: { status: 401 }, config: { headers: { Authorization: 'Bearer expired' } } };
 
     await expect(responseErrorInterceptor?.(error)).rejects.toBe(error);
     expect(mockSetTokens).not.toHaveBeenCalled();
@@ -177,7 +177,7 @@ describe('http service', () => {
 
     await import('../http');
 
-    const error = { response: { status: 401 }, config: { headers: {} } };
+    const error = { response: { status: 401 }, config: { headers: { Authorization: 'Bearer expired' } } };
 
     await expect(responseErrorInterceptor?.(error)).rejects.toBe(error);
     expect(mockClearTokens).toHaveBeenCalledTimes(1);

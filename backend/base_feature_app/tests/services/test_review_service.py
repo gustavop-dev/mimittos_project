@@ -150,6 +150,7 @@ def test_update_peluch_rating_excludes_unapproved_reviews(existing_user, peluch_
 
 @pytest.mark.django_db
 def test_update_peluch_rating_rounds_to_two_decimal_places(db, category, color, size):
+    """update_peluch_rating stores the average rounded to 2 decimal places, not a raw float."""
     library = Library.objects.create(title='Rating Gallery')
     p = Peluch.objects.create(
         title='Rounding Peluch',
