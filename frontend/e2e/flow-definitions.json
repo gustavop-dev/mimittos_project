@@ -1,5 +1,5 @@
 {
-  "version": "1.3.0",
+  "version": "1.4.0",
   "lastUpdated": "2026-05-01",
   "flows": {
     "home-loads": {
@@ -520,6 +520,206 @@
       "roles": ["shared"],
       "priority": "P2",
       "description": "User requests a passcode by email, submits the code with a new password, and the password is reset",
+      "expectedSpecs": 1
+    },
+    "catalog-filter-by-size": {
+      "name": "Filter catalog by size",
+      "module": "catalog",
+      "roles": ["shared"],
+      "priority": "P2",
+      "description": "User toggles a size pill in the /catalog sidebar; product list re-fetches with ?size=<slug> and shows only matching peluches",
+      "expectedSpecs": 1
+    },
+    "catalog-filter-by-price": {
+      "name": "Filter catalog by max price",
+      "module": "catalog",
+      "roles": ["shared"],
+      "priority": "P3",
+      "description": "User adjusts the max-price slider on /catalog; product list re-fetches with ?max_price and excludes peluches above the threshold",
+      "expectedSpecs": 1
+    },
+    "catalog-filter-personalization": {
+      "name": "Filter catalog by huella personalization",
+      "module": "catalog",
+      "roles": ["shared"],
+      "priority": "P3",
+      "description": "User toggles the 'con huella' filter on /catalog; product list re-fetches with ?has_huella=true and shows only peluches that support huella",
+      "expectedSpecs": 1
+    },
+    "orders-filter-by-status": {
+      "name": "Filter my orders by status",
+      "module": "orders",
+      "roles": ["user"],
+      "priority": "P2",
+      "description": "Authenticated user clicks a status filter button on /orders (Pendiente pago / Pago confirmado / En producción / Despachado / Entregado / Cancelado); list narrows to orders in that status",
+      "expectedSpecs": 1
+    },
+    "orders-search-by-number": {
+      "name": "Search my orders by number",
+      "module": "orders",
+      "roles": ["user"],
+      "priority": "P3",
+      "description": "Authenticated user types into the 'Buscar por # pedido…' input on /orders; list filters in-memory by order_number or customer_name substring",
+      "expectedSpecs": 1
+    },
+    "auth-resend-verification-code": {
+      "name": "Resend sign-up verification code",
+      "module": "auth",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "During /sign-up step 2 the user clicks 'Reenviar código' after the cooldown; POST /api/resend_verification/ sends a new 6-digit code and the cooldown timer restarts",
+      "expectedSpecs": 1
+    },
+    "auth-forgot-password-resend": {
+      "name": "Resend forgot-password code",
+      "module": "auth",
+      "roles": ["guest"],
+      "priority": "P3",
+      "description": "During /forgot-password step 2 the user clicks 'Reenviar código' after the cooldown; POST /api/send_passcode/ is called again and the cooldown restarts",
+      "expectedSpecs": 1
+    },
+    "payment-card-submit": {
+      "name": "Pay with credit/debit card",
+      "module": "payment",
+      "roles": ["shared"],
+      "priority": "P1",
+      "description": "User selects Tarjeta on /payment, fills card number, holder, expiry, CVV, and submits; paymentService.processCard tokenizes and confirms — on success navigates to /order-confirmed",
+      "expectedSpecs": 1
+    },
+    "payment-nequi-submit": {
+      "name": "Pay with Nequi",
+      "module": "payment",
+      "roles": ["shared"],
+      "priority": "P1",
+      "description": "User selects Nequi on /payment, enters phone number, and submits; paymentService.processNequi pushes notification — on success navigates to /order-confirmed",
+      "expectedSpecs": 1
+    },
+    "payment-pse-submit": {
+      "name": "Pay with PSE",
+      "module": "payment",
+      "roles": ["shared"],
+      "priority": "P2",
+      "description": "User selects PSE on /payment, picks bank, person type, ID type and ID number, then submits; paymentService.processPse returns redirect_url and the browser navigates to the bank portal",
+      "expectedSpecs": 1
+    },
+    "payment-bancolombia-submit": {
+      "name": "Pay with Bancolombia transfer",
+      "module": "payment",
+      "roles": ["shared"],
+      "priority": "P2",
+      "description": "User selects Bancolombia on /payment, picks person type, ID type and ID number, then submits; paymentService.processBancolombia returns redirect_url and the browser navigates to Bancolombia",
+      "expectedSpecs": 1
+    },
+    "backoffice-analytics-date-filter": {
+      "name": "Filter analytics dashboard by date range",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff sets dateFrom/dateTo on /backoffice and clicks Aplicar; analyticsAdminService.getDashboard re-fetches and the KPI widgets and charts update for the new range",
+      "expectedSpecs": 1
+    },
+    "backoffice-analytics-export-csv": {
+      "name": "Export orders CSV from analytics",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff clicks the '↓ CSV' button on /backoffice; analyticsAdminService.exportOrdersCSV downloads a CSV file scoped to the current date range",
+      "expectedSpecs": 1
+    },
+    "backoffice-peluch-toggle-featured": {
+      "name": "Toggle peluch featured flag",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff clicks the ⭐ button on a peluch row in /backoffice/peluches; PATCH /api/peluches/{slug}/ flips is_featured (capped at 4 featured peluches)",
+      "expectedSpecs": 1
+    },
+    "backoffice-peluch-delete": {
+      "name": "Delete peluch from backoffice",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff clicks Eliminar on a peluch row in /backoffice/peluches and confirms; DELETE /api/peluches/{slug}/ removes the peluch and the row disappears",
+      "expectedSpecs": 1
+    },
+    "backoffice-peluch-bulk-category": {
+      "name": "Bulk assign category to peluches",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff selects multiple peluches via row checkboxes on /backoffice/peluches, picks a target category in the bulk action bar, and clicks Asignar; PATCH /api/peluches/bulk-category/ updates them all",
+      "expectedSpecs": 1
+    },
+    "backoffice-category-create": {
+      "name": "Create category in backoffice",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff clicks '+ Nueva categoría' on /backoffice/categorias, fills name/description/order/active/featured/image in the modal, and submits; POST /api/categories/ creates the category and the table re-renders",
+      "expectedSpecs": 1
+    },
+    "backoffice-category-edit": {
+      "name": "Edit category in backoffice",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff clicks Editar on a category row, modifies fields in the modal, and saves; PATCH /api/categories/{id}/ persists the changes and the row updates",
+      "expectedSpecs": 1
+    },
+    "backoffice-category-delete": {
+      "name": "Delete category in backoffice",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff clicks Eliminar on a category row in /backoffice/categorias and confirms; DELETE /api/categories/{id}/ removes it and the row disappears",
+      "expectedSpecs": 1
+    },
+    "backoffice-user-toggle-role": {
+      "name": "Toggle user role in backoffice",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff clicks 'Hacer admin' or 'Hacer cliente' on a user row in /backoffice/usuarios; PATCH /api/users/{id}/ updates role and is_staff, and the row label switches",
+      "expectedSpecs": 1
+    },
+    "backoffice-user-toggle-active": {
+      "name": "Toggle user active state",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff clicks 'Activar' or 'Desactivar' on a user row in /backoffice/usuarios; PATCH /api/users/{id}/ flips is_active and the badge updates",
+      "expectedSpecs": 1
+    },
+    "backoffice-order-status-update": {
+      "name": "Update order status in backoffice",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P2",
+      "description": "Staff changes the per-row status select on /backoffice/pedidos; PATCH /api/orders/{number}/status/ persists the new state and a status-history entry is created",
+      "expectedSpecs": 1
+    },
+    "backoffice-order-tracking-update": {
+      "name": "Set order tracking number in backoffice",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff types a tracking number on a row in /backoffice/pedidos and clicks ✓; PATCH /api/orders/{number}/tracking/ saves carrier+guide and the field shows the new value",
+      "expectedSpecs": 1
+    },
+    "backoffice-promo-banner-save": {
+      "name": "Save promo banner from backoffice",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff toggles active, edits message and colors on /backoffice/configuracion, and clicks 'Guardar cinta'; PUT /api/content/promo_banner/ persists the JSON and button shows ✓ Guardado",
+      "expectedSpecs": 1
+    },
+    "backoffice-hero-image-upload": {
+      "name": "Upload hero image from backoffice",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P3",
+      "description": "Staff drops or selects a file on /backoffice/configuracion and clicks 'Subir imagen'; multipart POST /api/content/hero-image/upload/ returns the new URL and the preview updates",
       "expectedSpecs": 1
     }
   }

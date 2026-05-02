@@ -118,3 +118,48 @@ export const CATALOG_SORT_PRODUCTS = ['@flow:catalog-sort-products', '@module:ca
 
 // ── Auth (forgot password submit) ──
 export const AUTH_FORGOT_PASSWORD_SUBMIT = ['@flow:auth-forgot-password-submit', '@module:auth', '@priority:P2'];
+
+// ── Catalog (extra filters added in v1.4.0) ──
+export const CATALOG_FILTER_BY_SIZE = ['@flow:catalog-filter-by-size', '@module:catalog', '@priority:P2'];
+export const CATALOG_FILTER_BY_PRICE = ['@flow:catalog-filter-by-price', '@module:catalog', '@priority:P3'];
+export const CATALOG_FILTER_PERSONALIZATION = ['@flow:catalog-filter-personalization', '@module:catalog', '@priority:P3'];
+
+// ── Orders (filter & search added in v1.4.0) ──
+export const ORDERS_FILTER_BY_STATUS = ['@flow:orders-filter-by-status', '@module:orders', '@priority:P2'];
+export const ORDERS_SEARCH_BY_NUMBER = ['@flow:orders-search-by-number', '@module:orders', '@priority:P3'];
+
+// ── Auth (resend code added in v1.4.0) ──
+export const AUTH_RESEND_VERIFICATION_CODE = ['@flow:auth-resend-verification-code', '@module:auth', '@priority:P3'];
+export const AUTH_FORGOT_PASSWORD_RESEND = ['@flow:auth-forgot-password-resend', '@module:auth', '@priority:P3'];
+
+// ── Payment (per-method submissions added in v1.4.0) ──
+export const PAYMENT_CARD_SUBMIT = ['@flow:payment-card-submit', '@module:payment', '@priority:P1'];
+export const PAYMENT_NEQUI_SUBMIT = ['@flow:payment-nequi-submit', '@module:payment', '@priority:P1'];
+export const PAYMENT_PSE_SUBMIT = ['@flow:payment-pse-submit', '@module:payment', '@priority:P2'];
+export const PAYMENT_BANCOLOMBIA_SUBMIT = ['@flow:payment-bancolombia-submit', '@module:payment', '@priority:P2'];
+
+// ── Backoffice (analytics actions added in v1.4.0) ──
+export const BACKOFFICE_ANALYTICS_DATE_FILTER = ['@flow:backoffice-analytics-date-filter', '@module:backoffice', '@priority:P3'];
+export const BACKOFFICE_ANALYTICS_EXPORT_CSV = ['@flow:backoffice-analytics-export-csv', '@module:backoffice', '@priority:P3'];
+
+// ── Backoffice (peluches list actions added in v1.4.0) ──
+export const BACKOFFICE_PELUCH_TOGGLE_FEATURED = ['@flow:backoffice-peluch-toggle-featured', '@module:backoffice', '@priority:P3'];
+export const BACKOFFICE_PELUCH_DELETE = ['@flow:backoffice-peluch-delete', '@module:backoffice', '@priority:P3'];
+export const BACKOFFICE_PELUCH_BULK_CATEGORY = ['@flow:backoffice-peluch-bulk-category', '@module:backoffice', '@priority:P3'];
+
+// ── Backoffice (categorías split added in v1.4.0) ──
+export const BACKOFFICE_CATEGORY_CREATE = ['@flow:backoffice-category-create', '@module:backoffice', '@priority:P3'];
+export const BACKOFFICE_CATEGORY_EDIT = ['@flow:backoffice-category-edit', '@module:backoffice', '@priority:P3'];
+export const BACKOFFICE_CATEGORY_DELETE = ['@flow:backoffice-category-delete', '@module:backoffice', '@priority:P3'];
+
+// ── Backoffice (usuarios split added in v1.4.0) ──
+export const BACKOFFICE_USER_TOGGLE_ROLE = ['@flow:backoffice-user-toggle-role', '@module:backoffice', '@priority:P3'];
+export const BACKOFFICE_USER_TOGGLE_ACTIVE = ['@flow:backoffice-user-toggle-active', '@module:backoffice', '@priority:P3'];
+
+// ── Backoffice (pedidos split added in v1.4.0) ──
+export const BACKOFFICE_ORDER_STATUS_UPDATE = ['@flow:backoffice-order-status-update', '@module:backoffice', '@priority:P2'];
+export const BACKOFFICE_ORDER_TRACKING_UPDATE = ['@flow:backoffice-order-tracking-update', '@module:backoffice', '@priority:P3'];
+
+// ── Backoffice (configuración split added in v1.4.0) ──
+export const BACKOFFICE_PROMO_BANNER_SAVE = ['@flow:backoffice-promo-banner-save', '@module:backoffice', '@priority:P3'];
+export const BACKOFFICE_HERO_IMAGE_UPLOAD = ['@flow:backoffice-hero-image-upload', '@module:backoffice', '@priority:P3'];

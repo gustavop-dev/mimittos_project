@@ -4,8 +4,8 @@
 
 Use this document to understand each flow's steps, branching conditions, role restrictions, and API contracts before writing or reviewing E2E tests.
 
-**Version:** 1.2.0
-**Last Updated:** 2026-04-24
+**Version:** 1.4.0
+**Last Updated:** 2026-05-01
 
 ---
 
@@ -68,6 +68,31 @@ Use this document to understand each flow's steps, branching conditions, role re
 | `contact-page-display` | Contact Page | public | P4 | shared | `/contact` |
 | `about-page-display` | About Page | public | P4 | shared | `/about` |
 | `terms-page-display` | Terms Page | public | P4 | shared | `/terms` |
+| `catalog-filter-by-size` | Filter Catalog by Size | catalog | P2 | shared | `/catalog` |
+| `catalog-filter-by-price` | Filter Catalog by Max Price | catalog | P3 | shared | `/catalog` |
+| `catalog-filter-personalization` | Filter Catalog by Huella | catalog | P3 | shared | `/catalog` |
+| `orders-filter-by-status` | Filter My Orders by Status | orders | P2 | user | `/orders` |
+| `orders-search-by-number` | Search My Orders by Number | orders | P3 | user | `/orders` |
+| `auth-resend-verification-code` | Resend Sign-up Verification Code | auth | P3 | guest | `/sign-up` |
+| `auth-forgot-password-resend` | Resend Forgot-Password Code | auth | P3 | guest | `/forgot-password` |
+| `payment-card-submit` | Pay with Card | payment | P1 | shared | `/payment` |
+| `payment-nequi-submit` | Pay with Nequi | payment | P1 | shared | `/payment` |
+| `payment-pse-submit` | Pay with PSE | payment | P2 | shared | `/payment` |
+| `payment-bancolombia-submit` | Pay with Bancolombia | payment | P2 | shared | `/payment` |
+| `backoffice-analytics-date-filter` | Filter Analytics by Date Range | backoffice | P3 | staff | `/backoffice` |
+| `backoffice-analytics-export-csv` | Export Orders CSV | backoffice | P3 | staff | `/backoffice` |
+| `backoffice-peluch-toggle-featured` | Toggle Peluch Featured | backoffice | P3 | staff | `/backoffice/peluches` |
+| `backoffice-peluch-delete` | Delete Peluch | backoffice | P3 | staff | `/backoffice/peluches` |
+| `backoffice-peluch-bulk-category` | Bulk Assign Category to Peluches | backoffice | P3 | staff | `/backoffice/peluches` |
+| `backoffice-category-create` | Create Category | backoffice | P3 | staff | `/backoffice/categorias` |
+| `backoffice-category-edit` | Edit Category | backoffice | P3 | staff | `/backoffice/categorias` |
+| `backoffice-category-delete` | Delete Category | backoffice | P3 | staff | `/backoffice/categorias` |
+| `backoffice-user-toggle-role` | Toggle User Role | backoffice | P3 | staff | `/backoffice/usuarios` |
+| `backoffice-user-toggle-active` | Toggle User Active State | backoffice | P3 | staff | `/backoffice/usuarios` |
+| `backoffice-order-status-update` | Update Order Status | backoffice | P2 | staff | `/backoffice/pedidos` |
+| `backoffice-order-tracking-update` | Set Order Tracking Number | backoffice | P3 | staff | `/backoffice/pedidos` |
+| `backoffice-promo-banner-save` | Save Promo Banner | backoffice | P3 | staff | `/backoffice/configuracion` |
+| `backoffice-hero-image-upload` | Upload Hero Image | backoffice | P3 | staff | `/backoffice/configuracion` |
 
 ---
 
@@ -1231,3 +1256,291 @@ User changes the sort dropdown (`<select>` with options `popular`, `new`, `price
 | **API endpoints** | `GET/PUT /api/content/promo_banner/`, `GET /api/content/hero_image/`, `POST /api/content/hero-image/upload/` |
 
 Staff opens the site-configuration page, edits the promo banner (toggle active, message, background/text color), and clicks "Guardar cinta" — frontend calls `PUT /api/content/promo_banner/` with the new `content_json`. Button label transitions Guardar → Guardando… → ✓ Guardado (auto-resets after 3s). Hero-image upload uses a separate multipart `POST` and updates the preview on success.
+
+---
+
+## Flows added in version 1.4.0 (2026-05-01)
+
+These flows were registered after a `/e2e-user-flows-check full` audit confirmed each interaction exists in `frontend/app/` but had no entry in the registry. Existing umbrella flows (`payment-page-display`, `backoffice-category-management`, `backoffice-user-management`, `backoffice-order-management`, `backoffice-site-configuration`) remain in place; the new flows below are additive splits that cover specific user actions for finer-grained coverage signals.
+
+### catalog-filter-by-size
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | shared |
+| **Frontend route** | `/catalog` |
+| **API endpoints** | `GET /api/peluches/?size=<slug>` |
+
+User toggles a size pill in the `/catalog` sidebar. The active size becomes part of the filter state and the product list re-fetches with `?size=<slug>` so only matching peluches are rendered. Clicking the same size again clears the filter (toggle behavior).
+
+### catalog-filter-by-price
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | shared |
+| **Frontend route** | `/catalog` |
+| **API endpoints** | `GET /api/peluches/?max_price=<n>` |
+
+User drags the max-price slider on `/catalog` (range 60k–250k COP). When the value drops below the maximum, the list re-fetches with `?max_price` and excludes peluches whose minimum price exceeds the threshold. Slider above 250k results in no `max_price` param being sent.
+
+### catalog-filter-personalization
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | shared |
+| **Frontend route** | `/catalog` |
+| **API endpoints** | `GET /api/peluches/?has_huella=true` |
+
+User toggles the "con huella" checkbox in the catalog filter sidebar. When active, the product list re-fetches with `?has_huella=true` and only peluches whose `has_huella` flag is true are shown.
+
+### orders-filter-by-status
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | user |
+| **Frontend route** | `/orders` |
+| **API endpoints** | None (client-side filter on already-fetched list) |
+
+Authenticated user clicks one of the status filter buttons on `/orders` (Todos / Pendiente pago / Pago confirmado / En producción / Despachado / Entregado / Cancelado). The visible orders narrow to those matching the selected status. "Todos" clears the filter.
+
+### orders-search-by-number
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | user |
+| **Frontend route** | `/orders` |
+| **API endpoints** | None (client-side filter) |
+
+Authenticated user types into the "Buscar por # pedido…" input on `/orders`. The list filters in-memory by case-insensitive substring match on `order_number` or `customer_name`. Combines with the active status filter.
+
+### auth-resend-verification-code
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | guest |
+| **Frontend route** | `/sign-up` |
+| **API endpoints** | `POST /api/resend_verification/` |
+
+During step 2 of `/sign-up` (post-registration verification), the user clicks "Reenviar código" once the 60-second cooldown expires. Frontend sends `POST /api/resend_verification/` with `{ email }`; backend issues a new 6-digit code and emails it. The cooldown timer resets and the previous code is invalidated.
+
+### auth-forgot-password-resend
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | guest |
+| **Frontend route** | `/forgot-password` |
+| **API endpoints** | `POST /api/send_passcode/` |
+
+During step 2 of `/forgot-password` (passcode entry), the user clicks "Reenviar código" once the cooldown expires. Frontend re-calls `POST /api/send_passcode/` with the same email; backend issues a new code. The cooldown restarts.
+
+### payment-card-submit
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P1 |
+| **Roles** | shared |
+| **Frontend route** | `/payment` |
+| **API endpoints** | `POST /api/payment/process/` (via `paymentService.processCard`) |
+
+User selects the **Tarjeta** tab on `/payment`, fills card number (formatted), cardholder name, expiry (MM/YY), and CVV. On submit, `paymentService.processCard` tokenizes the card via Wompi and confirms the transaction. On success the user navigates to `/order-confirmed?order=...&confirmed=1`.
+
+**Branching conditions:**
+
+| Condition | Behavior |
+|-----------|----------|
+| Card declined | Error message rendered; user stays on `/payment` |
+| Tokenization failure | Error toast; submit re-enabled |
+
+### payment-nequi-submit
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P1 |
+| **Roles** | shared |
+| **Frontend route** | `/payment` |
+| **API endpoints** | `POST /api/payment/process/` (via `paymentService.processNequi`) |
+
+User selects the **Nequi** tab on `/payment`, enters the 10-digit Colombian phone number, and submits. `paymentService.processNequi` triggers a push notification to the user's phone for approval. On success navigates to `/order-confirmed`.
+
+### payment-pse-submit
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | shared |
+| **Frontend route** | `/payment` |
+| **API endpoints** | `GET /api/payment/pse-banks/`, `POST /api/payment/process/` (via `paymentService.processPse`) |
+
+User selects the **PSE** tab on `/payment`. The bank dropdown is populated from `GET /api/payment/pse-banks/`. User picks bank, person type (Natural/Jurídica), ID type (CC/CE/NIT/Pasaporte/TI), and ID number, then submits. `paymentService.processPse` returns a `redirect_url`; the browser navigates to the bank portal where the customer authenticates and authorizes the payment.
+
+### payment-bancolombia-submit
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | shared |
+| **Frontend route** | `/payment` |
+| **API endpoints** | `POST /api/payment/process/` (via `paymentService.processBancolombia`) |
+
+User selects the **Bancolombia** tab on `/payment`, picks person type and ID type/number, and submits. `paymentService.processBancolombia` returns a `redirect_url`; the browser navigates to Bancolombia for transfer authorization.
+
+### backoffice-analytics-date-filter
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice` |
+| **API endpoints** | `GET /api/analytics/dashboard/?from=<date>&to=<date>` |
+
+Staff sets the `dateFrom` and `dateTo` inputs at the top of the analytics dashboard and clicks **Aplicar**. `analyticsAdminService.getDashboard(from, to)` re-fetches all KPI widgets and charts (orders trend, customers, devices, top peluches, traffic sources) for the new range.
+
+### backoffice-analytics-export-csv
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice` |
+| **API endpoints** | `GET /api/analytics/export/orders/?from=<date>&to=<date>` |
+
+Staff clicks the **↓ CSV** button on `/backoffice`. `analyticsAdminService.exportOrdersCSV(from, to)` triggers a browser download of a CSV file scoped to the current date range.
+
+### backoffice-peluch-toggle-featured
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/peluches` |
+| **API endpoints** | `PATCH /api/peluches/<slug>/` |
+
+Staff clicks the ⭐ button on a peluch row. `peluchAdminService.update` flips the `is_featured` flag. The list enforces a cap of 4 simultaneously featured peluches; attempting to feature a 5th surfaces an error toast.
+
+### backoffice-peluch-delete
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/peluches` |
+| **API endpoints** | `DELETE /api/peluches/<slug>/` |
+
+Staff clicks **Eliminar** on a peluch row. An inline "Sí / Cancelar" confirmation appears; clicking **Sí** calls `peluchAdminService.delete(slug)` and the row disappears from the table.
+
+### backoffice-peluch-bulk-category
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/peluches` |
+| **API endpoints** | `PATCH /api/peluches/bulk-category/` |
+
+Staff selects multiple peluches via row checkboxes (or the header "select all"). The bulk action bar appears. Staff picks a target category from the **Asignar categoría…** dropdown and clicks **Asignar**. `peluchAdminService.bulkUpdateCategory(slugs, categoryId)` updates them all in one request, the selection clears, and the table re-renders.
+
+### backoffice-category-create
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/categorias` |
+| **API endpoints** | `POST /api/categories/` |
+
+Staff clicks **+ Nueva categoría**. A modal opens with name, description, display_order, is_active, is_featured, and image upload fields. Submitting calls `categoryAdminService.create(payload)`; on success the modal closes and the new row appears in the table.
+
+### backoffice-category-edit
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/categorias` |
+| **API endpoints** | `PATCH /api/categories/<id>/` |
+
+Staff clicks **Editar** on a category row. The modal opens pre-filled with existing values. Modifying any field and clicking **Guardar categoría** sends `PATCH /api/categories/<id>/`. On success the row updates and the modal closes.
+
+### backoffice-category-delete
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/categorias` |
+| **API endpoints** | `DELETE /api/categories/<id>/` |
+
+Staff clicks **Eliminar** on a category row. An inline "Sí / Cancelar" confirmation appears; clicking **Sí** calls `categoryAdminService.delete(id)` and the row disappears.
+
+### backoffice-user-toggle-role
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/usuarios` |
+| **API endpoints** | `PATCH /api/users/<id>/` |
+
+Staff clicks **Hacer admin** (or **Hacer cliente** if the user is already admin) on a user row. `userAdminService.update({ role, is_staff })` toggles between `customer/false` and `admin/true`. The row label and badge switch accordingly.
+
+### backoffice-user-toggle-active
+
+| Field | Value |
+|-------|-------|
+| **Roles** | staff |
+| **Priority** | P3 |
+| **Frontend route** | `/backoffice/usuarios` |
+| **API endpoints** | `PATCH /api/users/<id>/` |
+
+Staff clicks **Activar** or **Desactivar** on a user row. `userAdminService.update({ is_active })` flips the flag. The badge color updates and the button label inverts.
+
+### backoffice-order-status-update
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/pedidos` |
+| **API endpoints** | `PATCH /api/orders/<order_number>/status/` |
+
+Staff changes the status `<select>` on an order row. `orderService.updateStatus(orderNumber, newStatus)` persists the change and creates a new `OrderStatusHistory` record on the backend. The badge re-renders with the new color.
+
+### backoffice-order-tracking-update
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/pedidos` |
+| **API endpoints** | `PATCH /api/orders/<order_number>/tracking/` |
+
+Staff types a tracking number into the per-row input and clicks the **✓** button. `orderService.updateTracking(orderNumber, trackingNum)` saves carrier and guide; the field shows the saved value.
+
+### backoffice-promo-banner-save
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/configuracion` |
+| **API endpoints** | `PUT /api/content/promo_banner/` |
+
+Staff toggles **Activa**, edits the message (max 120 chars), and picks background/text colors (preset buttons or custom picker) on the configuración page, then clicks **Guardar cinta**. `contentService.update('promo_banner', { is_active, message, bg_color, text_color })` persists the JSON. The button cycles **Guardar → Guardando… → ✓ Guardado** (auto-resets after 3 s).
+
+### backoffice-hero-image-upload
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/configuracion` |
+| **API endpoints** | `POST /api/content/hero-image/upload/` |
+
+Staff drops a file onto the hero-image area or selects via the file picker. After preview, clicking **Subir imagen** sends a multipart `POST /api/content/hero-image/upload/`. On success the response URL replaces the preview and the new image is the active hero on the public homepage.
