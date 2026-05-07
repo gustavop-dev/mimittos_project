@@ -64,7 +64,7 @@ def scheduled_backup():
         raise
 
 
-@db_periodic_task(crontab(hour='4', minute='0'))
+@db_periodic_task(crontab(hour='4', minute='20'))
 def silk_garbage_collection():
     """
     Daily cleanup of Silk profiling data older than 7 days.
@@ -170,7 +170,7 @@ def weekly_slow_queries_report():
     return report
 
 
-@db_periodic_task(crontab(day='1', hour='5', minute='0'))
+@db_periodic_task(crontab(day='1', hour='5', minute='20'))
 def silk_reports_cleanup():
     """
     Monthly cleanup of Silk report files older than 6 months.
@@ -273,7 +273,7 @@ def check_unattended_orders():
         )
 
 
-@db_periodic_task(crontab(hour='8', minute='0'))
+@db_periodic_task(crontab(hour='8', minute='45'))
 def cleanup_unused_media_files():
     """
     Daily cleanup of PersonalizationMedia files not linked to any order (>48h old).
