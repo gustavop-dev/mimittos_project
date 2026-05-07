@@ -43,6 +43,39 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* Team — production process */}
+      <section className="px-4 sm:px-8 py-16 md:py-[90px]" style={{ background: 'var(--cream-warm)' }}>
+        <div style={{ maxWidth: 780, margin: '0 auto 56px', textAlign: 'center' }}>
+          <div style={eyebrowStyle}>Detrás de cámaras</div>
+          <h2 style={h2Style}>Las manos detrás de cada peluche.</h2>
+          <p style={{ fontSize: 16, color: 'var(--gray-warm)', lineHeight: 1.65, maxWidth: 600, margin: '14px auto 0' }}>
+            Cada MIMITTOS pasa por cinco manos antes de llegar a las tuyas. Conoce a las personas que lo hacen posible.
+          </p>
+        </div>
+        <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6" style={{ maxWidth: 1280 }}>
+          {TEAM_STEPS.map(({ step, src, role, desc }) => (
+            <article key={step} style={{ background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ position: 'relative', aspectRatio: '4/5', background: 'var(--pink-melo)' }}>
+                <Image
+                  src={src}
+                  alt={`${role} trabajando en el taller MIMITTOS`}
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
+                  style={{ objectFit: 'cover', objectPosition: 'center top' }}
+                />
+                <span style={{ position: 'absolute', top: 14, left: 14, padding: '6px 12px', borderRadius: 999, background: 'rgba(255,255,255,.92)', color: 'var(--coral)', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: '.18em' }}>
+                  {step}
+                </span>
+              </div>
+              <div style={{ padding: '20px 22px 24px', flex: 1 }}>
+                <h3 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 18, color: 'var(--navy)', marginBottom: 8 }}>{role}</h3>
+                <p style={{ fontSize: 14, color: 'var(--gray-warm)', lineHeight: 1.6 }}>{desc}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
       {/* Stats */}
       <section className="px-4 sm:px-8 py-16" style={{ background: 'var(--navy)', color: '#fff' }}>
         <div className="mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center" style={{ maxWidth: 1100 }}>
@@ -132,3 +165,36 @@ const h2Style: React.CSSProperties = {
   fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 44,
   color: 'var(--navy)', marginBottom: 14,
 }
+
+const TEAM_STEPS = [
+  {
+    step: '01',
+    src: '/mimittos/team/cortador.webp',
+    role: 'Cortador',
+    desc: 'Selecciona y corta cada tela con precisión, la base de todo peluche.',
+  },
+  {
+    step: '02',
+    src: '/mimittos/team/costurera.webp',
+    role: 'Costurera',
+    desc: 'Une las piezas con paciencia y oficio, dándole forma al cuerpo.',
+  },
+  {
+    step: '03',
+    src: '/mimittos/team/costurero.webp',
+    role: 'Costurero',
+    desc: 'Detalla los acabados y se asegura de que cada costura quede perfecta.',
+  },
+  {
+    step: '04',
+    src: '/mimittos/team/rellenador.webp',
+    role: 'Rellenador',
+    desc: 'Da volumen y abrazo con relleno hipoalergénico, peluche por peluche.',
+  },
+  {
+    step: '05',
+    src: '/mimittos/team/jefe-envios.webp',
+    role: 'Envíos',
+    desc: 'Empaca con cuidado y supervisa que cada pedido salga listo para volar.',
+  },
+]
