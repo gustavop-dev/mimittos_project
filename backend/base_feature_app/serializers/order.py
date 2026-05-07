@@ -86,6 +86,10 @@ class OrderCreateSerializer(serializers.Serializer):
     department = serializers.CharField(max_length=100)
     postal_code = serializers.CharField(max_length=20, required=False, allow_blank=True)
     notes = serializers.CharField(required=False, allow_blank=True)
+    payment_mode = serializers.ChoiceField(
+        choices=Order.PaymentMode.choices,
+        default=Order.PaymentMode.DEPOSIT,
+    )
     items = OrderItemCreateSerializer(many=True, min_length=1)
 
 
@@ -128,7 +132,9 @@ class OrderListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'order_number', 'customer_name', 'customer_email',
             'city', 'department', 'status', 'total_amount',
-            'deposit_amount', 'balance_amount', 'created_at',
+            'deposit_amount', 'balance_amount', 'shipping_amount',
+            'discount_amount', 'payment_mode', 'amount_paid_now',
+            'created_at',
         ]
 
 
@@ -143,6 +149,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             'id', 'order_number', 'customer_name', 'customer_email', 'customer_phone',
             'address', 'city', 'department', 'postal_code',
             'status', 'total_amount', 'deposit_amount', 'balance_amount',
+            'shipping_amount', 'discount_amount', 'payment_mode', 'amount_paid_now',
             'tracking_number', 'shipping_carrier', 'notes',
             'created_at', 'updated_at',
             'items', 'status_history', 'payment',

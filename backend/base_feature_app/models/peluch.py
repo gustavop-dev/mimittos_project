@@ -1,4 +1,4 @@
-from django.core.validators import MaxValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django_attachments.fields import GalleryField
 from django_attachments.models import Library
@@ -38,6 +38,25 @@ class Peluch(models.Model):
     huella_extra_cost = models.PositiveIntegerField(default=0)
     corazon_extra_cost = models.PositiveIntegerField(default=0)
     audio_extra_cost = models.PositiveIntegerField(default=0)
+
+    deposit_percentage = models.PositiveSmallIntegerField(
+        default=50,
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
+        help_text='% del precio que cobra como anticipo para pago contraentrega.',
+    )
+    full_payment_discount_pct = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MaxValueValidator(100)],
+        help_text='% de descuento si el cliente paga el total por adelantado.',
+    )
+    free_shipping = models.BooleanField(
+        default=False,
+        help_text='Si está activo, este peluche no aporta costo de envío al carrito.',
+    )
+    shipping_cost = models.PositiveIntegerField(
+        default=0,
+        help_text='Costo de envío en COP (entero). Se ignora si free_shipping=True.',
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
