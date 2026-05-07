@@ -31,7 +31,7 @@ cd /home/ryzepeck/webapps/mimittos_project/backend && source venv/bin/activate &
 
 4. Build the Next.js frontend (runs on its own service at port 3002):
 ```bash
-source /home/ryzepeck/.nvm/nvm.sh && nvm use 20.19.4 && cd /home/ryzepeck/webapps/mimittos_project/frontend && npm ci && NEXT_PUBLIC_BACKEND_ORIGIN=https://mimittos.projectapp.co npm run build
+source /home/ryzepeck/.nvm/nvm.sh && nvm use 20.19.4 && cd /home/ryzepeck/webapps/mimittos_project/frontend && npm ci && NEXT_PUBLIC_BACKEND_ORIGIN=https://mimittos.com npm run build
 ```
 
 5. Collect Django static files:
@@ -54,8 +54,8 @@ Expected: PASS on all checks, FAIL=0.
 
 8. HTTPS smoke test:
 ```bash
-curl -sI https://mimittos.projectapp.co/
-curl -s https://mimittos.projectapp.co/api/health/
+curl -sI https://mimittos.com/
+curl -s https://mimittos.com/api/health/
 ```
 
 9. If something fails, check the logs:
@@ -68,7 +68,7 @@ sudo tail -20 /var/log/nginx/error.log
 
 ## Architecture Reference
 
-- **Domain**: `mimittos.projectapp.co`
+- **Domain**: `mimittos.com`
 - **Backend**: Django 6 (`base_feature_project` module). Settings: `DJANGO_SETTINGS_MODULE=base_feature_project.settings_prod`
 - **Frontend**: Next.js 16 en puerto 3002 como servicio independiente (`mimittos-frontend.service`)
 - **Services**: `mimittos_project.service` (Gunicorn, socket `/run/mimittos_project.sock`), `mimittos-huey.service` (Huey), `mimittos-frontend.service` (Next.js)
@@ -76,7 +76,7 @@ sudo tail -20 /var/log/nginx/error.log
 - **Static**: `/home/ryzepeck/webapps/mimittos_project/backend/staticfiles/`
 - **Media**: `/home/ryzepeck/webapps/mimittos_project/backend/media/`
 - **Backups**: `/var/backups/mimittos_project/` (Huey runs dbbackup los domingos 03:45 UTC)
-- **Pasarela de pago**: Wompi (actualmente SANDBOX, migrar a producción cuando el cliente entregue claves)
+- **Pasarela de pago**: Wompi PRODUCCIÓN (`https://production.wompi.co/v1`)
 
 ## Notes
 
