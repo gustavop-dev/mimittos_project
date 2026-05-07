@@ -197,6 +197,9 @@ export default function HomePage() {
             <FadeUp delay={0.5}>
               <div style={{ marginTop: 40, display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
                 {[
+                  { icon: clockPath, text: '+2.400 peluches creados' },
+                  { icon: truckPath, text: 'Envío a toda Colombia' },
+                  { icon: shieldPath, text: 'Abono desde 30%, saldo contraentrega' },
                   { icon: heartPath, text: 'Convertimos tu peluche en gigante' },
                   { icon: sunPath, text: 'Creamos peluches para tu marca' },
                 ].map(({ icon, text }, i) => (
