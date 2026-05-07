@@ -66,6 +66,10 @@ export type Peluch = {
   has_huella: boolean
   has_corazon: boolean
   has_audio: boolean
+  deposit_percentage: number
+  full_payment_discount_pct: number
+  free_shipping: boolean
+  shipping_cost: number
 }
 
 export type PeluchDetail = Peluch & {
@@ -105,7 +109,13 @@ export type CartItem = {
   corazon_phrase: string
   has_audio: boolean
   audio_media_id: number | null
+  deposit_percentage: number
+  full_payment_discount_pct: number
+  free_shipping: boolean
+  shipping_cost: number
 }
+
+export type PaymentMode = 'deposit' | 'full'
 
 // ── Órdenes ───────────────────────────────────────────────────────────────────
 
@@ -128,6 +138,10 @@ export type OrderListItem = {
   total_amount: number
   deposit_amount: number
   balance_amount: number
+  shipping_amount: number
+  discount_amount: number
+  payment_mode: PaymentMode
+  amount_paid_now: number
   created_at: string
 }
 
@@ -202,6 +216,10 @@ export type OrderCreateResponse = {
   order_number: string
   deposit_amount: number
   balance_amount: number
+  shipping_amount: number
+  discount_amount: number
+  payment_mode: PaymentMode
+  amount_paid_now: number
   total_amount: number
   is_guest: boolean
 }

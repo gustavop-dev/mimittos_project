@@ -8,7 +8,11 @@ import { orderService } from '../../../lib/services/orderService'
 jest.mock('../../../lib/stores/cartStore', () => ({
   useCartStore: jest.fn(),
   lineTotal: jest.fn((item: any) => (item.unit_price + item.personalization_cost) * item.quantity),
-  calcDeposit: jest.fn((n: number) => Math.round((n * 0.5) / 100) * 100),
+  calcDeposit: jest.fn(() => 0),
+  calcShipping: jest.fn(() => 0),
+  calcFullPaymentDiscount: jest.fn(() => 0),
+  calcAmountToPayNow: jest.fn(() => 0),
+  calcBalanceAtDelivery: jest.fn(() => 0),
 }))
 
 jest.mock('../../../lib/services/orderService', () => ({

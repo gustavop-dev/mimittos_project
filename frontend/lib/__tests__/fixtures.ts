@@ -91,6 +91,10 @@ export const mockCartItems: CartItem[] = [
     corazon_phrase: '',
     has_audio: false,
     audio_media_id: null,
+    deposit_percentage: 50,
+    full_payment_discount_pct: 0,
+    free_shipping: false,
+    shipping_cost: 0,
   },
   {
     peluch_id: 2,
@@ -113,6 +117,10 @@ export const mockCartItems: CartItem[] = [
     corazon_phrase: '',
     has_audio: false,
     audio_media_id: null,
+    deposit_percentage: 50,
+    full_payment_discount_pct: 0,
+    free_shipping: false,
+    shipping_cost: 0,
   },
 ]
 

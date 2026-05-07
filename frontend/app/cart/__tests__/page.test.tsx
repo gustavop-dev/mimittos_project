@@ -3,7 +3,9 @@ import { render, screen } from '@testing-library/react'
 
 jest.mock('@/lib/stores/cartStore', () => ({
   useCartStore: jest.fn(),
-  calcDeposit: jest.fn((total: number) => Math.ceil(total * 0.5)),
+  calcDeposit: jest.fn(() => 0),
+  calcShipping: jest.fn(() => 0),
+  calcFullPaymentDiscount: jest.fn(() => 0),
   lineTotal: jest.fn((item: { unit_price: number; quantity: number }) => item.unit_price * item.quantity),
 }))
 
@@ -40,6 +42,6 @@ describe('CartPage', () => {
     )
     render(<CartPage />)
     expect(screen.getByText('Osito Coral')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Ir a pagar/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Continuar al checkout/i })).toBeInTheDocument()
   })
 })

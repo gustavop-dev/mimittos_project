@@ -11,6 +11,10 @@ export type PaymentInfo = {
   total_amount: number
   deposit_amount: number
   balance_amount: number
+  shipping_amount: number
+  discount_amount: number
+  payment_mode: 'deposit' | 'full'
+  amount_paid_now: number
   customer_name: string
   customer_email: string
   customer_phone: string

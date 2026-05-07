@@ -127,8 +127,19 @@ describe('lineTotal', () => {
 })
 
 describe('calcDeposit', () => {
-  it('should round to nearest 100 COP', () => {
-    expect(calcDeposit(100000)).toBe(50000)
-    expect(calcDeposit(85000)).toBe(42500)
+  it('rounds the weighted deposit to the nearest 100 COP', () => {
+    const items = [
+      { ...item1, deposit_percentage: 50 }, // 128000 * 2 * 0.5 = 128000
+      { ...item2, deposit_percentage: 50 }, //  92000 * 1 * 0.5 =  46000
+    ]
+    expect(calcDeposit(items)).toBe(174000)
+  })
+
+  it('uses each item own deposit_percentage (weighted)', () => {
+    const items = [
+      { ...item1, deposit_percentage: 30 }, // 256000 * 0.3 = 76800
+      { ...item2, deposit_percentage: 50 }, //  92000 * 0.5 = 46000
+    ]
+    expect(calcDeposit(items)).toBe(122800)
   })
 })

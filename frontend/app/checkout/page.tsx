@@ -7,7 +7,11 @@ import { useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 
 import { orderService } from '@/lib/services/orderService'
-import { calcDeposit, lineTotal, useCartStore } from '@/lib/stores/cartStore'
+import {
+  calcAmountToPayNow, calcBalanceAtDelivery, calcDeposit, calcFullPaymentDiscount,
+  calcShipping, lineTotal, useCartStore,
+} from '@/lib/stores/cartStore'
+import type { PaymentMode } from '@/lib/types'
 
 const DEPARTMENTS = [
   'Antioquia', 'Cundinamarca', 'Valle del Cauca', 'Atlántico',
@@ -25,14 +29,21 @@ export default function CheckoutPage() {
   const clearCart = useCartStore((s) => s.clearCart)
 
   const subtotal = useMemo(() => items.reduce((acc, item) => acc + lineTotal(item), 0), [items])
-  const deposit = useMemo(() => calcDeposit(subtotal), [subtotal])
+  const deposit = useMemo(() => calcDeposit(items), [items])
+  const shipping = useMemo(() => calcShipping(items), [items])
+  const fullDiscount = useMemo(() => calcFullPaymentDiscount(items), [items])
+  const allFreeShipping = items.length > 0 && items.every((i) => i.free_shipping)
+
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('deposit')
+  const amountPaidNow = useMemo(() => calcAmountToPayNow(items, paymentMode), [items, paymentMode])
+  const balanceAtDelivery = useMemo(() => calcBalanceAtDelivery(items, paymentMode), [items, paymentMode])
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
-  const [city, setCity] = useState('Medellín')
-  const [department, setDepartment] = useState('Antioquia')
+  const [city, setCity] = useState('Bogotá')
+  const [department, setDepartment] = useState('Cundinamarca')
   const [postalCode, setPostalCode] = useState('')
   const [notes, setNotes] = useState('')
   const [terms, setTerms] = useState(false)
@@ -74,10 +85,11 @@ export default function CheckoutPage() {
         postal_code: postalCode,
         notes,
         items: validItems,
+        payment_mode: paymentMode,
       })
       clearCart()
       const guestParam = result.is_guest ? '&guest=1' : ''
-      router.push(`/payment?order=${result.order_number}&deposit=${result.deposit_amount}${guestParam}`)
+      router.push(`/payment?order=${result.order_number}&amount=${result.amount_paid_now}${guestParam}`)
     } catch (err: any) {
       const msg = err?.response?.data?.detail || err?.response?.data?.non_field_errors?.[0] || 'No pudimos completar el pedido. Por favor intenta de nuevo.'
       setError(msg)
@@ -103,7 +115,7 @@ export default function CheckoutPage() {
           Un abrazo de distancia ♡
         </h1>
         <p style={{ color: 'var(--gray-warm)', fontSize: 16, marginTop: 10, maxWidth: 600, lineHeight: 1.55 }}>
-          Completa tus datos y serás redirigido a Wompi para pagar el abono del 50%. El saldo lo pagas cuando recibes tu peluche.
+          Completa tus datos, elige cómo querés pagar y serás redirigido a Wompi de forma segura.
         </p>
       </div>
 
@@ -169,18 +181,48 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Wompi info */}
-            <div style={{ ...cardStyle, background: 'var(--cream-peach)', border: '1px solid rgba(212,132,138,.2)' }}>
-              <h3 style={{ ...cardHeadStyle, marginBottom: 12 }}><span style={cardNumStyle}>3</span> Pago con Wompi</h3>
-              <p style={{ color: 'var(--navy)', fontSize: 14, lineHeight: 1.6 }}>
-                Al confirmar tu pedido, serás redirigido a <strong>Wompi</strong> para pagar el abono del 50% de forma segura. Wompi acepta tarjetas, PSE, Nequi y más.
-              </p>
-              <p style={{ color: 'var(--gray-warm)', fontSize: 13, marginTop: 10 }}>
-                El saldo restante ({fmt(subtotal - deposit)}) lo pagas al recibir tu peluche.
+            {/* Payment mode selector */}
+            <div style={cardStyle}>
+              <h3 style={cardHeadStyle}><span style={cardNumStyle}>3</span> Modalidad de pago</h3>
+              <p style={{ color: 'var(--gray-warm)', fontSize: 14, marginBottom: 18 }}>
+                Elige cómo querés pagar. El cobro se hace por <strong>Wompi</strong> (tarjetas, PSE, Nequi, etc.).
               </p>
 
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <label htmlFor="pm-deposit" style={{ ...modeOptionStyle, borderColor: paymentMode === 'deposit' ? 'var(--coral)' : 'rgba(27,42,74,.1)', background: paymentMode === 'deposit' ? '#FFF6F2' : '#fff' }}>
+                  <input id="pm-deposit" type="radio" name="payment_mode" value="deposit" checked={paymentMode === 'deposit'} onChange={() => setPaymentMode('deposit')} style={{ accentColor: 'var(--coral)', marginTop: 4, width: 18, height: 18 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+                      <strong style={{ fontFamily: "'Quicksand', sans-serif", color: 'var(--navy)', fontSize: 15 }}>Pagar anticipo</strong>
+                      <b style={{ fontFamily: "'Quicksand', sans-serif", color: 'var(--terracotta)', fontSize: 17 }}>{fmt(deposit)}</b>
+                    </div>
+                    <div style={{ fontSize: 12.5, color: 'var(--gray-warm)', marginTop: 4 }}>
+                      Hoy pagás solo el anticipo. El saldo + envío ({fmt(subtotal - deposit + shipping)}) se cancela al recibir.
+                    </div>
+                  </div>
+                </label>
+
+                <label htmlFor="pm-full" style={{ ...modeOptionStyle, borderColor: paymentMode === 'full' ? '#4CAF50' : 'rgba(27,42,74,.1)', background: paymentMode === 'full' ? '#F1FAF2' : '#fff', opacity: fullDiscount > 0 ? 1 : 0.7 }}>
+                  <input id="pm-full" type="radio" name="payment_mode" value="full" checked={paymentMode === 'full'} onChange={() => setPaymentMode('full')} style={{ accentColor: '#4CAF50', marginTop: 4, width: 18, height: 18 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+                      <strong style={{ fontFamily: "'Quicksand', sans-serif", color: 'var(--navy)', fontSize: 15 }}>
+                        Pagar todo de una
+                        {fullDiscount > 0 && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: '#4CAF50', background: '#E8F5E9', padding: '2px 8px', borderRadius: 999 }}>−{fmt(fullDiscount)}</span>}
+                      </strong>
+                      <b style={{ fontFamily: "'Quicksand', sans-serif", color: '#4CAF50', fontSize: 17 }}>{fmt(Math.max(subtotal - fullDiscount, 0) + shipping)}</b>
+                    </div>
+                    <div style={{ fontSize: 12.5, color: 'var(--gray-warm)', marginTop: 4 }}>
+                      {fullDiscount > 0
+                        ? 'Aprovechás el descuento por pago anticipado. No pagás nada al recibir.'
+                        : 'Pagás todo hoy. Nada al recibir. Sin descuento adicional para este carrito.'}
+                    </div>
+                  </div>
+                </label>
+              </div>
+
               {/* Terms */}
-              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: 16, background: '#fff', borderRadius: 12, marginTop: 16 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: 16, background: 'var(--cream-warm)', borderRadius: 12, marginTop: 18 }}>
                 <input type="checkbox" id="terms" checked={terms} onChange={(e) => setTerms(e.target.checked)} style={{ marginTop: 3, accentColor: 'var(--coral)', width: 18, height: 18 }} />
                 <label htmlFor="terms" style={{ fontSize: 13, color: 'var(--navy)', lineHeight: 1.5, cursor: 'pointer' }}>
                   He leído y acepto los{' '}
@@ -215,30 +257,30 @@ export default function CheckoutPage() {
               {hydrated && !items.length && <p style={{ color: 'var(--gray-warm)', fontSize: 14 }}>Tu carrito está vacío. <Link href="/catalog">Ver catálogo</Link></p>}
             </div>
 
-            <div style={sumRow}><span>Subtotal</span><b style={{ color: 'var(--navy)' }}>{fmt(subtotal)}</b></div>
-            <div style={sumRow}><span>Envío</span><b style={{ color: '#4CAF50' }}>Gratis</b></div>
-            <div style={{ height: 1, background: 'rgba(212,132,138,.2)', margin: '10px 0' }} />
-            <div style={sumRow}><span style={{ color: 'var(--navy)', fontWeight: 700 }}>Total</span><b style={{ fontFamily: "'Quicksand', sans-serif", fontSize: 22, color: 'var(--terracotta)' }}>{fmt(subtotal)}</b></div>
-
-            <div style={{ background: 'var(--cream-peach)', borderRadius: 'var(--radius-md)', padding: 16, margin: '16px 0' }}>
-              <div style={sumRow}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, color: 'var(--navy)', fontSize: 13 }}>
-                  <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--coral)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 11 }}>1</span>
-                  Abono 50% — hoy (Wompi)
-                </div>
-                <b style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--terracotta)' }}>{fmt(deposit)}</b>
-              </div>
-              <div style={sumRow}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, color: 'var(--navy)', fontSize: 13 }}>
-                  <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--gray-warm)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 11 }}>2</span>
-                  Saldo — contraentrega
-                </div>
-                <b style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--gray-warm)' }}>{fmt(subtotal - deposit)}</b>
-              </div>
+            <div style={sumRow}><span>Subtotal productos</span><b style={{ color: 'var(--navy)' }}>{fmt(subtotal)}</b></div>
+            <div style={sumRow}>
+              <span>Envío</span>
+              <b style={{ color: shipping === 0 ? '#4CAF50' : 'var(--navy)' }}>
+                {shipping === 0 ? (allFreeShipping ? 'Gratis' : 'Sin costo') : fmt(shipping)}
+              </b>
             </div>
+            {paymentMode === 'full' && fullDiscount > 0 && (
+              <div style={sumRow}>
+                <span>Descuento pago completo</span>
+                <b style={{ color: '#4CAF50' }}>− {fmt(fullDiscount)}</b>
+              </div>
+            )}
+            <div style={{ height: 1, background: 'rgba(212,132,138,.2)', margin: '10px 0' }} />
+            <div style={sumRow}><span style={{ color: 'var(--navy)', fontWeight: 700 }}>Total a pagar hoy</span><b style={{ fontFamily: "'Quicksand', sans-serif", fontSize: 22, color: 'var(--terracotta)' }}>{fmt(amountPaidNow)}</b></div>
+            {balanceAtDelivery > 0 && (
+              <div style={{ ...sumRow, fontSize: 12, color: 'var(--gray-warm)' }}>
+                <span>Pagás al recibir</span>
+                <b>{fmt(balanceAtDelivery)}</b>
+              </div>
+            )}
 
-            <button type="submit" disabled={loading || !hydrated || !items.length || !terms} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'var(--coral)', color: '#fff', width: '100%', padding: 16, borderRadius: 14, fontWeight: 700, fontSize: 15, fontFamily: "'Quicksand', sans-serif", boxShadow: '0 10px 26px rgba(212,132,138,.4)', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? .7 : 1, transition: 'all .2s' }}>
-              {loading ? 'Procesando...' : `Ir a pagar · ${fmt(deposit)}`}
+            <button type="submit" disabled={loading || !hydrated || !items.length || !terms} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'var(--coral)', color: '#fff', width: '100%', padding: 16, borderRadius: 14, fontWeight: 700, fontSize: 15, fontFamily: "'Quicksand', sans-serif", boxShadow: '0 10px 26px rgba(212,132,138,.4)', border: 'none', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? .7 : 1, transition: 'all .2s', marginTop: 14 }}>
+              {loading ? 'Procesando...' : `Ir a pagar · ${fmt(amountPaidNow)}`}
               {!loading && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 6l6 6-6 6" /></svg>}
             </button>
 
@@ -263,3 +305,8 @@ const fieldWrap: React.CSSProperties = { display: 'flex', flexDirection: 'column
 const fieldLabel: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: 'var(--navy)', letterSpacing: '.04em', textTransform: 'uppercase' }
 const fieldInput: React.CSSProperties = { background: 'var(--cream-warm)', border: '1.5px solid rgba(27,42,74,.08)', borderRadius: 12, padding: '12px 14px', fontFamily: 'inherit', fontSize: 14, color: 'var(--navy)', outline: 'none', width: '100%' }
 const sumRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 14, color: 'var(--gray-warm)' }
+const modeOptionStyle: React.CSSProperties = {
+  display: 'flex', gap: 12, alignItems: 'flex-start',
+  padding: 16, borderRadius: 14, border: '1.5px solid', cursor: 'pointer',
+  transition: 'border-color .15s, background .15s',
+}

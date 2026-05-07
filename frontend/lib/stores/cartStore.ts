@@ -3,18 +3,60 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-import type { CartItem } from '@/lib/types'
+import type { CartItem, PaymentMode } from '@/lib/types'
 
 function cartKey(item: CartItem) {
   return `${item.peluch_id}-${item.size_id}-${item.color_id}`
+}
+
+function roundTo100(value: number) {
+  return Math.round(value / 100) * 100
 }
 
 export function lineTotal(item: CartItem) {
   return ((item.unit_price ?? 0) + (item.personalization_cost ?? 0)) * (item.quantity ?? 1)
 }
 
-export function calcDeposit(subtotal: number) {
-  return Math.round((subtotal * 0.5) / 100) * 100
+export function calcDeposit(items: CartItem[]) {
+  const raw = items.reduce(
+    (acc, item) => acc + lineTotal(item) * (item.deposit_percentage ?? 50) / 100,
+    0
+  )
+  return roundTo100(raw)
+}
+
+export function calcFullPaymentDiscount(items: CartItem[]) {
+  const raw = items.reduce(
+    (acc, item) => acc + lineTotal(item) * (item.full_payment_discount_pct ?? 0) / 100,
+    0
+  )
+  return roundTo100(raw)
+}
+
+export function calcShipping(items: CartItem[]) {
+  const raw = items.reduce(
+    (acc, item) => acc + (item.free_shipping ? 0 : (item.shipping_cost ?? 0) * item.quantity),
+    0
+  )
+  return roundTo100(raw)
+}
+
+export function calcAmountToPayNow(items: CartItem[], mode: PaymentMode) {
+  const subtotal = items.reduce((acc, item) => acc + lineTotal(item), 0)
+  const shipping = calcShipping(items)
+  if (mode === 'full') {
+    const discount = calcFullPaymentDiscount(items)
+    return Math.max(subtotal - discount, 0) + shipping
+  }
+  return calcDeposit(items)
+}
+
+export function calcBalanceAtDelivery(items: CartItem[], mode: PaymentMode) {
+  if (mode === 'full') return 0
+  const subtotal = items.reduce((acc, item) => acc + lineTotal(item), 0)
+  const deposit = calcDeposit(items)
+  const shipping = calcShipping(items)
+  return subtotal - deposit + shipping
 }
 
 type CartState = {
@@ -25,6 +67,8 @@ type CartState = {
   updateQuantity: (peluch_id: number, size_id: number, color_id: number, quantity: number) => void
   subtotal: () => number
   deposit: () => number
+  fullPaymentDiscount: () => number
+  shipping: () => number
 }
 
 export const useCartStore = create<CartState>()(
@@ -64,8 +108,9 @@ export const useCartStore = create<CartState>()(
       },
 
       subtotal: () => get().items.reduce((acc, item) => acc + lineTotal(item), 0),
-
-      deposit: () => calcDeposit(get().subtotal()),
+      deposit: () => calcDeposit(get().items),
+      fullPaymentDiscount: () => calcFullPaymentDiscount(get().items),
+      shipping: () => calcShipping(get().items),
     }),
     {
       name: 'cart',
