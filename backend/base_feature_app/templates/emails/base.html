@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>{{ subject|default:"MIMITTOS" }}</title>
+  <!--[if mso]>
+  <style type="text/css">
+    table, td { font-family: Arial, sans-serif !important; }
+  </style>
+  <![endif]-->
+</head>
+<body style="margin:0;padding:0;background-color:#FFF6EE;font-family:'Segoe UI',Helvetica,Arial,sans-serif;color:#1B2A4A;-webkit-text-size-adjust:none;">
+  <div style="display:none;max-height:0;overflow:hidden;">
+    {{ preheader|default:heading }}
+  </div>
+
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#FFF6EE;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+
+        <table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background-color:#FFFFFF;border-radius:18px;overflow:hidden;box-shadow:0 6px 24px rgba(27,42,74,.08);">
+
+          <!-- Header / brand bar -->
+          <tr>
+            <td style="background-color:#D4848A;padding:28px 32px;text-align:center;">
+              <div style="font-family:'Segoe UI','Helvetica',Arial,sans-serif;font-weight:700;font-size:24px;letter-spacing:.22em;color:#FFFFFF;line-height:1;">
+                MIMITTOS<sup style="font-size:.45em;letter-spacing:0;">&reg;</sup>
+              </div>
+              <div style="margin-top:6px;font-size:12px;color:#FFE9E0;letter-spacing:.06em;">
+                M&aacute;s que un peluche, un recuerdo
+              </div>
+            </td>
+          </tr>
+
+          <!-- Heading -->
+          <tr>
+            <td style="padding:36px 36px 8px 36px;text-align:left;">
+              <h1 style="margin:0;font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-weight:700;font-size:24px;color:#1B2A4A;line-height:1.25;">
+                {{ heading }}
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Body paragraphs -->
+          <tr>
+            <td style="padding:18px 36px 8px 36px;font-size:15px;line-height:1.6;color:#5A5063;">
+              {% for paragraph in paragraphs %}
+                <p style="margin:0 0 14px 0;">{{ paragraph }}</p>
+              {% endfor %}
+            </td>
+          </tr>
+
+          {% if details %}
+          <!-- Details panel -->
+          <tr>
+            <td style="padding:8px 36px 8px 36px;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#FFF6EE;border-radius:12px;">
+                {% for row in details %}
+                <tr>
+                  <td style="padding:12px 18px;font-size:13px;color:#5A5063;border-bottom:1px solid #FFE9E0;">
+                    {{ row.label }}
+                  </td>
+                  <td style="padding:12px 18px;font-size:14px;font-weight:600;color:#1B2A4A;text-align:right;border-bottom:1px solid #FFE9E0;">
+                    {{ row.value }}
+                  </td>
+                </tr>
+                {% endfor %}
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+
+          {% if code %}
+          <!-- Code block (verification / reset) -->
+          <tr>
+            <td style="padding:14px 36px 8px 36px;text-align:center;">
+              <div style="display:inline-block;padding:18px 36px;background-color:#FFE9E0;border-radius:14px;font-family:'Courier New',Consolas,monospace;font-weight:700;font-size:32px;letter-spacing:.4em;color:#D4848A;">
+                {{ code }}
+              </div>
+              <div style="margin-top:10px;font-size:12px;color:#A09AAB;">
+                V&aacute;lido por 15 minutos
+              </div>
+            </td>
+          </tr>
+          {% endif %}
+
+          {% if cta_url and cta_text %}
+          <!-- CTA button -->
+          <tr>
+            <td style="padding:18px 36px 8px 36px;text-align:center;">
+              <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 auto;">
+                <tr>
+                  <td style="background-color:#D4848A;border-radius:999px;">
+                    <a href="{{ cta_url }}" target="_blank" style="display:inline-block;padding:14px 32px;font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;color:#FFFFFF;text-decoration:none;border-radius:999px;">
+                      {{ cta_text }}
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+
+          {% if footer_note %}
+          <!-- Footer note inside card -->
+          <tr>
+            <td style="padding:14px 36px 28px 36px;font-size:12px;color:#A09AAB;line-height:1.5;text-align:left;">
+              {{ footer_note }}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td style="padding-bottom:24px;"></td></tr>
+          {% endif %}
+
+          <!-- Signature -->
+          <tr>
+            <td style="padding:8px 36px 32px 36px;font-size:14px;color:#1B2A4A;line-height:1.6;border-top:1px solid #FFE9E0;">
+              <p style="margin:18px 0 4px 0;">Con cari&ntilde;o,</p>
+              <p style="margin:0;font-weight:700;color:#D4848A;">El equipo MIMITTOS &#129528;</p>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Outer footer / contact -->
+        <table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;margin-top:18px;">
+          <tr>
+            <td align="center" style="padding:8px 16px;font-size:12px;color:#A09AAB;line-height:1.6;">
+              &iquest;Necesitas ayuda? Escr&iacute;benos a
+              <a href="mailto:hola@mimittos.com" style="color:#D4848A;text-decoration:none;font-weight:600;">hola@mimittos.com</a>
+              &middot; WhatsApp
+              <a href="https://wa.me/573244790777" style="color:#D4848A;text-decoration:none;font-weight:600;">+57 3244790777</a>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:6px 16px 24px 16px;font-size:11px;color:#A09AAB;">
+              &copy; {% now "Y" %} MIMITTOS &middot; Bogot&aacute;, Colombia &middot; Hecho con &#9825; a mano.
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

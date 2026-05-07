@@ -6,6 +6,7 @@ from django.core.mail import send_mail
 from django.utils import timezone
 
 from base_feature_app.models import Order
+from base_feature_app.utils.email_renderer import render_email_html
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,13 @@ def _can_send_automated_email(order: Order) -> bool:
 
 def _mark_email_sent(order: Order) -> None:
     Order.objects.filter(pk=order.pk).update(last_automated_email_at=timezone.now())
+
+
+def _money(value) -> str:
+    try:
+        return f'${int(value):,} COP'
+    except (TypeError, ValueError):
+        return f'${value} COP'
 
 
 class NotificationService:
@@ -58,7 +66,36 @@ class NotificationService:
             )
 
         body += '¡Gracias por confiar en MIMITTOS! Tu peluche se está preparando con mucho amor. 🧸\n\n— Equipo MIMITTOS'
-        return NotificationService._send(order.customer_email, subject, body, order)
+
+        paragraphs = [
+            f'Hola {order.customer_name}, tu pago fue procesado exitosamente y tu pedido '
+            f'{order.order_number} ya está confirmado.',
+            'Comenzaremos a preparar tu peluche con mucho cariño. Te avisaremos en cada etapa.',
+        ]
+        if not has_account:
+            paragraphs.append(
+                f'Regístrate con tu correo {order.customer_email} para ver el historial '
+                f'de tus pedidos directamente desde tu perfil.'
+            )
+        details = [
+            {'label': 'Número de pedido', 'value': order.order_number},
+            {'label': 'Abono pagado', 'value': _money(order.deposit_amount)},
+            {'label': 'Saldo contraentrega', 'value': _money(order.balance_amount)},
+        ]
+        html = render_email_html(
+            heading=f'¡Tu pedido {order.order_number} está confirmado!',
+            paragraphs=paragraphs,
+            details=details,
+            cta={'text': 'Ver seguimiento', 'url': tracking_url},
+            footer_note=(
+                f'¿Aún no tienes cuenta? <a href="{register_url}" style="color:#D4848A;">Créala aquí</a> '
+                f'para revisar el historial completo de tus pedidos.'
+                if not has_account else None
+            ),
+            preheader=f'Pedido {order.order_number} confirmado · seguimiento incluido.',
+            subject=subject,
+        )
+        return NotificationService._send(order.customer_email, subject, body, order, html_message=html)
 
     @staticmethod
     def notify_production_started(order: Order) -> bool:
@@ -71,7 +108,22 @@ class NotificationService:
             f'Tiempo estimado de producción: 4-6 días hábiles.\n\n'
             f'Te avisamos cuando lo despachemos. 💛'
         )
-        return NotificationService._send(order.customer_email, subject, body, order)
+        html = render_email_html(
+            heading='Tu peluche está en producción',
+            paragraphs=[
+                f'Hola {order.customer_name}, ¡buenas noticias! Tu pedido {order.order_number} '
+                f'ya está en manos de nuestros artesanos.',
+                'Cada peluche se hace pieza por pieza con cariño y dedicación.',
+            ],
+            details=[
+                {'label': 'Número de pedido', 'value': order.order_number},
+                {'label': 'Tiempo estimado', 'value': '4 a 6 días hábiles'},
+            ],
+            footer_note='Te enviaremos otro correo cuando lo despachemos.',
+            preheader=f'Pedido {order.order_number} en producción.',
+            subject=subject,
+        )
+        return NotificationService._send(order.customer_email, subject, body, order, html_message=html)
 
     @staticmethod
     def notify_order_shipped(order: Order) -> bool:
@@ -89,7 +141,28 @@ class NotificationService:
             f'Recuerda que al recibir el pedido pagarás el saldo: ${order.balance_amount:,} COP.\n\n'
             f'¡Pronto lo tendrás en tus manos!'
         )
-        return NotificationService._send(order.customer_email, subject, body, order)
+        details = [
+            {'label': 'Número de pedido', 'value': order.order_number},
+            {'label': 'Saldo contraentrega', 'value': _money(order.balance_amount)},
+        ]
+        if order.tracking_number:
+            details.insert(1, {'label': 'Guía', 'value': order.tracking_number})
+            details.insert(2, {'label': 'Transportadora', 'value': order.shipping_carrier or '—'})
+        html = render_email_html(
+            heading='Tu peluche está en camino',
+            paragraphs=[
+                f'Hola {order.customer_name}, tu pedido {order.order_number} ya fue despachado.',
+                (
+                    'Recuerda que al recibir el pedido pagarás el saldo restante directamente al mensajero.'
+                    if order.tracking_number else
+                    'La guía estará disponible muy pronto. Te avisaremos en cuanto tengamos el número.'
+                ),
+            ],
+            details=details,
+            preheader=f'Pedido {order.order_number} despachado.',
+            subject=subject,
+        )
+        return NotificationService._send(order.customer_email, subject, body, order, html_message=html)
 
     @staticmethod
     def notify_welcome_credentials(customer_name: str, email: str, temp_password: str,
@@ -107,8 +180,25 @@ class NotificationService:
             f'¡Pronto comenzamos a preparar tu peluche con mucho amor!\n\n'
             f'— Equipo MIMITTOS'
         )
+        html = render_email_html(
+            heading='¡Bienvenido a MIMITTOS!',
+            paragraphs=[
+                f'Hola {customer_name}, gracias por tu pedido. Creamos una cuenta para que puedas '
+                f'hacer seguimiento y revisar tu historial.',
+                'Estos son tus datos de acceso temporales:',
+            ],
+            details=[
+                {'label': 'Correo', 'value': email},
+                {'label': 'Contraseña temporal', 'value': temp_password},
+                {'label': 'Pedido asociado', 'value': order_number},
+            ],
+            cta={'text': 'Iniciar sesión', 'url': login_url},
+            footer_note='Recomendado: cambia tu contraseña desde tu perfil tan pronto inicies sesión.',
+            preheader=f'Tu cuenta MIMITTOS y pedido {order_number}.',
+            subject=subject,
+        )
         try:
-            send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [email])
+            send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [email], html_message=html)
             return True
         except Exception as exc:
             logger.error('Error sending welcome credentials: %s', exc)
@@ -129,8 +219,26 @@ class NotificationService:
             f'Abono: ${order.deposit_amount:,} COP\n\n'
             f'Ingresa al panel para ver el detalle y comenzar producción.'
         )
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+        html = render_email_html(
+            heading=f'Nuevo pedido — {order.order_number}',
+            paragraphs=[
+                f'Recibiste un nuevo pedido de {order.customer_name}.',
+                'Ingresa al panel para revisar el detalle y comenzar producción.',
+            ],
+            details=[
+                {'label': 'Número', 'value': order.order_number},
+                {'label': 'Cliente', 'value': f'{order.customer_name} · {order.customer_email}'},
+                {'label': 'Ciudad', 'value': f'{order.city}, {order.department}'},
+                {'label': 'Total', 'value': _money(order.total_amount)},
+                {'label': 'Abono', 'value': _money(order.deposit_amount)},
+            ],
+            cta={'text': 'Abrir panel', 'url': f'{frontend_url}/backoffice/pedidos'},
+            preheader=f'Nuevo pedido {order.order_number} listo para producción.',
+            subject=subject,
+        )
         try:
-            send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [admin_email])
+            send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [admin_email], html_message=html)
             return True
         except Exception as exc:
             logger.error('Error sending admin notification: %s', exc)
@@ -149,9 +257,9 @@ class NotificationService:
             task_fn(order.id)
 
     @staticmethod
-    def _send(to_email: str, subject: str, body: str, order: Order) -> bool:
+    def _send(to_email: str, subject: str, body: str, order: Order, html_message: str = None) -> bool:
         try:
-            send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [to_email])
+            send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [to_email], html_message=html_message)
             _mark_email_sent(order)
             return True
         except Exception as exc:

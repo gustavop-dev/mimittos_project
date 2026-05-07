@@ -5,6 +5,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import send_mail
 from django.conf import settings
 
+from base_feature_app.utils.email_renderer import render_email_html
+
 
 def generate_auth_tokens(user):
     refresh = RefreshToken.for_user(user)
@@ -38,6 +40,17 @@ Este código es válido por 15 minutos. Si no solicitaste este cambio, ignora es
 Con cariño,
 El equipo de MIMITTOS 🧸
 '''
+    html = render_email_html(
+        heading='Restablece tu contraseña',
+        paragraphs=[
+            f'Hola {name}, recibimos una solicitud para restablecer la contraseña de tu cuenta MIMITTOS.',
+            'Usa el siguiente código para continuar con el proceso:',
+        ],
+        code=code,
+        footer_note='Si no solicitaste este cambio, puedes ignorar este correo de forma segura.',
+        preheader='Tu código de restablecimiento de contraseña.',
+        subject=subject,
+    )
     try:
         send_mail(
             subject,
@@ -45,6 +58,7 @@ El equipo de MIMITTOS 🧸
             settings.DEFAULT_FROM_EMAIL,
             [user.email],
             fail_silently=False,
+            html_message=html,
         )
         return True
     except Exception as e:
@@ -69,6 +83,17 @@ Si no creaste esta cuenta, puedes ignorar este correo.
 Con cariño,
 El equipo de MIMITTOS 🧸
 '''
+    html = render_email_html(
+        heading='Verifica tu correo',
+        paragraphs=[
+            '¡Bienvenido/a a MIMITTOS!',
+            'Para activar tu cuenta usa el siguiente código de verificación:',
+        ],
+        code=code,
+        footer_note='Si no creaste esta cuenta, puedes ignorar este correo.',
+        preheader='Tu código para activar tu cuenta MIMITTOS.',
+        subject=subject,
+    )
     try:
         send_mail(
             subject,
@@ -76,6 +101,7 @@ El equipo de MIMITTOS 🧸
             settings.DEFAULT_FROM_EMAIL,
             [email],
             fail_silently=False,
+            html_message=html,
         )
         return True
     except Exception as e:
