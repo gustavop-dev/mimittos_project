@@ -35,7 +35,7 @@ const SECTIONS = [
   },
   {
     title: '9. Contacto y soporte',
-    content: 'Para cualquier consulta, puedes contactarnos por WhatsApp al +57 300 000 0000 (lunes a viernes, 8am–7pm) o por correo a hola@mimittos.co. Nos comprometemos a responder en menos de 24 horas hábiles.',
+    content: 'Para cualquier consulta, puedes contactarnos por WhatsApp al +57 3244790777 (lunes a viernes, 8am–7pm) o por correo a hola@mimittos.com. Nos comprometemos a responder en menos de 24 horas hábiles.',
   },
 ]
 

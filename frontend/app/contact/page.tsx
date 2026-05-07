@@ -61,13 +61,13 @@ export default function ContactPage() {
         {/* Info */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* WhatsApp */}
-          <a href="https://wa.me/573000000000" style={{ background: '#25D366', borderRadius: 'var(--radius-lg)', padding: 28, display: 'flex', gap: 20, alignItems: 'center', color: '#fff', textDecoration: 'none', boxShadow: '0 10px 30px rgba(37,211,102,.3)' }}>
+          <a href="https://wa.me/573244790777" target="_blank" rel="noopener noreferrer" style={{ background: '#25D366', borderRadius: 'var(--radius-lg)', padding: 28, display: 'flex', gap: 20, alignItems: 'center', color: '#fff', textDecoration: 'none', boxShadow: '0 10px 30px rgba(37,211,102,.3)' }}>
             <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,.2)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
               <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.5A10 10 0 1 0 12 2z" /></svg>
             </div>
             <div>
               <strong style={{ display: 'block', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 20 }}>WhatsApp — respuesta rápida</strong>
-              <span style={{ fontSize: 14, opacity: .9 }}>+57 300 000 0000 · Lunes a viernes 8am–7pm</span>
+              <span style={{ fontSize: 14, opacity: .9 }}>+57 3244790777 · Lunes a viernes 8am–7pm</span>
             </div>
           </a>
 
@@ -78,7 +78,7 @@ export default function ContactPage() {
             </div>
             <div>
               <strong style={{ display: 'block', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 16, color: 'var(--navy)' }}>Correo electrónico</strong>
-              <a href="mailto:hola@mimittos.co" style={{ color: 'var(--coral)', fontSize: 14, fontWeight: 600 }}>hola@mimittos.co</a>
+              <a href="mailto:hola@mimittos.com" style={{ color: 'var(--coral)', fontSize: 14, fontWeight: 600 }}>hola@mimittos.com</a>
               <span style={{ display: 'block', fontSize: 13, color: 'var(--gray-warm)' }}>Respondemos en menos de 24 horas</span>
             </div>
           </div>
@@ -90,8 +90,8 @@ export default function ContactPage() {
             </div>
             <div>
               <strong style={{ display: 'block', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 16, color: 'var(--navy)' }}>Nuestro taller</strong>
-              <span style={{ fontSize: 14, color: 'var(--gray-warm)' }}>Medellín, Antioquia, Colombia</span>
-              <span style={{ display: 'block', fontSize: 13, color: 'var(--gray-warm)' }}>Solo enviamos, no hay tienda física por ahora</span>
+              <span style={{ fontSize: 14, color: 'var(--gray-warm)' }}>Bogotá · Localidad Rafael Uribe Uribe</span>
+              <span style={{ display: 'block', fontSize: 13, color: 'var(--gray-warm)' }}>Calle 49 B Sur #5B-93</span>
             </div>
           </div>
 

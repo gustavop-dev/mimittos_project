@@ -5,6 +5,7 @@ import type {
   OrderDetail,
   OrderListItem,
   OrderTrackingInfo,
+  PaymentMode,
 } from '../types'
 
 export const orderService = {
@@ -18,6 +19,7 @@ export const orderService = {
     postal_code: string
     notes?: string
     items: CartItem[]
+    payment_mode?: PaymentMode
   }) => {
     const payload = {
       customer_name: data.customer_name,
@@ -28,6 +30,7 @@ export const orderService = {
       department: data.department,
       postal_code: data.postal_code,
       notes: data.notes ?? '',
+      payment_mode: data.payment_mode ?? 'deposit',
       items: data.items.map((i) => ({
         peluch_id: i.peluch_id,
         size_id: i.size_id,

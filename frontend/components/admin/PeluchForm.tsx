@@ -89,6 +89,10 @@ export function PeluchForm({ existing }: Props) {
     badge: 'none', is_active: true, is_featured: false,
     has_huella: false, has_corazon: false, has_audio: false,
     huella_extra_cost: '0', corazon_extra_cost: '0', audio_extra_cost: '0',
+    deposit_percentage: '50',
+    full_payment_discount_pct: '0',
+    free_shipping: false,
+    shipping_cost: '0',
   })
 
   const [descriptionJson, setDescriptionJson] = useState('')
@@ -141,6 +145,10 @@ export function PeluchForm({ existing }: Props) {
           huella_extra_cost: String(existing.huella_extra_cost ?? 0),
           corazon_extra_cost: String(existing.corazon_extra_cost ?? 0),
           audio_extra_cost: String(existing.audio_extra_cost ?? 0),
+          deposit_percentage: String(existing.deposit_percentage ?? 50),
+          full_payment_discount_pct: String(existing.full_payment_discount_pct ?? 0),
+          free_shipping: existing.free_shipping ?? false,
+          shipping_cost: String(existing.shipping_cost ?? 0),
         })
         setDiscountPct(existing.discount_pct ?? 0)
         setDisplayOrder(existing.display_order ?? 100)
@@ -363,6 +371,10 @@ export function PeluchForm({ existing }: Props) {
         huella_extra_cost: Number(form.huella_extra_cost),
         corazon_extra_cost: Number(form.corazon_extra_cost),
         audio_extra_cost: Number(form.audio_extra_cost),
+        deposit_percentage: Math.min(100, Math.max(1, Number(form.deposit_percentage) || 50)),
+        full_payment_discount_pct: Math.min(100, Math.max(0, Number(form.full_payment_discount_pct) || 0)),
+        free_shipping: form.free_shipping,
+        shipping_cost: form.free_shipping ? 0 : Math.max(0, Number(form.shipping_cost) || 0),
         specifications: specifications ?? {},
         care_instructions: care_instructions ?? [],
         available_color_ids: selectedColors,
@@ -600,6 +612,67 @@ export function PeluchForm({ existing }: Props) {
           <input ref={colorFileInputRef} type="file" accept="image/*" multiple hidden onChange={handleColorFileSelect} />
         </Section>
       )}
+
+      {/* ── PAGOS Y ENVÍOS ───────────────────────────────── */}
+      <Section title="Pagos y envíos">
+        <p style={HintStyle}>
+          Estos valores se aplican <strong>por producto</strong>. En carritos con varios peluches el sistema
+          calcula el anticipo y descuento ponderados por línea, y suma los envíos no gratuitos.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14 }}>
+          <div>
+            <label style={L}>% de anticipo (contraentrega)</label>
+            <input
+              type="number"
+              min={1}
+              max={100}
+              value={form.deposit_percentage}
+              onChange={f('deposit_percentage')}
+              style={I}
+            />
+            <p style={{ fontSize: 11, color: 'var(--gray-warm)', marginTop: 4 }}>
+              Porcentaje del precio que el cliente paga por adelantado vía Wompi. El resto va al recibir.
+            </p>
+          </div>
+          <div>
+            <label style={L}>% descuento si paga todo de una</label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={form.full_payment_discount_pct}
+              onChange={f('full_payment_discount_pct')}
+              style={I}
+            />
+            <p style={{ fontSize: 11, color: 'var(--gray-warm)', marginTop: 4 }}>
+              Incentivo para que el cliente elija pago completo. Aplica solo al subtotal del producto, no al envío.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16, padding: 14, background: form.free_shipping ? 'rgba(76,175,80,.08)' : 'var(--cream-warm)', borderRadius: 10, border: `1.5px solid ${form.free_shipping ? 'rgba(76,175,80,.3)' : 'rgba(27,42,74,.06)'}` }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, color: 'var(--navy)', fontSize: 14, cursor: 'pointer' }}>
+            <input type="checkbox" checked={form.free_shipping} onChange={fBool('free_shipping')} />
+            Envío gratis
+          </label>
+          {!form.free_shipping && (
+            <div style={{ marginTop: 12 }}>
+              <label style={{ ...L, marginTop: 0 }}>Costo de envío (COP)</label>
+              <input
+                type="number"
+                min={0}
+                value={form.shipping_cost}
+                onChange={f('shipping_cost')}
+                placeholder="15000"
+                style={I}
+              />
+              <p style={{ fontSize: 11, color: 'var(--gray-warm)', marginTop: 4 }}>
+                Se cobra una vez por unidad de este peluche. Se ignora cuando el toggle de arriba está activo.
+              </p>
+            </div>
+          )}
+        </div>
+      </Section>
 
       {/* ── PERSONALIZACIONES ────────────────────────────── */}
       <Section title="Personalizaciones">

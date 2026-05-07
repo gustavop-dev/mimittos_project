@@ -212,6 +212,10 @@ export default function PeluchDetailPage() {
       corazon_phrase: userHasCorazon ? corazonPhrase : '',
       has_audio: userHasAudio,
       audio_media_id: userHasAudio ? audioMediaId : null,
+      deposit_percentage: peluch.deposit_percentage ?? 50,
+      full_payment_discount_pct: peluch.full_payment_discount_pct ?? 0,
+      free_shipping: peluch.free_shipping ?? false,
+      shipping_cost: peluch.shipping_cost ?? 0,
     }
 
     addToCart(cartItem)

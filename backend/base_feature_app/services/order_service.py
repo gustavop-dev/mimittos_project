@@ -9,6 +9,11 @@ from base_feature_app.models import (
 )
 
 
+def _round_to_100(value: float) -> int:
+    """Round to the nearest 100 COP — keeps Wompi happy and avoids weird decimals."""
+    return int(round(value / 100) * 100)
+
+
 class OrderService:
 
     @staticmethod
@@ -19,45 +24,91 @@ class OrderService:
 
     @staticmethod
     def calculate_deposit(total: int) -> int:
+        """
+        Legacy fallback: applies the global DEPOSIT_PERCENTAGE setting.
+        New flow uses per-product deposit_percentage; this stays for any
+        callsite that doesn't have item context.
+        """
         percentage = int(getattr(settings, 'DEPOSIT_PERCENTAGE', 50))
-        raw = total * percentage / 100
-        return int(round(raw / 100) * 100)
+        return _round_to_100(total * percentage / 100)
+
+    @staticmethod
+    def _item_subtotal(item: dict, peluch) -> tuple[int, int]:
+        """Return (unit_price, line_subtotal) for a cart item dict."""
+        size_price = PeluchSizePrice.objects.get(
+            peluch=peluch,
+            size=item['size'],
+            is_available=True,
+        )
+        personalization_cost = sum([
+            peluch.huella_extra_cost if item.get('has_huella') else 0,
+            peluch.corazon_extra_cost if item.get('has_corazon') else 0,
+            peluch.audio_extra_cost if item.get('has_audio') else 0,
+        ])
+        discount = getattr(peluch, 'discount_pct', 0) or 0
+        unit_price = round(size_price.price * (100 - discount) / 100)
+        line_subtotal = (unit_price + personalization_cost) * item['quantity']
+        return unit_price, personalization_cost, line_subtotal
 
     @staticmethod
     @transaction.atomic
     def create_order(validated_data: dict, user=None) -> Order:
         items_data = validated_data.pop('items')
+        payment_mode = validated_data.pop('payment_mode', Order.PaymentMode.DEPOSIT)
 
-        total_amount = 0
+        product_subtotal = 0
+        weighted_deposit_raw = 0.0
+        weighted_full_discount_raw = 0.0
+        shipping_total = 0
+
         for item in items_data:
-            size_price = PeluchSizePrice.objects.get(
-                peluch=item['peluch'],
-                size=item['size'],
-                is_available=True,
-            )
-            personalization_cost = sum([
-                item['peluch'].huella_extra_cost if item.get('has_huella') else 0,
-                item['peluch'].corazon_extra_cost if item.get('has_corazon') else 0,
-                item['peluch'].audio_extra_cost if item.get('has_audio') else 0,
-            ])
-            discount = getattr(item['peluch'], 'discount_pct', 0)
-            item['unit_price'] = round(size_price.price * (100 - discount) / 100)
+            peluch = item['peluch']
+            unit_price, personalization_cost, line_subtotal = OrderService._item_subtotal(item, peluch)
+            item['unit_price'] = unit_price
             item['personalization_cost'] = personalization_cost
-            total_amount += (item['unit_price'] + personalization_cost) * item['quantity']
+            item['_line_subtotal'] = line_subtotal
 
-        deposit_amount = OrderService.calculate_deposit(total_amount)
-        balance_amount = total_amount - deposit_amount
+            product_subtotal += line_subtotal
+
+            deposit_pct = peluch.deposit_percentage or int(getattr(settings, 'DEPOSIT_PERCENTAGE', 50))
+            weighted_deposit_raw += line_subtotal * deposit_pct / 100
+
+            full_disc_pct = peluch.full_payment_discount_pct or 0
+            weighted_full_discount_raw += line_subtotal * full_disc_pct / 100
+
+            if not peluch.free_shipping:
+                shipping_total += peluch.shipping_cost * item['quantity']
+
+        deposit_amount = _round_to_100(weighted_deposit_raw)
+        discount_amount = _round_to_100(weighted_full_discount_raw)
+        shipping_amount = _round_to_100(shipping_total)
+        total_amount = product_subtotal  # products only; shipping is separate
+
+        if payment_mode == Order.PaymentMode.FULL:
+            amount_paid_now = max(product_subtotal - discount_amount, 0) + shipping_amount
+            balance_amount = 0
+        else:
+            payment_mode = Order.PaymentMode.DEPOSIT
+            amount_paid_now = deposit_amount
+            balance_amount = (product_subtotal - deposit_amount) + shipping_amount
 
         order = Order.objects.create(
             customer=user,
             total_amount=total_amount,
             deposit_amount=deposit_amount,
             balance_amount=balance_amount,
+            shipping_amount=shipping_amount,
+            discount_amount=discount_amount,
+            payment_mode=payment_mode,
+            amount_paid_now=amount_paid_now,
             **validated_data,
         )
 
         for item in items_data:
             peluch = item['peluch']
+            size_price = PeluchSizePrice.objects.get(
+                peluch=peluch, size=item['size'], is_available=True,
+            )
             OrderItem.objects.create(
                 order=order,
                 peluch=peluch,
@@ -82,6 +133,10 @@ class OrderService:
                     'color_hex': item['color'].hex_code,
                     'discount_pct': peluch.discount_pct,
                     'original_unit_price': size_price.price,
+                    'deposit_percentage': peluch.deposit_percentage,
+                    'full_payment_discount_pct': peluch.full_payment_discount_pct,
+                    'free_shipping': peluch.free_shipping,
+                    'shipping_cost': peluch.shipping_cost,
                     'has_huella': item.get('has_huella', False),
                     'huella_type': item.get('huella_type', ''),
                     'huella_text': item.get('huella_text', ''),
@@ -95,7 +150,7 @@ class OrderService:
         WompiTransaction.objects.create(
             order=order,
             reference=reference,
-            amount_in_cents=deposit_amount * 100,
+            amount_in_cents=amount_paid_now * 100,
         )
 
         OrderService.mark_media_as_used(order)

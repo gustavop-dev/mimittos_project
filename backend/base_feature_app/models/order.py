@@ -19,6 +19,10 @@ class Order(models.Model):
         DELIVERED = 'delivered', 'Entregado'
         CANCELLED = 'cancelled', 'Cancelado'
 
+    class PaymentMode(models.TextChoices):
+        DEPOSIT = 'deposit', 'Anticipo (contraentrega)'
+        FULL = 'full', 'Pago completo'
+
     order_number = models.CharField(max_length=30, unique=True, default=_generate_order_number)
     customer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -41,6 +45,23 @@ class Order(models.Model):
     total_amount = models.PositiveIntegerField()
     deposit_amount = models.PositiveIntegerField()
     balance_amount = models.PositiveIntegerField()
+    shipping_amount = models.PositiveIntegerField(
+        default=0,
+        help_text='Costo de envío sumado de los items del pedido (snapshot).',
+    )
+    discount_amount = models.PositiveIntegerField(
+        default=0,
+        help_text='Descuento aplicado al elegir pago completo (snapshot).',
+    )
+    payment_mode = models.CharField(
+        max_length=10,
+        choices=PaymentMode.choices,
+        default=PaymentMode.DEPOSIT,
+    )
+    amount_paid_now = models.PositiveIntegerField(
+        default=0,
+        help_text='Monto que pagó el cliente al confirmar el pedido (lo que va a Wompi).',
+    )
 
     tracking_number = models.CharField(max_length=100, blank=True)
     shipping_carrier = models.CharField(max_length=100, blank=True)

@@ -23,9 +23,10 @@ def test_send_password_reset_code_success(monkeypatch):
     user = User.objects.create_user(email='reset@example.com', password='pass1234', first_name='Reset')
     sent = {}
 
-    def fake_send_mail(subject, message, from_email, recipient_list, fail_silently):
+    def fake_send_mail(subject, message, from_email, recipient_list, fail_silently, **kwargs):
         sent['subject'] = subject
         sent['recipients'] = recipient_list
+        sent['html_message'] = kwargs.get('html_message')
         return 1
 
     monkeypatch.setattr(auth_utils, 'send_mail', fake_send_mail)
@@ -51,9 +52,10 @@ def test_send_password_reset_code_failure(monkeypatch):
 def test_send_verification_code_success(monkeypatch):
     sent = {}
 
-    def fake_send_mail(subject, message, from_email, recipient_list, fail_silently):
+    def fake_send_mail(subject, message, from_email, recipient_list, fail_silently, **kwargs):
         sent['subject'] = subject
         sent['recipients'] = recipient_list
+        sent['html_message'] = kwargs.get('html_message')
         return 1
 
     monkeypatch.setattr(auth_utils, 'send_mail', fake_send_mail)

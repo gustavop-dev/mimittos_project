@@ -136,6 +136,8 @@ class PeluchListSerializer(serializers.ModelSerializer):
             'color_images_meta',
             'average_rating', 'review_count',
             'has_huella', 'has_corazon', 'has_audio',
+            'deposit_percentage', 'full_payment_discount_pct',
+            'free_shipping', 'shipping_cost',
         ]
 
     def get_min_price(self, obj):
@@ -201,6 +203,8 @@ class PeluchDetailSerializer(serializers.ModelSerializer):
             'gallery_urls', 'color_images_meta',
             'has_huella', 'has_corazon', 'has_audio',
             'huella_extra_cost', 'corazon_extra_cost', 'audio_extra_cost',
+            'deposit_percentage', 'full_payment_discount_pct',
+            'free_shipping', 'shipping_cost',
             'created_at', 'updated_at',
         ]
 
@@ -265,6 +269,8 @@ class PeluchCreateUpdateSerializer(serializers.ModelSerializer):
             'discount_pct', 'display_order',
             'has_huella', 'has_corazon', 'has_audio',
             'huella_extra_cost', 'corazon_extra_cost', 'audio_extra_cost',
+            'deposit_percentage', 'full_payment_discount_pct',
+            'free_shipping', 'shipping_cost',
             'available_color_ids', 'size_prices_data',
         ]
 

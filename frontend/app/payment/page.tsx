@@ -89,7 +89,10 @@ function PaymentContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderNumber = searchParams.get('order') ?? ''
-  const depositParam = parseInt(searchParams.get('deposit') ?? '0', 10) || 0
+  const amountParam = parseInt(
+    searchParams.get('amount') ?? searchParams.get('deposit') ?? '0',
+    10
+  ) || 0
   const isGuest = searchParams.get('guest') === '1'
 
   const [info, setInfo] = useState<PaymentInfo | null>(null)
@@ -134,7 +137,7 @@ function PaymentContent() {
     }
   }, [selected, banks.length])
 
-  const deposit = info?.deposit_amount ?? depositParam
+  const deposit = info?.amount_paid_now ?? info?.deposit_amount ?? amountParam
 
   async function handleSubmit() {
     if (!selected || !orderNumber) return

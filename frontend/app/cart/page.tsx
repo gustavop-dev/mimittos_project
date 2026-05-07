@@ -4,7 +4,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import React, { useMemo } from 'react'
 
-import { calcDeposit, lineTotal, useCartStore } from '@/lib/stores/cartStore'
+import {
+  calcDeposit, calcFullPaymentDiscount, calcShipping, lineTotal, useCartStore,
+} from '@/lib/stores/cartStore'
 
 export default function CartPage() {
   const items = useCartStore((s) => s.items)
@@ -12,7 +14,13 @@ export default function CartPage() {
   const updateQuantity = useCartStore((s) => s.updateQuantity)
 
   const subtotal = useMemo(() => items.reduce((acc, item) => acc + lineTotal(item), 0), [items])
-  const deposit = useMemo(() => calcDeposit(subtotal), [subtotal])
+  const deposit = useMemo(() => calcDeposit(items), [items])
+  const shipping = useMemo(() => calcShipping(items), [items])
+  const fullDiscount = useMemo(() => calcFullPaymentDiscount(items), [items])
+  const balanceAtDelivery = subtotal - deposit + shipping
+  const fullPaymentNow = Math.max(subtotal - fullDiscount, 0) + shipping
+  const grandTotal = subtotal + shipping
+  const allFreeShipping = items.length > 0 && items.every((i) => i.free_shipping)
 
   function fmt(n: number | undefined | null) { return '$' + (n ?? 0).toLocaleString('es-CO') }
 
@@ -138,34 +146,61 @@ export default function CartPage() {
               <span style={{ fontSize: 13, color: 'var(--gray-warm)', fontWeight: 500 }}>{items.reduce((a, i) => a + i.quantity, 0)} peluches</span>
             </h3>
 
-            <div style={sumRowStyle}><span>Subtotal</span><b style={{ color: 'var(--navy)' }}>{fmt(subtotal)}</b></div>
-            <div style={sumRowStyle}><span>Envío</span><b style={{ color: '#4CAF50' }}>Gratis</b></div>
+            <div style={sumRowStyle}><span>Subtotal productos</span><b style={{ color: 'var(--navy)' }}>{fmt(subtotal)}</b></div>
+            <div style={sumRowStyle}>
+              <span>Envío</span>
+              <b style={{ color: shipping === 0 ? '#4CAF50' : 'var(--navy)' }}>
+                {shipping === 0 ? (allFreeShipping ? 'Gratis' : 'Sin costo') : fmt(shipping)}
+              </b>
+            </div>
             <div style={{ height: 1, background: 'rgba(212,132,138,.2)', margin: '12px 0' }} />
             <div style={{ ...sumRowStyle, paddingTop: 16 }}>
               <span style={{ fontSize: 15, color: 'var(--navy)', fontWeight: 700 }}>Total del pedido</span>
-              <b style={{ fontFamily: "'Quicksand', sans-serif", fontSize: 24, color: 'var(--terracotta)' }}>{fmt(subtotal)}</b>
+              <b style={{ fontFamily: "'Quicksand', sans-serif", fontSize: 24, color: 'var(--terracotta)' }}>{fmt(grandTotal)}</b>
             </div>
 
             <div style={{ background: 'var(--cream-peach)', borderRadius: 'var(--radius-md)', padding: 18, margin: '18px 0' }}>
-              <h4 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14, color: 'var(--navy)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.06em' }}>Cómo se divide tu pago</h4>
-              <div style={sumRowStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--navy)', fontWeight: 600, fontSize: 13 }}>
-                  <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--coral)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 11 }}>1</span>
-                  Abono 50% vía Wompi <span style={{ fontSize: 11, color: 'var(--gray-warm)', fontWeight: 500 }}>— hoy</span>
+              <h4 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14, color: 'var(--navy)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.06em' }}>Opciones de pago</h4>
+
+              {/* Option A — deposit */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={sumRowStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--navy)', fontWeight: 600, fontSize: 13 }}>
+                    <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--coral)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 11 }}>A</span>
+                    Pagar anticipo <span style={{ fontSize: 11, color: 'var(--gray-warm)', fontWeight: 500 }}>— hoy</span>
+                  </div>
+                  <b style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 16, color: 'var(--terracotta)' }}>{fmt(deposit)}</b>
                 </div>
-                <b style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 16, color: 'var(--terracotta)' }}>{fmt(deposit)}</b>
+                <div style={sumRowStyle}>
+                  <span style={{ fontSize: 12, paddingLeft: 30 }}>Saldo + envío al recibir</span>
+                  <b style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14, color: 'var(--gray-warm)' }}>{fmt(balanceAtDelivery)}</b>
+                </div>
               </div>
-              <div style={sumRowStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--navy)', fontWeight: 600, fontSize: 13 }}>
-                  <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--gray-warm)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 11 }}>2</span>
-                  Saldo 50% <span style={{ fontSize: 11, color: 'var(--gray-warm)', fontWeight: 500 }}>— al recibir</span>
+
+              {/* Option B — full payment */}
+              {fullDiscount > 0 ? (
+                <div style={{ paddingTop: 12, borderTop: '1px dashed rgba(27,42,74,.12)' }}>
+                  <div style={sumRowStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--navy)', fontWeight: 600, fontSize: 13 }}>
+                      <span style={{ width: 22, height: 22, borderRadius: '50%', background: '#4CAF50', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 11 }}>B</span>
+                      Pagar todo de una <span style={{ fontSize: 11, color: '#4CAF50', fontWeight: 600 }}>— ahorra {fmt(fullDiscount)}</span>
+                    </div>
+                    <b style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 16, color: '#4CAF50' }}>{fmt(fullPaymentNow)}</b>
+                  </div>
+                  <div style={sumRowStyle}>
+                    <span style={{ fontSize: 12, paddingLeft: 30 }}>Saldo al recibir</span>
+                    <b style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14, color: 'var(--gray-warm)' }}>$0</b>
+                  </div>
                 </div>
-                <b style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 16, color: 'var(--gray-warm)' }}>{fmt(subtotal - deposit)}</b>
+              ) : null}
+
+              <div style={{ marginTop: 10, fontSize: 12, color: 'var(--gray-warm)', fontStyle: 'italic' }}>
+                Eliges qué opción usar al confirmar el pago en el checkout.
               </div>
             </div>
 
             <Link href="/checkout" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'var(--coral)', color: '#fff', width: '100%', padding: 16, borderRadius: 14, fontWeight: 700, fontSize: 16, fontFamily: "'Quicksand', sans-serif", boxShadow: '0 10px 26px rgba(212,132,138,.4)', textDecoration: 'none' }}>
-              Ir a pagar abono · {fmt(deposit)}
+              Continuar al checkout
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
             </Link>
             <Link href="/catalog" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', marginTop: 12, padding: 14, borderRadius: 14, color: 'var(--navy)', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
