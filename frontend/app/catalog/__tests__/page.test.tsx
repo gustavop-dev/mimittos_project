@@ -24,6 +24,7 @@ const mockPeluches = [
     available_colors: [], gallery_urls: [], color_images_meta: [],
     average_rating: 4.9, review_count: 10,
     has_huella: true, has_corazon: true, has_audio: false,
+    deposit_percentage: 50, full_payment_discount_pct: 0, free_shipping: false, shipping_cost: 0,
   },
   {
     id: 2, title: 'Conejito Lucía', slug: 'conejito-lucia',
@@ -34,6 +35,7 @@ const mockPeluches = [
     available_colors: [], gallery_urls: [], color_images_meta: [],
     average_rating: 4.7, review_count: 5,
     has_huella: false, has_corazon: true, has_audio: false,
+    deposit_percentage: 50, full_payment_discount_pct: 0, free_shipping: false, shipping_cost: 0,
   },
 ]
 

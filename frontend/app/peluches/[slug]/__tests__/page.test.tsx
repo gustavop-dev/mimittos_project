@@ -47,6 +47,7 @@ const mockPeluchDetail = {
   color_images_meta: [],
   average_rating: 4.9, review_count: 184,
   has_huella: true, has_corazon: true, has_audio: false,
+  deposit_percentage: 50, full_payment_discount_pct: 0, free_shipping: false, shipping_cost: 0,
   size_prices: [
     { id: 1, size: { id: 1, label: 'Pequeño', slug: 'pequeno', cm: '20cm', sort_order: 1 }, price: 85000, is_available: true },
     { id: 2, size: { id: 2, label: 'Mediano', slug: 'mediano', cm: '35cm', sort_order: 2 }, price: 128000, is_available: true },
