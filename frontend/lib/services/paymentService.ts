@@ -117,7 +117,7 @@ export const paymentService = {
 
   processBancolombia: (
     orderNumber: string,
-    userType: number,
+    userType: 'PERSON' | 'COMPANY',
     userLegalIdType: string,
     userLegalId: string,
     acceptanceToken: string,

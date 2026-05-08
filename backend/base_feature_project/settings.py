@@ -275,6 +275,14 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
+        'app_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'django.log',
+            'maxBytes': 10 * 1024 * 1024,
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
         'backup_file': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
@@ -285,13 +293,18 @@ LOGGING = {
         },
     },
     'root': {
-        'handlers': ['console'],
+        'handlers': ['console', 'app_file'],
         'level': LOG_LEVEL,
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],
+            'handlers': ['console', 'app_file'],
             'level': LOG_LEVEL,
+            'propagate': False,
+        },
+        'base_feature_app': {
+            'handlers': ['console', 'app_file'],
+            'level': 'DEBUG',
             'propagate': False,
         },
         'backups': {

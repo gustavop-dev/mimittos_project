@@ -69,7 +69,7 @@ const METHODS: {
   },
 ]
 
-const ID_TYPES = ['CC', 'CE', 'NIT', 'Pasaporte', 'TI']
+const ID_TYPES = ['CC', 'CE', 'NIT'] as const
 
 function fmt(n: number) {
   return '$' + n.toLocaleString('es-CO')
@@ -126,7 +126,13 @@ function PaymentContent() {
       if (data.customer_name) setCardHolder(data.customer_name)
       if (data.customer_phone) setNequiPhone(data.customer_phone)
     }).catch(() => {})
-    paymentService.getAcceptanceTokens().then(setAcceptance).catch(() => {})
+    paymentService
+      .getAcceptanceTokens()
+      .then(setAcceptance)
+      .catch((e) => {
+        console.error('getAcceptanceTokens failed', e)
+        setError('No se pudo cargar la autorización de Wompi. Recarga la página.')
+      })
   }, [orderNumber, router])
 
   useEffect(() => {
@@ -144,8 +150,14 @@ function PaymentContent() {
     setLoading(true)
     setError('')
 
-    const accToken = acceptance?.acceptance_token ?? ''
-    const authToken = acceptance?.personal_auth_token ?? ''
+    if (!acceptance?.acceptance_token || !acceptance?.personal_auth_token) {
+      setError('No se pudo cargar la autorización de pago. Recarga la página o intenta de nuevo en unos segundos.')
+      setLoading(false)
+      return
+    }
+
+    const accToken = acceptance.acceptance_token
+    const authToken = acceptance.personal_auth_token
 
     try {
       let result
@@ -176,7 +188,8 @@ function PaymentContent() {
 
       } else {
         if (!idNumber.trim()) { setError('Ingresa tu número de documento.'); setLoading(false); return }
-        result = await paymentService.processBancolombia(orderNumber, userType, idType, idNumber.trim(), accToken, authToken)
+        const bancolombiaUserType = userType === 1 ? 'COMPANY' : 'PERSON'
+        result = await paymentService.processBancolombia(orderNumber, bancolombiaUserType, idType, idNumber.trim(), accToken, authToken)
       }
 
       const confirmedParam = result.status === 'APPROVED' ? '&confirmed=1' : ''
@@ -196,8 +209,9 @@ function PaymentContent() {
       }
     } catch (err: any) {
       const msg =
-        err?.message ||
+        err?.response?.data?.wompi_detail ||
         err?.response?.data?.detail ||
+        err?.message ||
         'Error procesando el pago. Por favor intenta de nuevo.'
       setError(msg)
     } finally {

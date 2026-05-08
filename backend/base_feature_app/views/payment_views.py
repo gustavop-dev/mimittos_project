@@ -79,6 +79,14 @@ def process_payment(request):
     order_number = request.data.get('order_number', '')
     method = request.data.get('method', '').upper()
 
+    received_keys = sorted(list(request.data.keys()))
+    logger.info(
+        'process_payment called order=%s method=%s keys=%s acceptance_token_present=%s personal_auth_present=%s',
+        order_number, method, received_keys,
+        bool(request.data.get('acceptance_token')),
+        bool(request.data.get('acceptance_personal_auth_token')),
+    )
+
     if not order_number or not method:
         return Response({'detail': 'order_number y method son requeridos.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -114,10 +122,16 @@ def process_payment(request):
         user_legal_id = request.data.get('user_legal_id', '').strip()
         if not bank_code or not user_legal_id:
             return Response({'detail': 'bank_code y user_legal_id requeridos.'}, status=status.HTTP_400_BAD_REQUEST)
+        legal_id_type = request.data.get('user_legal_id_type', 'CC')
+        if legal_id_type not in ('CC', 'CE', 'NIT'):
+            return Response(
+                {'detail': f'user_legal_id_type debe ser CC, CE o NIT (recibido: {legal_id_type}).'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         method_data = {
             'type': 'PSE',
             'user_type': int(request.data.get('user_type', 0)),
-            'user_legal_id_type': request.data.get('user_legal_id_type', 'CC'),
+            'user_legal_id_type': legal_id_type,
             'user_legal_id': user_legal_id,
             'financial_institution_code': bank_code,
             'payment_description': f'Pedido {tx.order.order_number}',
@@ -127,10 +141,22 @@ def process_payment(request):
         user_legal_id = request.data.get('user_legal_id', '').strip()
         if not user_legal_id:
             return Response({'detail': 'user_legal_id requerido.'}, status=status.HTTP_400_BAD_REQUEST)
+        legal_id_type = request.data.get('user_legal_id_type', 'CC')
+        if legal_id_type not in ('CC', 'CE', 'NIT'):
+            return Response(
+                {'detail': f'user_legal_id_type debe ser CC, CE o NIT (recibido: {legal_id_type}).'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user_type_raw = str(request.data.get('user_type', 'PERSON')).upper()
+        if user_type_raw not in ('PERSON', 'COMPANY'):
+            return Response(
+                {'detail': 'user_type debe ser PERSON o COMPANY.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         method_data = {
             'type': 'BANCOLOMBIA_TRANSFER',
-            'user_type': int(request.data.get('user_type', 0)),
-            'user_legal_id_type': request.data.get('user_legal_id_type', 'CC'),
+            'user_type': user_type_raw,
+            'user_legal_id_type': legal_id_type,
             'user_legal_id': user_legal_id,
             'payment_description': f'Pedido {tx.order.order_number}',
         }
@@ -141,12 +167,34 @@ def process_payment(request):
     acceptance_token = request.data.get('acceptance_token', '')
     personal_auth_token = request.data.get('acceptance_personal_auth_token', '')
 
+    if not acceptance_token or not personal_auth_token:
+        return Response(
+            {'detail': 'Faltan tokens de aceptación de Wompi. Recarga el checkout.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     try:
         result = WompiService.process_transaction(tx, method_data, acceptance_token, personal_auth_token)
     except Exception as exc:
-        logger.error('process_payment failed for %s: %s', order_number, exc)
+        logger.error('process_payment failed for %s: %s', order_number, exc, exc_info=True)
+        wompi_detail = ''
+        resp = getattr(exc, 'response', None)
+        if resp is not None:
+            try:
+                body = resp.json()
+                if isinstance(body, dict):
+                    error_obj = body.get('error') or {}
+                    wompi_detail = error_obj.get('reason') or error_obj.get('type') or ''
+                    messages = error_obj.get('messages')
+                    if isinstance(messages, dict) and messages:
+                        wompi_detail = f'{wompi_detail} | {messages}'.strip(' |')
+            except ValueError:
+                wompi_detail = (resp.text or '')[:300]
         return Response(
-            {'detail': 'Error procesando el pago. Por favor intenta de nuevo.'},
+            {
+                'detail': 'Error procesando el pago. Por favor intenta de nuevo.',
+                'wompi_detail': wompi_detail,
+            },
             status=status.HTTP_502_BAD_GATEWAY,
         )
 

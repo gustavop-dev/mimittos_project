@@ -60,17 +60,41 @@ class WompiService:
             'payment_method': method_data,
         }
 
-        resp = requests.post(
-            f'{WompiService._api_url()}/transactions',
-            json=payload,
-            headers={
-                'Authorization': f'Bearer {WompiService._private_key()}',
-                'Content-Type': 'application/json',
-            },
-            timeout=15,
+        method_type = method_data.get('type', '')
+        api_url = WompiService._api_url()
+        logger.info(
+            'Wompi process_transaction → POST %s/transactions ref=%s method=%s amount_in_cents=%s acceptance_token_len=%s personal_auth_len=%s',
+            api_url, tx.reference, method_type, tx.amount_in_cents,
+            len(acceptance_token or ''), len(personal_auth_token or ''),
         )
-        resp.raise_for_status()
+
+        try:
+            resp = requests.post(
+                f'{api_url}/transactions',
+                json=payload,
+                headers={
+                    'Authorization': f'Bearer {WompiService._private_key()}',
+                    'Content-Type': 'application/json',
+                },
+                timeout=15,
+            )
+        except requests.RequestException as exc:
+            logger.error('Wompi network error ref=%s: %s', tx.reference, exc, exc_info=True)
+            raise
+
+        if resp.status_code >= 400:
+            body_preview = (resp.text or '')[:2000]
+            logger.error(
+                'Wompi rejected transaction ref=%s status=%s body=%s',
+                tx.reference, resp.status_code, body_preview,
+            )
+            resp.raise_for_status()
+
         data = resp.json().get('data', {})
+        logger.info(
+            'Wompi accepted transaction ref=%s wompi_id=%s status=%s',
+            tx.reference, data.get('id', ''), data.get('status', ''),
+        )
 
         wompi_status_raw = data.get('status', 'ERROR').upper()
         status_map = {
@@ -94,11 +118,38 @@ class WompiService:
                 OrderService.update_status(order, Order.Status.PAYMENT_CONFIRMED)
                 NotificationService.notify_new_order_admin(order)
 
-        redirect_url = ''
-        pm_data = data.get('payment_method') or {}
-        if isinstance(pm_data, dict):
-            pm_extra = pm_data.get('extra') or {}
-            redirect_url = pm_extra.get('async_payment_url') or pm_extra.get('redirect_url') or ''
+        def _extract_redirect(payload: dict) -> str:
+            pm = payload.get('payment_method') or {}
+            if not isinstance(pm, dict):
+                return ''
+            extra = pm.get('extra') or {}
+            return extra.get('async_payment_url') or extra.get('redirect_url') or ''
+
+        redirect_url = _extract_redirect(data)
+
+        needs_async_url = method_type in ('PSE', 'BANCOLOMBIA_TRANSFER')
+        if needs_async_url and not redirect_url and tx.wompi_id:
+            import time
+            for attempt in range(6):
+                time.sleep(0.5)
+                fresh = WompiService.fetch_transaction(tx.wompi_id)
+                if not fresh:
+                    continue
+                redirect_url = _extract_redirect(fresh)
+                if redirect_url:
+                    data = fresh
+                    tx.raw_response = fresh
+                    tx.save(update_fields=['raw_response', 'updated_at'])
+                    logger.info(
+                        'Wompi async_payment_url ready ref=%s after %s polls',
+                        tx.reference, attempt + 1,
+                    )
+                    break
+            else:
+                logger.warning(
+                    'Wompi async_payment_url still missing ref=%s after 6 polls',
+                    tx.reference,
+                )
 
         return {
             'status': wompi_status_raw,

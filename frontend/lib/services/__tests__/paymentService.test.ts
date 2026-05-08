@@ -170,11 +170,11 @@ describe('paymentService', () => {
   describe('processBancolombia', () => {
     it('posts Bancolombia transfer payment', async () => {
       mockPost.mockResolvedValue({ data: mockPaymentResult })
-      await paymentService.processBancolombia('ORD-001', 0, 'CC', '12345678', 'acc-tok', 'personal-tok')
+      await paymentService.processBancolombia('ORD-001', 'PERSON', 'CC', '12345678', 'acc-tok', 'personal-tok')
       expect(mockPost).toHaveBeenCalledWith('/payment/process/', {
         order_number: 'ORD-001',
         method: 'BANCOLOMBIA_TRANSFER',
-        user_type: 0,
+        user_type: 'PERSON',
         user_legal_id_type: 'CC',
         user_legal_id: '12345678',
         acceptance_token: 'acc-tok',
