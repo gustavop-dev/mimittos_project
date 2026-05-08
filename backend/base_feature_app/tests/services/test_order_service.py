@@ -85,7 +85,7 @@ def base_order_data(peluch_with_price, size, color):
 @pytest.fixture
 def existing_order(db):
     return Order.objects.create(
-        order_number='PELUCH-20260420-TEST',
+        order_number='MMT-20260420-TEST',
         customer_email='test@example.com',
         customer_name='Test User',
         address='Calle 1',
@@ -103,9 +103,9 @@ def existing_order(db):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
-def test_generate_order_number_has_peluch_prefix():
+def test_generate_order_number_has_mmt_prefix():
     number = OrderService.generate_order_number()
-    assert number.startswith('PELUCH-')
+    assert number.startswith('MMT-')
 
 
 @pytest.mark.django_db

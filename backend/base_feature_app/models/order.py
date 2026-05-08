@@ -7,7 +7,7 @@ from django.utils import timezone
 def _generate_order_number():
     date_str = timezone.now().strftime('%Y%m%d')
     suffix = uuid.uuid4().hex[:4].upper()
-    return f'PELUCH-{date_str}-{suffix}'
+    return f'MMT-{date_str}-{suffix}'
 
 
 class Order(models.Model):

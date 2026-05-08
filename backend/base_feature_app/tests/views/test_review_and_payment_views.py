@@ -105,7 +105,7 @@ def pending_review(db, peluch, existing_user):
 @pytest.fixture
 def existing_order(db, existing_user):
     return Order.objects.create(
-        order_number='PELUCH-20260420-RVW1',
+        order_number='MMT-20260420-RVW1',
         customer=existing_user,
         customer_email=existing_user.email,
         customer_name='Test User',
@@ -135,7 +135,7 @@ def delivered_order_with_peluch(db, existing_user, peluch, color):
     from base_feature_app.models import GlobalSize, Order, OrderItem
     size = GlobalSize.objects.create(label='Mediano', slug='mediano-rvw', cm='30cm')
     order = Order.objects.create(
-        order_number='PELUCH-20260420-RVW3',
+        order_number='MMT-20260420-RVW3',
         customer=existing_user,
         customer_email=existing_user.email,
         customer_name='Test User',

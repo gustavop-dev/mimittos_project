@@ -162,7 +162,7 @@ function TrackingContent() {
               <p style={{ fontSize: 13, color: '#2E7D32', margin: '0 0 10px' }}>
                 Creamos una cuenta para ti. Revisa tu correo — te enviamos tus credenciales de acceso para que puedas ver el historial de tus pedidos.
               </p>
-              <Link href="/auth/login" style={{ display: 'inline-block', padding: '8px 18px', borderRadius: 999, background: '#2E7D32', color: '#fff', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+              <Link href="/sign-in" style={{ display: 'inline-block', padding: '8px 18px', borderRadius: 999, background: '#2E7D32', color: '#fff', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
                 Iniciar sesión →
               </Link>
             </div>

@@ -15,7 +15,7 @@ from base_feature_app.services.notification_service import NotificationService
 @pytest.fixture
 def base_order(db):
     return Order.objects.create(
-        order_number='PELUCH-20260420-N001',
+        order_number='MMT-20260420-N001',
         customer_email='client@example.com',
         customer_name='María López',
         customer_phone='3001112233',

@@ -593,7 +593,7 @@ export default function PeluchDetailPage() {
               {!isAuthenticated ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', background: 'var(--cream-peach)', borderRadius: 12 }}>
                   <span style={{ fontSize: 13, color: 'var(--navy)' }}>Inicia sesión para dejar tu reseña</span>
-                  <Link href="/auth/login" style={{ background: 'var(--coral)', color: '#fff', padding: '8px 18px', borderRadius: 999, fontSize: 13, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}>
+                  <Link href="/sign-in" style={{ background: 'var(--coral)', color: '#fff', padding: '8px 18px', borderRadius: 999, fontSize: 13, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}>
                     Iniciar sesión
                   </Link>
                 </div>

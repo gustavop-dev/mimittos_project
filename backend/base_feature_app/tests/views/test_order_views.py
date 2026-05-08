@@ -78,7 +78,7 @@ def order_data(peluch_with_price, size, color):
 @pytest.fixture
 def existing_order(db, existing_user):
     return Order.objects.create(
-        order_number='PELUCH-20260420-TEST',
+        order_number='MMT-20260420-TEST',
         customer=existing_user,
         customer_email=existing_user.email,
         customer_name='Test User',
@@ -194,7 +194,7 @@ def test_track_order_returns_200_for_valid_order(anon_client, existing_order):
 
 @pytest.mark.django_db
 def test_track_order_returns_404_for_nonexistent_order(anon_client):
-    response = anon_client.get('/api/orders/track/PELUCH-NOEXISTE-0000/')
+    response = anon_client.get('/api/orders/track/MMT-NOEXISTE-0000/')
     assert response.status_code == 404
 
 
@@ -225,7 +225,7 @@ def test_my_orders_returns_401_for_anonymous(anon_client):
 def test_my_orders_only_returns_own_orders(authenticated_client, db, existing_user, admin_user):
     """GET /api/orders/my/ returns only orders belonging to the authenticated user, not other users."""
     Order.objects.create(
-        order_number='PELUCH-20260420-ADMN',
+        order_number='MMT-20260420-ADMN',
         customer=admin_user,
         customer_email=admin_user.email,
         customer_name='Admin User',
@@ -310,7 +310,7 @@ def test_order_detail_returns_403_for_other_user(db, existing_order):
 
 @pytest.mark.django_db
 def test_order_detail_returns_404_for_nonexistent(admin_client):
-    response = admin_client.get('/api/orders/PELUCH-NOEXISTE-0000/')
+    response = admin_client.get('/api/orders/MMT-NOEXISTE-0000/')
     assert response.status_code == 404
 
 
@@ -342,7 +342,7 @@ def test_update_order_status_returns_400_for_invalid_status(admin_client, existi
 
 @pytest.mark.django_db
 def test_update_order_status_returns_404_for_missing_order(admin_client):
-    response = admin_client.patch('/api/orders/PELUCH-NOEXISTE-0000/status/', {'status': 'payment_confirmed'})
+    response = admin_client.patch('/api/orders/MMT-NOEXISTE-0000/status/', {'status': 'payment_confirmed'})
     assert response.status_code == 404
 
 
@@ -368,5 +368,5 @@ def test_update_order_tracking_returns_403_for_anonymous(anon_client, existing_o
 
 @pytest.mark.django_db
 def test_update_order_tracking_returns_404_for_missing_order(admin_client):
-    response = admin_client.patch('/api/orders/PELUCH-NOEXISTE-0000/tracking/', {'tracking_number': '123'})
+    response = admin_client.patch('/api/orders/MMT-NOEXISTE-0000/tracking/', {'tracking_number': '123'})
     assert response.status_code == 404

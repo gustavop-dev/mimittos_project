@@ -20,7 +20,7 @@ class OrderService:
     def generate_order_number() -> str:
         date_str = timezone.now().strftime('%Y%m%d')
         suffix = uuid.uuid4().hex[:4].upper()
-        return f'PELUCH-{date_str}-{suffix}'
+        return f'MMT-{date_str}-{suffix}'
 
     @staticmethod
     def calculate_deposit(total: int) -> int:

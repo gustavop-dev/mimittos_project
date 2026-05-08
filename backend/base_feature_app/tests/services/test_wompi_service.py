@@ -53,7 +53,7 @@ def _make_event_data(secret: str, tx_id: str = 'tx-001', status: str = 'APPROVED
 @pytest.fixture
 def existing_order(db):
     return Order.objects.create(
-        order_number='PELUCH-20260420-W001',
+        order_number='MMT-20260420-W001',
         customer_email='test@example.com',
         customer_name='Test User',
         customer_phone='3001234567',
@@ -71,7 +71,7 @@ def existing_order(db):
 def wompi_tx(db, existing_order):
     return WompiTransaction.objects.create(
         order=existing_order,
-        reference='PELUCH-20260420-W001-ABCD1234',
+        reference='MMT-20260420-W001-ABCD1234',
         amount_in_cents=4000000,
         status=WompiTransaction.Status.PENDING,
     )

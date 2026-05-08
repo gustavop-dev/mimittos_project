@@ -33,7 +33,7 @@ def admin_client(admin_user):
 @pytest.fixture
 def sample_order(db):
     return Order.objects.create(
-        order_number='PELUCH-20260420-KPIS',
+        order_number='MMT-20260420-KPIS',
         customer_email='client@example.com',
         customer_name='Test Client',
         address='Calle 1',
