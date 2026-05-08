@@ -290,3 +290,94 @@ def cleanup_unused_media_files():
                 pass
             media.delete()
         order_logger.info('Cleaned up %d unused personalization media file(s).', count)
+
+
+@db_periodic_task(crontab(hour='5', minute='0'))
+def reconcile_pending_payments():
+    """
+    Daily at 05:00 UTC: reconcile orders stuck in PENDING_PAYMENT against Wompi.
+
+    The /api/payment/check endpoint already syncs DECLINED/APPROVED in real
+    time when the user lands on /order-confirmed. This task is a safety net
+    for cases where the user never returned to the confirmation page.
+
+    Rules:
+    - Only evaluates transactions with created_at > 1h ago (no fresh ones).
+    - If Wompi reports APPROVED → confirm payment.
+    - If Wompi reports DECLINED/VOIDED/ERROR → cancel the order.
+    - If order has been PENDING_PAYMENT for >24h with no terminal Wompi
+      status → cancel as ABANDONED.
+    """
+    from base_feature_app.models import Order, WompiTransaction
+    from base_feature_app.services.order_service import OrderService
+    from base_feature_app.services.wompi_service import WompiService
+    from base_feature_app.services.notification_service import NotificationService
+
+    cutoff_recent = timezone.now() - timedelta(hours=1)
+    cutoff_stale = timezone.now() - timedelta(hours=24)
+
+    txs = WompiTransaction.objects.select_related('order').filter(
+        order__status=Order.Status.PENDING_PAYMENT,
+        created_at__lt=cutoff_recent,
+    )
+
+    cancelled_decline = 0
+    confirmed = 0
+    cancelled_stale = 0
+
+    for tx in txs:
+        order = tx.order
+
+        if not tx.wompi_id:
+            if tx.created_at < cutoff_stale:
+                OrderService.update_status(
+                    order, Order.Status.CANCELLED,
+                    notes='Pago abandonado: sin transacción Wompi tras 24h.',
+                )
+                cancelled_stale += 1
+            continue
+
+        wompi_data = WompiService.fetch_transaction(tx.wompi_id)
+        if not wompi_data:
+            continue
+
+        wompi_status_raw = (wompi_data.get('status') or '').upper()
+        status_map = {
+            'APPROVED': WompiTransaction.Status.APPROVED,
+            'DECLINED': WompiTransaction.Status.DECLINED,
+            'VOIDED': WompiTransaction.Status.VOIDED,
+            'ERROR': WompiTransaction.Status.ERROR,
+        }
+        new_status = status_map.get(wompi_status_raw)
+
+        if new_status and tx.status != new_status:
+            tx.status = new_status
+            tx.raw_response = wompi_data
+            tx.save(update_fields=['status', 'raw_response', 'updated_at'])
+
+        if new_status == WompiTransaction.Status.APPROVED:
+            OrderService.update_status(order, Order.Status.PAYMENT_CONFIRMED)
+            NotificationService.notify_new_order_admin(order)
+            confirmed += 1
+        elif new_status in (
+            WompiTransaction.Status.DECLINED,
+            WompiTransaction.Status.VOIDED,
+            WompiTransaction.Status.ERROR,
+        ):
+            OrderService.update_status(
+                order, Order.Status.CANCELLED,
+                notes=f'Pago Wompi {wompi_status_raw}: {wompi_data.get("status_message") or "sin detalle"}',
+            )
+            cancelled_decline += 1
+        elif tx.created_at < cutoff_stale and wompi_status_raw == 'PENDING':
+            OrderService.update_status(
+                order, Order.Status.CANCELLED,
+                notes='Pago abandonado: PENDING en Wompi tras 24h.',
+            )
+            cancelled_stale += 1
+
+    if confirmed or cancelled_decline or cancelled_stale:
+        order_logger.info(
+            'reconcile_pending_payments: confirmed=%s cancelled_decline=%s cancelled_stale=%s',
+            confirmed, cancelled_decline, cancelled_stale,
+        )

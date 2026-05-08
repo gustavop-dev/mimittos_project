@@ -96,27 +96,12 @@ class WompiService:
             tx.reference, data.get('id', ''), data.get('status', ''),
         )
 
-        wompi_status_raw = data.get('status', 'ERROR').upper()
         status_map = {
             'APPROVED': WompiTransaction.Status.APPROVED,
             'DECLINED': WompiTransaction.Status.DECLINED,
             'VOIDED': WompiTransaction.Status.VOIDED,
             'ERROR': WompiTransaction.Status.ERROR,
         }
-        new_status = status_map.get(wompi_status_raw, WompiTransaction.Status.PENDING)
-
-        tx.wompi_id = data.get('id', '')
-        tx.status = new_status
-        tx.payment_method_type = data.get('payment_method_type', method_data.get('type', ''))
-        tx.raw_response = data
-        tx.save(update_fields=['wompi_id', 'status', 'payment_method_type', 'raw_response', 'updated_at'])
-
-        if new_status == WompiTransaction.Status.APPROVED:
-            from base_feature_app.services.order_service import OrderService
-            from base_feature_app.services.notification_service import NotificationService
-            if order.status == Order.Status.PENDING_PAYMENT:
-                OrderService.update_status(order, Order.Status.PAYMENT_CONFIRMED)
-                NotificationService.notify_new_order_admin(order)
 
         def _extract_redirect(payload: dict) -> str:
             pm = payload.get('payment_method') or {}
@@ -125,36 +110,85 @@ class WompiService:
             extra = pm.get('extra') or {}
             return extra.get('async_payment_url') or extra.get('redirect_url') or ''
 
+        wompi_status_raw = (data.get('status') or 'ERROR').upper()
+        status_message = data.get('status_message') or ''
+        new_status = status_map.get(wompi_status_raw, WompiTransaction.Status.PENDING)
         redirect_url = _extract_redirect(data)
 
+        tx.wompi_id = data.get('id', '')
+        tx.status = new_status
+        tx.payment_method_type = data.get('payment_method_type', method_data.get('type', ''))
+        tx.raw_response = data
+        tx.save(update_fields=['wompi_id', 'status', 'payment_method_type', 'raw_response', 'updated_at'])
+
         needs_async_url = method_type in ('PSE', 'BANCOLOMBIA_TRANSFER')
-        if needs_async_url and not redirect_url and tx.wompi_id:
+        should_poll = bool(tx.wompi_id) and needs_async_url and not redirect_url
+
+        if should_poll:
             import time
-            for attempt in range(6):
+            for attempt in range(10):
                 time.sleep(0.5)
                 fresh = WompiService.fetch_transaction(tx.wompi_id)
                 if not fresh:
                     continue
-                redirect_url = _extract_redirect(fresh)
-                if redirect_url:
+                fresh_status = (fresh.get('status') or '').upper()
+                fresh_url = _extract_redirect(fresh)
+                fresh_msg = fresh.get('status_message') or ''
+                changed = (
+                    fresh_status != wompi_status_raw
+                    or fresh_url != redirect_url
+                    or fresh_msg != status_message
+                )
+                if changed:
                     data = fresh
+                    wompi_status_raw = fresh_status or wompi_status_raw
+                    redirect_url = fresh_url
+                    status_message = fresh_msg or status_message
+                    new_status = status_map.get(wompi_status_raw, WompiTransaction.Status.PENDING)
+                    tx.status = new_status
                     tx.raw_response = fresh
-                    tx.save(update_fields=['raw_response', 'updated_at'])
+                    tx.save(update_fields=['status', 'raw_response', 'updated_at'])
+                if wompi_status_raw in ('APPROVED', 'DECLINED', 'VOIDED', 'ERROR'):
+                    logger.info(
+                        'Wompi terminal status during poll ref=%s status=%s after %s polls',
+                        tx.reference, wompi_status_raw, attempt + 1,
+                    )
+                    break
+                if redirect_url:
                     logger.info(
                         'Wompi async_payment_url ready ref=%s after %s polls',
                         tx.reference, attempt + 1,
                     )
                     break
             else:
-                logger.warning(
-                    'Wompi async_payment_url still missing ref=%s after 6 polls',
-                    tx.reference,
-                )
+                if needs_async_url and not redirect_url:
+                    logger.warning(
+                        'Wompi async_payment_url still missing ref=%s after 10 polls',
+                        tx.reference,
+                    )
+
+        if needs_async_url and not redirect_url and wompi_status_raw != 'APPROVED':
+            wompi_status_raw = 'ERROR'
+            status_message = status_message or 'No se generó URL de redirección. Intenta con otro método de pago.'
+            tx.status = WompiTransaction.Status.ERROR
+            tx.save(update_fields=['status', 'updated_at'])
+            logger.warning(
+                'Treating ref=%s as ERROR: %s requires async_payment_url but Wompi never returned one',
+                tx.reference, method_type,
+            )
+
+        if new_status == WompiTransaction.Status.APPROVED:
+            from base_feature_app.services.order_service import OrderService
+            from base_feature_app.services.notification_service import NotificationService
+            if order.status == Order.Status.PENDING_PAYMENT:
+                OrderService.update_status(order, Order.Status.PAYMENT_CONFIRMED)
+                NotificationService.notify_new_order_admin(order)
 
         return {
             'status': wompi_status_raw,
             'redirect_url': redirect_url,
             'wompi_id': data.get('id', ''),
+            'status_message': status_message,
         }
 
     @staticmethod

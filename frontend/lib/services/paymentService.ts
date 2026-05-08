@@ -25,6 +25,7 @@ export type PaymentResult = {
   status: 'APPROVED' | 'PENDING' | 'DECLINED' | 'ERROR' | string
   redirect_url: string
   wompi_id: string
+  status_message?: string
 }
 
 export type PseBank = {
@@ -57,7 +58,16 @@ export const paymentService = {
     api.get<PaymentInfo>(`/payment/info/${orderNumber}/`).then((r) => r.data),
 
   checkStatus: (orderNumber: string) =>
-    api.get<{ status: string; synced: boolean }>(`/payment/check/${orderNumber}/`).then((r) => r.data),
+    api
+      .get<{
+        status: string
+        order_status: string
+        synced: boolean
+        wompi_status_message: string
+        payment_method_type: string
+        amount_in_cents: number
+      }>(`/payment/check/${orderNumber}/`)
+      .then((r) => r.data),
 
   getAcceptanceTokens: async (): Promise<AcceptanceTokens> => {
     const resp = await fetch(`${WOMPI_API_URL}/merchants/${WOMPI_PUBLIC_KEY}`)

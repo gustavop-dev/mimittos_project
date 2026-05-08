@@ -211,11 +211,25 @@ def check_payment_status(request, order_number: str):
         return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
 
     if not tx.wompi_id:
-        return Response({'status': tx.status, 'synced': False})
+        return Response({
+            'status': tx.status,
+            'order_status': tx.order.status,
+            'synced': False,
+            'wompi_status_message': '',
+            'payment_method_type': tx.payment_method_type or '',
+            'amount_in_cents': tx.amount_in_cents,
+        })
 
     wompi_data = WompiService.fetch_transaction(tx.wompi_id)
     if not wompi_data:
-        return Response({'status': tx.status, 'synced': False})
+        return Response({
+            'status': tx.status,
+            'order_status': tx.order.status,
+            'synced': False,
+            'wompi_status_message': '',
+            'payment_method_type': tx.payment_method_type or '',
+            'amount_in_cents': tx.amount_in_cents,
+        })
 
     wompi_status_raw = wompi_data.get('status', '').upper()
     status_map = {
@@ -231,16 +245,31 @@ def check_payment_status(request, order_number: str):
         tx.raw_response = wompi_data
         tx.save(update_fields=['status', 'raw_response', 'updated_at'])
 
+        from base_feature_app.models import Order
+        from base_feature_app.services.order_service import OrderService
+        order = tx.order
+
         if new_status == WompiTransaction.Status.APPROVED:
-            from base_feature_app.models import Order
-            from base_feature_app.services.order_service import OrderService
             from base_feature_app.services.notification_service import NotificationService
-            order = tx.order
             if order.status == Order.Status.PENDING_PAYMENT:
                 OrderService.update_status(order, Order.Status.PAYMENT_CONFIRMED)
                 NotificationService.notify_new_order_admin(order)
+        elif new_status in (WompiTransaction.Status.DECLINED, WompiTransaction.Status.VOIDED, WompiTransaction.Status.ERROR):
+            if order.status == Order.Status.PENDING_PAYMENT:
+                OrderService.update_status(
+                    order,
+                    Order.Status.CANCELLED,
+                    notes=f'Pago Wompi {wompi_status_raw}: {wompi_data.get("status_message") or "sin detalle"}',
+                )
 
-    return Response({'status': tx.status, 'synced': bool(new_status)})
+    return Response({
+        'status': tx.status,
+        'order_status': tx.order.status,
+        'synced': bool(new_status),
+        'wompi_status_message': wompi_data.get('status_message') or '',
+        'payment_method_type': tx.payment_method_type or wompi_data.get('payment_method_type') or '',
+        'amount_in_cents': tx.amount_in_cents,
+    })
 
 
 @api_view(['GET'])

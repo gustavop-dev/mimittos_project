@@ -12,16 +12,11 @@ import {
   calcShipping, lineTotal, useCartStore,
 } from '@/lib/stores/cartStore'
 import type { PaymentMode } from '@/lib/types'
+import { COLOMBIA_DEPARTMENTS, COLOMBIA_LOCATIONS } from '@/lib/data/colombiaLocations'
 
-const DEPARTMENTS = [
-  'Antioquia', 'Cundinamarca', 'Valle del Cauca', 'Atlántico',
-  'Bolívar', 'Santander', 'Nariño', 'Córdoba', 'Boyacá', 'Tolima',
-]
-
-const CITIES = [
-  'Medellín', 'Bogotá', 'Cali', 'Barranquilla', 'Bucaramanga',
-  'Cartagena', 'Cúcuta', 'Pereira', 'Manizales', 'Ibagué',
-]
+const DEPARTMENTS = COLOMBIA_DEPARTMENTS
+const DEFAULT_DEPARTMENT = 'Cundinamarca'
+const DEFAULT_CITY = 'Bogotá'
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -42,8 +37,18 @@ export default function CheckoutPage() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
-  const [city, setCity] = useState('Bogotá')
-  const [department, setDepartment] = useState('Cundinamarca')
+  const [department, setDepartment] = useState(DEFAULT_DEPARTMENT)
+  const [city, setCity] = useState(DEFAULT_CITY)
+  const cities = useMemo(
+    () => COLOMBIA_LOCATIONS[department] ?? [],
+    [department],
+  )
+
+  useEffect(() => {
+    if (cities.length > 0 && !cities.includes(city)) {
+      setCity(cities[0])
+    }
+  }, [department, cities, city])
   const [postalCode, setPostalCode] = useState('')
   const [notes, setNotes] = useState('')
   const [terms, setTerms] = useState(false)
@@ -87,7 +92,6 @@ export default function CheckoutPage() {
         items: validItems,
         payment_mode: paymentMode,
       })
-      clearCart()
       const guestParam = result.is_guest ? '&guest=1' : ''
       router.push(`/payment?order=${result.order_number}&amount=${result.amount_paid_now}${guestParam}`)
     } catch (err: any) {
@@ -164,8 +168,8 @@ export default function CheckoutPage() {
                 </div>
                 <div style={fieldWrap}>
                   <label style={fieldLabel}>Ciudad</label>
-                  <select value={city} onChange={(e) => setCity(e.target.value)} style={fieldInput}>
-                    {CITIES.map((c) => <option key={c}>{c}</option>)}
+                  <select value={city} onChange={(e) => setCity(e.target.value)} style={fieldInput} disabled={cities.length === 0}>
+                    {cities.map((c) => <option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div style={fieldWrap}>

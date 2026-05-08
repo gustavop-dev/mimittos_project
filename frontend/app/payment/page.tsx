@@ -205,7 +205,12 @@ function PaymentContent() {
           router.push(`/order-confirmed?order=${orderNumber}${confirmedParam}${guestParam}${emailParam}`)
         }
       } else {
-        setError('Pago rechazado. Verifica tus datos e intenta con otro método.')
+        const reason = result.status_message
+        setError(
+          reason
+            ? `Pago rechazado: ${reason}. Intenta con otro método o corrige tus datos.`
+            : 'Pago rechazado. Verifica tus datos e intenta con otro método.',
+        )
       }
     } catch (err: any) {
       const msg =
