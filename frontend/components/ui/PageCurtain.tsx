@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 
-const SESSION_KEY = 'mimittos_intro_seen'
-
 export function PageCurtain() {
   const curtainRef = useRef<HTMLDivElement>(null)
   const textRef = useRef<HTMLDivElement>(null)
@@ -13,16 +11,6 @@ export function PageCurtain() {
   useEffect(() => {
     const el = curtainRef.current
     if (!el) return
-
-    let alreadySeen = false
-    try {
-      alreadySeen = sessionStorage.getItem(SESSION_KEY) === '1'
-    } catch {}
-
-    if (alreadySeen) {
-      setHide(true)
-      return
-    }
 
     if (textRef.current) {
       gsap.fromTo(
@@ -39,14 +27,13 @@ export function PageCurtain() {
         duration: 1.15,
         ease: 'power3.inOut',
         delay: 0.55,
-        onComplete: () => {
-          try {
-            sessionStorage.setItem(SESSION_KEY, '1')
-          } catch {}
-          setHide(true)
-        },
+        onComplete: () => setHide(true),
       }
     )
+
+    // Safety net: if GSAP somehow stalls, hide the curtain after 3s no matter what.
+    const fallback = window.setTimeout(() => setHide(true), 3000)
+    return () => window.clearTimeout(fallback)
   }, [])
 
   if (hide) return null

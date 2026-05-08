@@ -43,7 +43,7 @@ const FAQS = [
 
 const BADGE_BG: Record<string, string> = {
   bestseller: 'var(--coral)',
-  new: '#2E7D32',
+  new: 'var(--coral)',
   limited_edition: 'var(--navy)',
 }
 const BADGE_LABEL: Record<string, string> = {
@@ -69,11 +69,16 @@ function PeluchCard({ p }: { p: Peluch }) {
   const img = p.color_images_meta[0]?.preview_url ?? p.gallery_urls[0] ?? null
   const badgeBg = BADGE_BG[p.badge] ?? ''
   return (
-    <Link href={`/products/${p.id}`} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', textDecoration: 'none' }}>
+    <Link href={`/peluches/${p.slug}`} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', textDecoration: 'none' }}>
       <div style={{ position: 'relative', aspectRatio: '1/1', background: 'var(--pink-melo)', overflow: 'hidden' }}>
         {p.badge !== 'none' && badgeBg && (
           <span style={{ position: 'absolute', top: 14, left: 14, background: badgeBg, color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', padding: '6px 12px', borderRadius: 999, boxShadow: 'var(--shadow-sm)', zIndex: 1 }}>
             {BADGE_LABEL[p.badge]}
+          </span>
+        )}
+        {p.discount_pct > 0 && (
+          <span style={{ position: 'absolute', top: 14, right: 14, background: 'var(--terracotta)', color: '#fff', fontSize: 11, fontWeight: 800, padding: '6px 10px', borderRadius: 999, boxShadow: 'var(--shadow-sm)', zIndex: 1 }}>
+            -{p.discount_pct}%
           </span>
         )}
         {img ? (
@@ -108,7 +113,7 @@ function PeluchCard({ p }: { p: Peluch }) {
 
 const STEPS = [
   { n: '01', title: 'Diseña', desc: 'Eliges modelo, tamaño y color en nuestro configurador visual. Sin escribir un solo mensaje.' },
-  { n: '02', title: 'Abonas el 50%', desc: 'Pagas la mitad por PSE, tarjeta o Nequi para iniciar la producción de tu peluche.' },
+  { n: '02', title: 'Abonas desde el 30%', desc: 'Pagas desde el 30% por PSE, tarjeta o Nequi para iniciar la producción de tu peluche.' },
   { n: '03', title: 'Creamos a mano', desc: 'En 4 a 6 días, cosemos tu peluche con los materiales más suaves. Te avisamos cada etapa.' },
   { n: '04', title: 'Lo recibes', desc: 'Llega a tu puerta, pagas el saldo contraentrega y le das el primer abrazo. Así de simple.' },
 ]
@@ -138,7 +143,7 @@ function ProcessStepCard({ n, title, desc }: { n: string; title: string; desc: s
   )
 }
 
-const HERO_FALLBACK = 'https://images.unsplash.com/photo-1558603668-6570496b66f8?w=1200&q=80'
+const HERO_FALLBACK = '/mimittos/team/costurera.webp'
 
 export default function HomePage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0)
@@ -156,6 +161,10 @@ export default function HomePage() {
       if (url) setHeroImage(url)
     }).catch(() => null)
   }, [])
+
+  const designHref = featuredPeluches[0]?.slug
+    ? `/peluches/${featuredPeluches[0].slug}`
+    : '/catalog'
 
   return (
     <main>
@@ -187,7 +196,7 @@ export default function HomePage() {
             </FadeUp>
             <FadeUp delay={0.4}>
               <div style={{ marginTop: 36, display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-                <Link href="/products/1" style={btnPrimary}>
+                <Link href={designHref} style={btnPrimary}>
                   Diseña tu peluche
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                 </Link>
@@ -215,10 +224,10 @@ export default function HomePage() {
             <div style={{ position: 'absolute', inset: 0, borderRadius: 'var(--radius-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-lg)', background: 'var(--pink-melo)' }}>
               <Image src={heroImage} alt="Peluche MIMITTOS" fill className="object-cover" />
             </div>
-            <div style={{ position: 'absolute', top: '-16px', right: 40, width: 92, height: 92, borderRadius: '50%', background: 'var(--coral)', color: '#fff', display: 'grid', placeItems: 'center', textAlign: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13, lineHeight: 1.15, boxShadow: 'var(--shadow-md)', padding: 12 }}>
+            <div className="anim-spin" style={{ position: 'absolute', top: '-16px', right: 40, width: 92, height: 92, borderRadius: '50%', background: 'var(--coral)', color: '#fff', display: 'grid', placeItems: 'center', textAlign: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13, lineHeight: 1.15, boxShadow: 'var(--shadow-md)', padding: 12 }}>
               Hecho<br />con<br />amor ♡
             </div>
-            <div style={{ position: 'absolute', top: 24, left: -30, background: '#fff', borderRadius: 'var(--radius-md)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow-md)' }}>
+            <div className="anim-floatA" style={{ position: 'absolute', top: 24, left: -30, background: '#fff', borderRadius: 'var(--radius-md)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow-md)' }}>
               <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--pink-melo)', display: 'grid', placeItems: 'center', color: 'var(--coral)' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 12l2 2 4-4" /><circle cx="12" cy="12" r="10" /></svg>
               </div>
@@ -227,7 +236,7 @@ export default function HomePage() {
                 <span style={{ fontSize: 12, color: 'var(--gray-warm)' }}>Cosido a mano, uno por uno</span>
               </div>
             </div>
-            <div style={{ position: 'absolute', bottom: -30, right: -20, background: '#fff', borderRadius: 'var(--radius-md)', padding: 18, display: 'flex', flexDirection: 'column', gap: 12, width: 240, boxShadow: 'var(--shadow-lg)' }}>
+            <div className="anim-floatB" style={{ position: 'absolute', bottom: -30, right: -20, background: '#fff', borderRadius: 'var(--radius-md)', padding: 18, display: 'flex', flexDirection: 'column', gap: 12, width: 240, boxShadow: 'var(--shadow-lg)' }}>
               <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--navy)' }}>Tu peluche está listo 🧸</div>
               <div style={{ height: 6, background: 'var(--pink-melo)', borderRadius: 999, overflow: 'hidden' }}>
                 <span style={{ display: 'block', height: '100%', width: '66%', background: 'linear-gradient(90deg,var(--coral),var(--coral-soft))', borderRadius: 999 }} />
@@ -380,10 +389,10 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-[70px] items-center">
           <SlideIn direction="left" className="hidden md:block" style={{ position: 'relative', aspectRatio: '4/5' }}>
             <div style={{ position: 'absolute', inset: '0 30px 30px 0', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-md)' }}>
-              <Image src="https://images.unsplash.com/photo-1596463059283-da257325bab8?w=900&q=80" alt="Taller artesanal" fill className="object-cover" />
+              <Image src="/mimittos/team/cortador.webp" alt="Cortando tela a mano en el taller MIMITTOS" fill className="object-cover" />
             </div>
             <div style={{ position: 'absolute', bottom: 0, right: 0, width: '60%', aspectRatio: '1/1', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '8px solid var(--cream-warm)', boxShadow: 'var(--shadow-lg)' }}>
-              <Image src="/mimittos/ph-detail.svg" alt="Detalle artesanal" fill className="object-cover" />
+              <Image src="/mimittos/team/costurero.webp" alt="Detalle del cosido a mano en el taller MIMITTOS" fill className="object-cover" />
             </div>
             <div style={{ position: 'absolute', top: 30, left: -20, background: '#fff', padding: '14px 20px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow-md)' }}>
               <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 28, color: 'var(--coral)', lineHeight: 1 }}>8<br /><span style={{ fontSize: 14 }}>años</span></div>
@@ -476,7 +485,7 @@ export default function HomePage() {
               Diseña tu peluche en menos de 5 minutos. Sin mensajes, sin esperas, sin malentendidos.
             </p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <Link href="/products/1" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '14px 24px', borderRadius: 999, fontWeight: 600, fontSize: 15, background: '#fff', color: 'var(--navy)', transition: 'all .2s' }}>
+              <Link href={designHref} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '14px 24px', borderRadius: 999, fontWeight: 600, fontSize: 15, background: '#fff', color: 'var(--navy)', transition: 'all .2s' }}>
                 Diseñar mi peluche
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
               </Link>

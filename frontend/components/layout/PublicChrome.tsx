@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Header from './Header'
 import Footer from './Footer'
 import PromoBanner, { BANNER_HEIGHT } from './PromoBanner'
@@ -20,6 +20,11 @@ export default function PublicChrome({ children }: { children: React.ReactNode }
   const [bannerActive, setBannerActive] = useState(false)
 
   usePageView()
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [pathname])
 
   if (isAdmin || isCheckoutFlow) return <>{children}</>
 

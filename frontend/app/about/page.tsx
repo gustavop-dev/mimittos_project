@@ -1,7 +1,12 @@
+'use client'
+
 import Image from 'next/image'
 import Link from 'next/link'
 
+import { useFirstFeaturedHref } from '@/lib/hooks/useFirstFeaturedHref'
+
 export default function AboutPage() {
+  const designHref = useFirstFeaturedHref()
   return (
     <main>
       {/* Hero */}
@@ -22,7 +27,7 @@ export default function AboutPage() {
       {/* Mission */}
       <section className="mx-auto px-4 sm:px-8 py-16 md:py-[80px] grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-[60px] items-center" style={{ maxWidth: 1200 }}>
         <div style={{ aspectRatio: '4/5', borderRadius: 24, overflow: 'hidden', background: 'var(--pink-melo)', position: 'relative' }}>
-          <Image src="https://images.unsplash.com/photo-1596463059283-da257325bab8?w=900&q=80" alt="Taller MIMITTOS" fill className="object-cover" />
+          <Image src="/mimittos/team/rellenador.webp" alt="Relleno artesanal en el taller MIMITTOS" fill className="object-cover" />
         </div>
         <div>
           <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 44, color: 'var(--navy)', marginBottom: 20, lineHeight: 1.1 }}>
@@ -53,7 +58,7 @@ export default function AboutPage() {
           </p>
         </div>
         <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6" style={{ maxWidth: 1280 }}>
-          {TEAM_STEPS.map(({ step, src, role, desc }) => (
+          {TEAM_STEPS.map(({ step, src, role, desc }, i) => (
             <article key={step} style={{ background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column' }}>
               <div style={{ position: 'relative', aspectRatio: '4/5', background: 'var(--pink-melo)' }}>
                 <Image
@@ -63,7 +68,7 @@ export default function AboutPage() {
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
                   style={{ objectFit: 'cover', objectPosition: 'center top' }}
                 />
-                <span style={{ position: 'absolute', top: 14, left: 14, padding: '6px 12px', borderRadius: 999, background: 'rgba(255,255,255,.92)', color: 'var(--coral)', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: '.18em' }}>
+                <span className="anim-floatA" style={{ position: 'absolute', top: 14, left: 14, animationDelay: `${i * 0.4}s`, display: 'inline-block', padding: '6px 12px', borderRadius: 999, background: 'rgba(255,255,255,.92)', color: 'var(--coral)', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: '.18em' }}>
                   {step}
                 </span>
               </div>
@@ -125,7 +130,7 @@ export default function AboutPage() {
             { year: '2024', title: 'MIMITTOS hoy', desc: 'Más de 2.400 peluches creados, 1.800 familias felices y una comunidad que crece con cada abrazo que damos.' },
           ].map(({ year, title, desc }, i) => (
             <div key={year} style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-              <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'var(--coral)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13, flexShrink: 0, boxShadow: '0 0 0 6px var(--cream-peach)' }}>{year}</div>
+              <div className="anim-pulse" style={{ animationDelay: `${i * 0.4}s`, flexShrink: 0, width: 60, height: 60, borderRadius: '50%', background: 'var(--coral)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13, boxShadow: '0 0 0 6px var(--cream-peach)' }}>{year}</div>
               <div style={{ background: 'var(--cream-warm)', borderRadius: 18, padding: 24, flex: 1 }}>
                 <h3 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 20, color: 'var(--navy)', marginBottom: 8 }}>{title}</h3>
                 <p style={{ fontSize: 14, color: 'var(--gray-warm)', lineHeight: 1.6 }}>{desc}</p>
@@ -144,7 +149,7 @@ export default function AboutPage() {
           Diseña tu peluche en menos de 5 minutos y nosotros lo haremos a mano con todo el amor del mundo.
         </p>
         <div style={{ display: 'inline-flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Link href="/products/1" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '16px 28px', borderRadius: 999, fontWeight: 600, fontSize: 15, background: 'var(--coral)', color: '#fff', boxShadow: '0 8px 22px rgba(212,132,138,.35)' }}>
+          <Link href={designHref} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '16px 28px', borderRadius: 999, fontWeight: 600, fontSize: 15, background: 'var(--coral)', color: '#fff', boxShadow: '0 8px 22px rgba(212,132,138,.35)' }}>
             Diseñar mi peluche →
           </Link>
           <Link href="/catalog" style={{ display: 'inline-flex', alignItems: 'center', padding: '16px 28px', borderRadius: 999, fontWeight: 600, fontSize: 15, color: 'var(--navy)', background: '#fff', border: '1.5px solid rgba(27,42,74,.08)' }}>

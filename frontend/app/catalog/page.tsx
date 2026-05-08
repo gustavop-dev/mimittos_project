@@ -2,7 +2,8 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
 
 import { peluchService } from '@/lib/services/peluchService'
 import type { Category, GlobalSize, Peluch } from '@/lib/types'
@@ -28,14 +29,17 @@ function fmt(n: number | null) {
   return '$' + n.toLocaleString('es-CO')
 }
 
-export default function CatalogPage() {
+function CatalogContent() {
+  const searchParams = useSearchParams()
+  const initialCategory = searchParams.get('category') ?? ''
+
   const [peluches, setPeluches] = useState<Peluch[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [sizes, setSizes] = useState<GlobalSize[]>([])
   const [loading, setLoading] = useState(true)
   const [showFilters, setShowFilters] = useState(false)
 
-  const [activeCategory, setActiveCategory] = useState('')
+  const [activeCategory, setActiveCategory] = useState(initialCategory)
   const [activeSize, setActiveSize] = useState('')
   const [maxPrice, setMaxPrice] = useState(250000)
   const [filterHuella, setFilterHuella] = useState(false)
@@ -210,7 +214,7 @@ export default function CatalogPage() {
                     <Link key={p.id} href={`/peluches/${p.slug}`} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', cursor: 'pointer', textDecoration: 'none' }}>
                       <div style={{ position: 'relative', aspectRatio: '1/1', background: 'var(--pink-melo)', overflow: 'hidden' }}>
                         {p.badge !== 'none' && (
-                          <span style={{ position: 'absolute', top: 10, left: 10, background: p.badge === 'limited_edition' ? 'var(--navy)' : 'var(--coral)', color: '#fff', fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', padding: '5px 10px', borderRadius: 999, zIndex: 1 }}>
+                          <span className="anim-floatA" style={{ position: 'absolute', top: 10, left: 10, zIndex: 1, display: 'inline-block', background: p.badge === 'limited_edition' ? 'var(--navy)' : 'var(--coral)', color: '#fff', fontSize: 10, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', padding: '5px 10px', borderRadius: 999 }}>
                             {BADGE_LABELS[p.badge]}
                           </span>
                         )}
@@ -265,6 +269,14 @@ export default function CatalogPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function CatalogPage() {
+  return (
+    <Suspense>
+      <CatalogContent />
+    </Suspense>
   )
 }
 

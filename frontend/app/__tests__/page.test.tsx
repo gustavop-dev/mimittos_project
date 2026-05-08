@@ -46,10 +46,10 @@ describe('HomePage', () => {
     expect(link).toHaveAttribute('href', '/catalog')
   })
 
-  it('renders design your peluche link pointing to /products/1', () => {
+  it('renders design your peluche link pointing to peluche detail or catalog fallback', () => {
     render(<HomePage />)
     const links = screen.getAllByRole('link', { name: /Diseña tu peluche/i })
-    expect(links[0]).toHaveAttribute('href', '/products/1')
+    expect(links[0].getAttribute('href')).toMatch(/^\/(peluches\/|catalog)/)
   })
 
   it('shows first FAQ answer open by default', () => {

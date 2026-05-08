@@ -50,6 +50,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   50% { opacity: .4; }
 }
 
+/* Hero / decorative motion — matches mocked design */
+@keyframes floatA { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes floatB { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes spin   { to { transform: rotate(360deg); } }
+@keyframes softPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.06); opacity: .9; } }
+
+.anim-floatA  { animation: floatA 5s ease-in-out infinite; will-change: transform; }
+.anim-floatB  { animation: floatB 6s ease-in-out infinite; will-change: transform; }
+.anim-spin    { animation: spin 18s linear infinite; will-change: transform; }
+.anim-pulse   { animation: softPulse 2.2s ease-in-out infinite; will-change: transform; }
+
 @keyframes bounce-slow {
   0%, 100% {
     transform: translateY(0);

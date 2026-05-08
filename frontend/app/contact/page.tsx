@@ -62,7 +62,7 @@ export default function ContactPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {/* WhatsApp */}
           <a href="https://wa.me/573244790777" target="_blank" rel="noopener noreferrer" style={{ background: '#25D366', borderRadius: 'var(--radius-lg)', padding: 28, display: 'flex', gap: 20, alignItems: 'center', color: '#fff', textDecoration: 'none', boxShadow: '0 10px 30px rgba(37,211,102,.3)' }}>
-            <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,.2)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+            <div className="anim-floatA" style={{ flexShrink: 0, width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,.2)', display: 'grid', placeItems: 'center' }}>
               <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.5 15.2L2 22l4.9-1.5A10 10 0 1 0 12 2z" /></svg>
             </div>
             <div>
@@ -73,7 +73,7 @@ export default function ContactPage() {
 
           {/* Email */}
           <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 28, boxShadow: 'var(--shadow-sm)', display: 'flex', gap: 20, alignItems: 'center' }}>
-            <div style={{ width: 52, height: 52, borderRadius: 16, background: 'var(--pink-melo)', color: 'var(--coral)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+            <div className="anim-floatB" style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 16, background: 'var(--pink-melo)', color: 'var(--coral)', display: 'grid', placeItems: 'center' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m2 7 10 6 10-6" /></svg>
             </div>
             <div>
@@ -85,7 +85,7 @@ export default function ContactPage() {
 
           {/* Location */}
           <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 28, boxShadow: 'var(--shadow-sm)', display: 'flex', gap: 20, alignItems: 'center' }}>
-            <div style={{ width: 52, height: 52, borderRadius: 16, background: 'var(--pink-melo)', color: 'var(--coral)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+            <div className="anim-floatA" style={{ animationDelay: '1.5s', flexShrink: 0, width: 52, height: 52, borderRadius: 16, background: 'var(--pink-melo)', color: 'var(--coral)', display: 'grid', placeItems: 'center' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" /><circle cx="12" cy="9" r="2.5" /></svg>
             </div>
             <div>

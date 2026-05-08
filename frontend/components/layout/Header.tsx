@@ -118,7 +118,7 @@ export default function Header({ bannerHeight = 0 }: { bannerHeight?: number }) 
               className="flex md:hidden"
               onClick={() => setMenuOpen((v) => !v)}
               aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
-              style={{ ...iconBtnStyle, flexDirection: 'column', gap: 5, padding: 10, position: 'relative', zIndex: 60 }}
+              style={{ ...iconBtnStyle, display: undefined, flexDirection: 'column', gap: 5, padding: 10, position: 'relative', zIndex: 60 }}
             >
               <span style={{
                 display: 'block', width: 20, height: 2,
