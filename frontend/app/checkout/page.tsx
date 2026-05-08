@@ -115,7 +115,7 @@ export default function CheckoutPage() {
 
       <div className="mx-auto px-4 sm:px-8 lg:px-10 py-5 pb-8" style={{ maxWidth: 1360 }}>
         <div style={eyebrowStyle}>Último paso</div>
-        <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 46, color: 'var(--navy)', letterSpacing: '-.02em', lineHeight: 1.1 }}>
+        <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 'clamp(26px, 6vw, 46px)', color: 'var(--navy)', letterSpacing: '-.02em', lineHeight: 1.1 }}>
           Un abrazo de distancia ♡
         </h1>
         <p style={{ color: 'var(--gray-warm)', fontSize: 16, marginTop: 10, maxWidth: 600, lineHeight: 1.55 }}>
@@ -129,12 +129,12 @@ export default function CheckoutPage() {
           {[['Carrito', true, true], ['Datos y envío', true, false], ['Pago Wompi', false, false], ['Confirmación', false, false]].map(([label, done, passed], i) => (
             <React.Fragment key={String(label)}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: done ? 'var(--coral)' : '#fff', color: done ? '#fff' : 'var(--gray-warm)', border: done ? 'none' : '1.5px solid rgba(27,42,74,.1)', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14 }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: done ? 'var(--coral)' : '#fff', color: done ? '#fff' : 'var(--gray-warm)', border: done ? 'none' : '1.5px solid rgba(27,42,74,.1)', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
                   {passed ? '✓' : i + 1}
                 </div>
-                <span style={{ fontSize: 14, fontWeight: done ? 700 : 500, color: done ? 'var(--navy)' : 'var(--gray-warm)' }}>{label}</span>
+                <span className="hidden sm:inline" style={{ fontSize: 14, fontWeight: done ? 700 : 500, color: done ? 'var(--navy)' : 'var(--gray-warm)' }}>{label}</span>
               </div>
-              {i < 3 && <div style={{ flex: 1, height: 1.5, background: done ? 'var(--coral)' : 'rgba(27,42,74,.08)', minWidth: 20, maxWidth: 60 }} />}
+              {i < 3 && <div style={{ flex: 1, height: 1.5, background: done ? 'var(--coral)' : 'rgba(27,42,74,.08)', minWidth: 12, maxWidth: 60 }} />}
             </React.Fragment>
           ))}
         </div>

@@ -36,7 +36,7 @@ export default function CartPage() {
       {/* Page title */}
       <div className="mx-auto px-4 sm:px-8 lg:px-10 pt-2 pb-8" style={{ maxWidth: 1360 }}>
         <div style={eyebrowStyle}>Tu carrito</div>
-        <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 46, color: 'var(--navy)', letterSpacing: '-.02em', lineHeight: 1.1 }}>
+        <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 'clamp(26px, 6vw, 46px)', color: 'var(--navy)', letterSpacing: '-.02em', lineHeight: 1.1 }}>
           Ya casi los tienes en tus brazos 🧸
         </h1>
         <p style={{ color: 'var(--gray-warm)', fontSize: 16, marginTop: 10, maxWidth: 600, lineHeight: 1.55 }}>
@@ -50,12 +50,12 @@ export default function CartPage() {
           {['Carrito', 'Datos y envío', 'Pago Wompi', 'Confirmación'].map((s, i) => (
             <React.Fragment key={s}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: i === 0 ? 'var(--coral)' : '#fff', color: i === 0 ? '#fff' : 'var(--gray-warm)', border: i === 0 ? 'none' : '1.5px solid rgba(27,42,74,.1)', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14 }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: i === 0 ? 'var(--coral)' : '#fff', color: i === 0 ? '#fff' : 'var(--gray-warm)', border: i === 0 ? 'none' : '1.5px solid rgba(27,42,74,.1)', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
                   {i + 1}
                 </div>
-                <span style={{ fontSize: 14, fontWeight: i === 0 ? 700 : 500, color: i === 0 ? 'var(--navy)' : 'var(--gray-warm)' }}>{s}</span>
+                <span className="hidden sm:inline" style={{ fontSize: 14, fontWeight: i === 0 ? 700 : 500, color: i === 0 ? 'var(--navy)' : 'var(--gray-warm)' }}>{s}</span>
               </div>
-              {i < 3 && <div style={{ flex: 1, height: 1.5, background: 'rgba(27,42,74,.08)', minWidth: 20, maxWidth: 60 }} />}
+              {i < 3 && <div style={{ flex: 1, height: 1.5, background: 'rgba(27,42,74,.08)', minWidth: 12, maxWidth: 60 }} />}
             </React.Fragment>
           ))}
         </div>
@@ -80,12 +80,12 @@ export default function CartPage() {
               const itemTotal = lineTotal(item)
               const itemKey = `${item.peluch_id}-${item.size_id}-${item.color_id}`
               return (
-                <div key={itemKey} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 20, display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: 20, boxShadow: 'var(--shadow-sm)' }}>
-                  <div style={{ width: 120, height: 120, borderRadius: 'var(--radius-md)', overflow: 'hidden', background: item.color_hex || 'var(--pink-melo)', position: 'relative' }}>
+                <div key={itemKey} className="grid grid-cols-[90px_1fr] sm:grid-cols-[120px_1fr_auto] gap-4 sm:gap-5" style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: '16px', boxShadow: 'var(--shadow-sm)' }}>
+                  <div className="w-[90px] h-[90px] sm:w-[120px] sm:h-[120px]" style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', background: item.color_hex || 'var(--pink-melo)', position: 'relative' }}>
                     {cover && <Image src={cover} alt={item.title} fill style={{ objectFit: 'cover' }} />}
                   </div>
                   <div>
-                    <h3 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 20, color: 'var(--navy)', marginBottom: 6 }}>{item.title}</h3>
+                    <h3 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 'clamp(16px, 4vw, 20px)', color: 'var(--navy)', marginBottom: 6 }}>{item.title}</h3>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                       <span style={{ background: 'var(--pink-melo)', color: 'var(--terracotta)', fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999 }}>
                         {item.size_label}
@@ -108,7 +108,7 @@ export default function CartPage() {
                       </button>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 14, justifyContent: 'space-between' }}>
+                  <div className="col-span-2 sm:col-span-1 flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-between gap-3 sm:gap-4">
                     <div style={{ display: 'flex', alignItems: 'center', background: 'var(--cream-warm)', border: '1.5px solid rgba(27,42,74,.08)', borderRadius: 12, padding: 4 }}>
                       <button onClick={() => updateQuantity(item.peluch_id, item.size_id, item.color_id, Math.max(1, item.quantity - 1))} style={{ width: 30, height: 30, borderRadius: 8, color: 'var(--navy)', fontSize: 16, fontWeight: 700, display: 'grid', placeItems: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>−</button>
                       <span style={{ width: 34, textAlign: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--navy)' }}>{item.quantity}</span>
@@ -125,7 +125,7 @@ export default function CartPage() {
           )}
 
           {items.length > 0 && (
-            <Link href="/catalog" style={{ background: 'linear-gradient(135deg,var(--cream-peach),var(--pink-melo))', borderRadius: 'var(--radius-lg)', padding: 22, display: 'flex', gap: 16, alignItems: 'center', justifyContent: 'space-between' }}>
+            <Link href="/catalog" style={{ background: 'linear-gradient(135deg,var(--cream-peach),var(--pink-melo))', borderRadius: 'var(--radius-lg)', padding: 22, display: 'flex', gap: 16, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
               <div>
                 <strong style={{ display: 'block', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 16, color: 'var(--navy)', marginBottom: 2 }}>¿Sigues buscando?</strong>
                 <span style={{ fontSize: 13, color: 'var(--gray-warm)' }}>Descubre más peluches que podrían hacerte sonreír</span>

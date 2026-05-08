@@ -24,8 +24,8 @@ const METHODS: {
     bg: '#F8F4FF',
     border: '#C9B8F5',
     logo: (
-      <div style={{ width: 72, height: 72, borderRadius: 16, background: 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <div className="w-14 h-14 sm:w-[72px] sm:h-[72px]" style={{ borderRadius: 16, background: 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" /><line x1="6" y1="15" x2="10" y2="15" />
         </svg>
       </div>
@@ -38,7 +38,7 @@ const METHODS: {
     bg: '#FDF0FF',
     border: '#E0AAFF',
     logo: (
-      <div style={{ width: 72, height: 72, borderRadius: 16, overflow: 'hidden', background: '#f5f5f5' }}>
+      <div className="w-14 h-14 sm:w-[72px] sm:h-[72px]" style={{ borderRadius: 16, overflow: 'hidden', background: '#f5f5f5' }}>
         <Image src="/mimittos/payments/nequi.jpeg" alt="Nequi" width={72} height={72} style={{ objectFit: 'cover', width: '100%', height: '100%' }} />
       </div>
     ),
@@ -50,7 +50,7 @@ const METHODS: {
     bg: '#E8F4FD',
     border: '#64B5F6',
     logo: (
-      <div style={{ width: 72, height: 72, borderRadius: 16, overflow: 'hidden', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="w-14 h-14 sm:w-[72px] sm:h-[72px]" style={{ borderRadius: 16, overflow: 'hidden', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Image src="/mimittos/payments/pse.png" alt="PSE" width={56} height={56} style={{ objectFit: 'contain' }} />
       </div>
     ),
@@ -62,7 +62,7 @@ const METHODS: {
     bg: '#FFFDE7',
     border: '#FFD54F',
     logo: (
-      <div style={{ width: 72, height: 72, borderRadius: 16, overflow: 'hidden', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="w-14 h-14 sm:w-[72px] sm:h-[72px]" style={{ borderRadius: 16, overflow: 'hidden', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Image src="/mimittos/payments/bancolombia.png" alt="Bancolombia" width={56} height={56} style={{ objectFit: 'contain' }} />
       </div>
     ),
@@ -227,7 +227,7 @@ function PaymentContent() {
   return (
     <main style={{ minHeight: '100vh', background: 'var(--cream-warm)' }}>
       {/* Header */}
-      <div style={{ background: '#fff', borderBottom: '1px solid rgba(27,42,74,.07)', padding: '14px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="px-4 sm:px-10" style={{ background: '#fff', borderBottom: '1px solid rgba(27,42,74,.07)', padding: '14px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
           <Image src="/mimittos/logo-dark-small.png" alt="MIMITTOS" width={32} height={32} />
           <span style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 800, fontSize: 18, color: 'var(--navy)' }}>MIMITTOS</span>
@@ -250,7 +250,7 @@ function PaymentContent() {
                   <div style={{ width: 26, height: 26, borderRadius: '50%', background: done ? 'var(--coral)' : '#fff', color: done ? '#fff' : 'var(--gray-warm)', border: done ? 'none' : '1.5px solid rgba(27,42,74,.12)', display: 'grid', placeItems: 'center', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 12 }}>
                     {past ? '✓' : i + 1}
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: done ? 700 : 500, color: done ? 'var(--navy)' : 'var(--gray-warm)' }}>{label}</span>
+                  <span className="hidden sm:inline" style={{ fontSize: 12, fontWeight: done ? 700 : 500, color: done ? 'var(--navy)' : 'var(--gray-warm)' }}>{label}</span>
                 </div>
                 {i < 3 && <div style={{ width: 28, height: 1.5, background: done ? 'var(--coral)' : 'rgba(27,42,74,.1)' }} />}
               </div>
