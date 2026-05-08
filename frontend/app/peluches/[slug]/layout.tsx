@@ -7,8 +7,7 @@ const BACKEND_ORIGIN = process.env.NEXT_PUBLIC_BACKEND_ORIGIN ?? 'https://mimitt
 type PeluchDetailLite = {
   slug: string
   title: string
-  description?: string
-  short_description?: string
+  lead_description?: string
   min_price?: number | null
   discounted_min_price?: number | null
   discount_pct?: number
@@ -44,8 +43,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const title = `${p.title} — Peluche artesanal personalizable`
   const rawDesc =
-    p.short_description ||
-    p.description ||
+    (typeof p.lead_description === 'string' && p.lead_description) ||
     `Conoce el peluche ${p.title} de MIMITTOS: hecho a mano en Colombia, personalizable en tamaño, color, huella y audio.`
   const description = trim(rawDesc.replace(/\s+/g, ' ').trim(), 160)
 
@@ -98,7 +96,7 @@ export default async function PeluchLayout({
       '@context': 'https://schema.org',
       '@type': 'Product',
       name: p.title,
-      description: p.short_description || p.description || `Peluche artesanal MIMITTOS: ${p.title}`,
+      description: (typeof p.lead_description === 'string' && p.lead_description) || `Peluche artesanal MIMITTOS: ${p.title}`,
       image: cover,
       brand: { '@type': 'Brand', name: 'MIMITTOS' },
       category: p.category_name || 'Peluches artesanales',
