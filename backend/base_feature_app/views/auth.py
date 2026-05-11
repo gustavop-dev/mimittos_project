@@ -415,9 +415,11 @@ def update_password(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def validate_token(request):
     user = request.user
+    if not user or not user.is_authenticated:
+        return Response({'valid': False}, status=status.HTTP_200_OK)
     return Response({
         'valid': True,
         'user': {

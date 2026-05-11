@@ -121,8 +121,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!token) return;
     try {
       const response = await api.get('validate_token/');
-      const user = response.data?.user;
-      if (user) set({ user, isAuthenticated: true });
+      const data = response.data;
+      if (data?.valid && data?.user) {
+        set({ user: data.user, isAuthenticated: true });
+      } else {
+        clearTokens();
+        set({ accessToken: null, refreshToken: null, user: null, isAuthenticated: false });
+      }
     } catch {
       clearTokens();
       set({ accessToken: null, refreshToken: null, user: null, isAuthenticated: false });
