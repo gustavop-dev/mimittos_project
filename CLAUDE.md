@@ -4,7 +4,7 @@
 
 - **Name**: MIMITTOS — Más que un peluche, un recuerdo
 - **Domain**: E-commerce de peluches artesanales hechos a mano en Colombia, personalizados para el cliente.
-- **Stack**: Django 5 + DRF (backend) / Next.js 14 App Router + React + TypeScript (frontend) / SQLite (dev) / MySQL 8 (prod) / Redis / Huey
+- **Stack**: Django 5 + DRF (backend) / Next.js 16 App Router + React + TypeScript (frontend) / MySQL 8 (dev y prod) / Redis / Huey
 - **Payment gateway**: Wompi (Colombia) — webhook-based, no polling
 - **Status**: En desarrollo activo. Frontend y backend integrados en feature branch.
 
@@ -13,6 +13,8 @@
 ## Dev Commands
 
 ### Backend
+
+> **Base de datos**: `manage.py` usa `base_feature_project.settings_dev` por defecto, que hereda la BD de `settings.py` → MySQL (`mimittos_project_db`, configurada en `.env`). Es la **misma BD que prod**, así que `runserver` ve los productos creados desde el admin. Requiere MySQL corriendo localmente. Para una BD SQLite aislada de scratch: `DJANGO_DB_ENGINE=django.db.backends.sqlite3` en `.env`.
 
 ```bash
 cd backend && source venv/bin/activate
