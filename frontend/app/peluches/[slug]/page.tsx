@@ -33,6 +33,41 @@ function effectivePrice(base: number, discountPct: number) {
   return discountPct > 0 ? Math.round(base * (100 - discountPct) / 100) : base
 }
 
+function describeValue(v: unknown): string {
+  if (v == null) return ''
+  if (typeof v === 'string') return v
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+  if (Array.isArray(v)) return v.map(describeValue).filter(Boolean).join(', ')
+  if (typeof v === 'object') {
+    return Object.entries(v as Record<string, unknown>)
+      .map(([k, val]) => `${k}: ${describeValue(val)}`)
+      .join(' · ')
+  }
+  return ''
+}
+
+function flattenDescription(d: unknown): string[] {
+  if (d == null) return []
+  if (typeof d === 'string') return [d]
+  if (Array.isArray(d)) return d.map(describeValue).filter(Boolean)
+  if (typeof d === 'object') {
+    const out: string[] = []
+    for (const [, val] of Object.entries(d as Record<string, unknown>)) {
+      const text = describeValue(val)
+      if (text) out.push(text)
+    }
+    return out
+  }
+  return []
+}
+
+function flattenSpecs(s: unknown): Array<[string, string]> {
+  if (!s || typeof s !== 'object' || Array.isArray(s)) return []
+  return Object.entries(s as Record<string, unknown>)
+    .map(([k, v]) => [k, describeValue(v)] as [string, string])
+    .filter(([, v]) => v.length > 0)
+}
+
 export default function PeluchDetailPage() {
   const { slug } = useParams() as { slug: string }
   const router = useRouter()
@@ -240,7 +275,11 @@ export default function PeluchDetailPage() {
   }
 
   const TABS = ['Descripción', 'Especificaciones', 'Cuidados']
-  const specEntries = Object.entries(peluch.specifications ?? {})
+  const descriptionParagraphs = flattenDescription(peluch.description)
+  const specEntries = flattenSpecs(peluch.specifications)
+  const careInstructions = Array.isArray(peluch.care_instructions)
+    ? peluch.care_instructions.map(describeValue).filter(Boolean)
+    : []
 
   return (
     <main>
@@ -506,20 +545,20 @@ export default function PeluchDetailPage() {
 
         {activeTab === 0 && (
           <div style={{ marginBottom: 60, maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {(Array.isArray(peluch.description) ? peluch.description : [peluch.description as unknown as string])
-              .filter(Boolean)
-              .map((p, i) => (
-                <p key={i} style={{ color: 'var(--gray-warm)', fontSize: 15, lineHeight: 1.7 }}>{p}</p>
-              ))}
+            {descriptionParagraphs.length > 0
+              ? descriptionParagraphs.map((p, i) => (
+                  <p key={i} style={{ color: 'var(--gray-warm)', fontSize: 15, lineHeight: 1.7 }}>{p}</p>
+                ))
+              : <p style={{ color: 'var(--gray-warm)', fontSize: 14 }}>Sin descripción disponible.</p>}
           </div>
         )}
 
         {activeTab === 1 && (
           <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 26, boxShadow: 'var(--shadow-sm)', maxWidth: 600, marginBottom: 60 }}>
             {specEntries.length > 0 ? specEntries.map(([k, v]) => (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed rgba(212,132,138,.2)', fontSize: 14 }}>
-                <span style={{ color: 'var(--gray-warm)' }}>{k}</span>
-                <b style={{ color: 'var(--navy)', fontWeight: 700 }}>{v}</b>
+              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px dashed rgba(212,132,138,.2)', fontSize: 14, gap: 16 }}>
+                <span style={{ color: 'var(--gray-warm)', flexShrink: 0 }}>{k}</span>
+                <b style={{ color: 'var(--navy)', fontWeight: 700, textAlign: 'right' }}>{v}</b>
               </div>
             )) : <p style={{ color: 'var(--gray-warm)', fontSize: 14 }}>Sin especificaciones disponibles.</p>}
           </div>
@@ -528,9 +567,9 @@ export default function PeluchDetailPage() {
         {activeTab === 2 && (
           <div style={{ marginBottom: 60 }}>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 500 }}>
-              {(peluch.care_instructions ?? []).length > 0
-                ? peluch.care_instructions.map((f) => (
-                    <li key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, color: 'var(--navy)', fontWeight: 500 }}>
+              {careInstructions.length > 0
+                ? careInstructions.map((f, i) => (
+                    <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14, color: 'var(--navy)', fontWeight: 500 }}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--coral)" strokeWidth="2.5"><path d="M20 6 9 17l-5-5" /></svg>
                       {f}
                     </li>
