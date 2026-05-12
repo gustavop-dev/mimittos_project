@@ -10,6 +10,7 @@ import { peluchService } from '@/lib/services/peluchService'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useCartStore } from '@/lib/stores/cartStore'
 import { usePageView } from '@/lib/hooks/usePageView'
+import { computeDeposit } from '@/lib/utils/pricing'
 import type { CartItem, PeluchDetail, PeluchSizePrice, Review } from '@/lib/types'
 
 const BADGE_LABELS: Record<string, string> = {
@@ -196,7 +197,8 @@ export default function PeluchDetailPage() {
 
   const unitPrice = effectivePrice(activeSizePrice?.price ?? peluch.min_price ?? 0, peluch.discount_pct)
   const total = (unitPrice + personalizationCost) * qty
-  const deposit = Math.round((total * 0.5) / 100) * 100
+  const depositPct = activeSizePrice?.deposit_percentage ?? 50
+  const deposit = computeDeposit(total, depositPct)
 
   async function handleHuellaImageUpload(file: File) {
     setHuellaUploading(true)
@@ -247,10 +249,10 @@ export default function PeluchDetailPage() {
       corazon_phrase: userHasCorazon ? corazonPhrase : '',
       has_audio: userHasAudio,
       audio_media_id: userHasAudio ? audioMediaId : null,
-      deposit_percentage: peluch.deposit_percentage ?? 50,
-      full_payment_discount_pct: peluch.full_payment_discount_pct ?? 0,
-      free_shipping: peluch.free_shipping ?? false,
-      shipping_cost: peluch.shipping_cost ?? 0,
+      deposit_percentage: activeSizePrice.deposit_percentage ?? 50,
+      full_payment_discount_pct: activeSizePrice.full_payment_discount_pct ?? 0,
+      free_shipping: activeSizePrice.free_shipping ?? false,
+      shipping_cost: activeSizePrice.shipping_cost ?? 0,
     }
 
     addToCart(cartItem)
@@ -507,7 +509,7 @@ export default function PeluchDetailPage() {
           {/* Pay info */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 22 }}>
             {[
-              { icon: 'M2 5h20v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5zM2 10h20', title: 'Abono 50%', sub: `Pagas ${fmt(deposit)} hoy vía Wompi` },
+              { icon: 'M2 5h20v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5zM2 10h20', title: `Abono ${depositPct}%`, sub: `Pagas ${fmt(deposit)} hoy vía Wompi` },
               { icon: 'M5 12V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4M21 15a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3h18z', title: 'Saldo contraentrega', sub: `Paga ${fmt(total - deposit)} al recibir` },
             ].map(({ icon, title, sub }) => (
               <div key={title} style={{ background: '#fff', border: '1px solid rgba(212,132,138,.2)', borderRadius: 14, padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
