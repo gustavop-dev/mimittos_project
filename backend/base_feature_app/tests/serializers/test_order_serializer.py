@@ -1,5 +1,6 @@
 import pytest
 from django_attachments.models import Library
+from rest_framework.test import APIRequestFactory
 
 from base_feature_app.models import (
     Category,
@@ -14,6 +15,7 @@ from base_feature_app.models import (
 from base_feature_app.serializers.order import (
     OrderCreateSerializer,
     OrderItemCreateSerializer,
+    OrderItemReadSerializer,
     OrderStatusUpdateSerializer,
     OrderTrackingUpdateSerializer,
 )
@@ -277,3 +279,87 @@ def test_order_tracking_update_requires_tracking_number():
 def test_order_tracking_update_accepts_valid_data():
     ser = OrderTrackingUpdateSerializer(data={'tracking_number': 'TRK-001', 'shipping_carrier': 'Servientrega'})
     assert ser.is_valid(), ser.errors
+
+
+# ---------------------------------------------------------------------------
+# OrderItemReadSerializer — personalization media exposure
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def read_order(db):
+    return Order.objects.create(
+        customer_email='read@example.com',
+        customer_name='Read Tester',
+        address='Calle 1',
+        city='Bogotá',
+        department='Cundinamarca',
+        total_amount=90000,
+        deposit_amount=45000,
+        balance_amount=45000,
+    )
+
+
+@pytest.mark.django_db
+def test_order_item_read_exposes_audio_media_url(read_order, peluch_with_price, size, color, audio_media):
+    item = OrderItem.objects.create(
+        order=read_order, peluch=peluch_with_price, size=size, color=color,
+        quantity=1, unit_price=90000, has_audio=True, audio_media=audio_media,
+        personalization_cost=20000,
+    )
+    request = APIRequestFactory().get('/')
+    data = OrderItemReadSerializer(item, context={'request': request}).data
+    assert data['audio_media_url'].endswith('/media/personalizations/2026/01/test.mp3')
+
+
+@pytest.mark.django_db
+def test_order_item_read_exposes_audio_duration(read_order, peluch_with_price, size, color, audio_media):
+    item = OrderItem.objects.create(
+        order=read_order, peluch=peluch_with_price, size=size, color=color,
+        quantity=1, unit_price=90000, has_audio=True, audio_media=audio_media,
+    )
+    data = OrderItemReadSerializer(item, context={'request': APIRequestFactory().get('/')}).data
+    assert data['audio_duration_sec'] == 5.0
+
+
+@pytest.mark.django_db
+def test_order_item_read_exposes_audio_size_kb(read_order, peluch_with_price, size, color, audio_media):
+    item = OrderItem.objects.create(
+        order=read_order, peluch=peluch_with_price, size=size, color=color,
+        quantity=1, unit_price=90000, has_audio=True, audio_media=audio_media,
+    )
+    data = OrderItemReadSerializer(item, context={'request': APIRequestFactory().get('/')}).data
+    assert data['audio_size_kb'] == 200
+
+
+@pytest.mark.django_db
+def test_order_item_read_exposes_huella_media_url(read_order, peluch_with_price, size, color, huella_image):
+    item = OrderItem.objects.create(
+        order=read_order, peluch=peluch_with_price, size=size, color=color,
+        quantity=1, unit_price=90000, has_huella=True,
+        huella_type=OrderItem.HuellaType.IMAGE, huella_media=huella_image,
+    )
+    data = OrderItemReadSerializer(item, context={'request': APIRequestFactory().get('/')}).data
+    assert data['huella_media_url'].endswith('/media/personalizations/2026/01/test.jpg')
+
+
+@pytest.mark.django_db
+def test_order_item_read_audio_fields_are_null_without_media(read_order, peluch_with_price, size, color):
+    item = OrderItem.objects.create(
+        order=read_order, peluch=peluch_with_price, size=size, color=color,
+        quantity=1, unit_price=90000,
+    )
+    data = OrderItemReadSerializer(item, context={'request': APIRequestFactory().get('/')}).data
+    assert data['audio_media_url'] is None
+    assert data['audio_duration_sec'] is None
+    assert data['audio_size_kb'] is None
+    assert data['huella_media_url'] is None
+
+
+@pytest.mark.django_db
+def test_order_item_read_returns_relative_url_without_request_context(read_order, peluch_with_price, size, color, audio_media):
+    item = OrderItem.objects.create(
+        order=read_order, peluch=peluch_with_price, size=size, color=color,
+        quantity=1, unit_price=90000, has_audio=True, audio_media=audio_media,
+    )
+    data = OrderItemReadSerializer(item).data
+    assert data['audio_media_url'] == '/media/personalizations/2026/01/test.mp3'

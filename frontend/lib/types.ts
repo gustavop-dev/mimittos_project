@@ -158,9 +158,13 @@ export type OrderItemRead = {
   has_huella: boolean
   huella_type: string
   huella_text: string
+  huella_media_url: string | null
   has_corazon: boolean
   corazon_phrase: string
   has_audio: boolean
+  audio_media_url: string | null
+  audio_duration_sec: number | null
+  audio_size_kb: number | null
   configuration_snapshot: Record<string, unknown>
 }
 

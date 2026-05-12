@@ -67,7 +67,7 @@ def track_order(request, order_number: str):
     except Order.DoesNotExist:
         return Response({'detail': 'Pedido no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
-    serializer = OrderTrackingSerializer(order)
+    serializer = OrderTrackingSerializer(order, context={'request': request})
     return Response(serializer.data)
 
 
@@ -112,7 +112,7 @@ def order_detail_view(request, order_number: str):
     if not is_owner and not is_admin:
         return Response({'detail': 'No tienes permiso para ver este pedido.'}, status=status.HTTP_403_FORBIDDEN)
 
-    serializer = OrderDetailSerializer(order)
+    serializer = OrderDetailSerializer(order, context={'request': request})
     return Response(serializer.data)
 
 
@@ -137,7 +137,7 @@ def update_order_status(request, order_number: str):
         changed_by=request.user,
         notes=serializer.validated_data.get('notes', ''),
     )
-    return Response(OrderDetailSerializer(order).data)
+    return Response(OrderDetailSerializer(order, context={'request': request}).data)
 
 
 @api_view(['PATCH'])
@@ -159,4 +159,4 @@ def update_order_tracking(request, order_number: str):
     order.shipping_carrier = serializer.validated_data.get('shipping_carrier', order.shipping_carrier)
     order.save(update_fields=['tracking_number', 'shipping_carrier', 'updated_at'])
 
-    return Response(OrderDetailSerializer(order).data)
+    return Response(OrderDetailSerializer(order, context={'request': request}).data)

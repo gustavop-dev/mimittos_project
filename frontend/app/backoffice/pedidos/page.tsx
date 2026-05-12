@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 
 import { orderService } from '@/lib/services/orderService'
-import type { OrderListItem, OrderStatus } from '@/lib/types'
+import type { OrderDetail, OrderItemRead, OrderListItem, OrderStatus } from '@/lib/types'
 
 const STATUS_OPTIONS: OrderStatus[] = [
   'pending_payment', 'payment_confirmed', 'in_production', 'shipped', 'delivered', 'cancelled',
@@ -27,8 +27,21 @@ const STATUS_COLORS: Record<OrderStatus, { bg: string; color: string }> = {
   cancelled: { bg: '#FFEBEE', color: '#C62828' },
 }
 
+const HUELLA_TYPE_LABELS: Record<string, string> = {
+  name: 'Nombre',
+  date: 'Fecha',
+  letter: 'Inicial',
+  image: 'Imagen',
+}
+
+const PAYMENT_MODE_LABELS: Record<string, string> = {
+  deposit: 'Anticipo (contraentrega)',
+  full: 'Pago completo',
+}
+
 function fmt(n: number) { return '$' + n.toLocaleString('es-CO') }
 function fmtDate(s: string) { return new Date(s).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) }
+function fmtDateTime(s: string) { return new Date(s).toLocaleString('es-CO', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }
 
 export default function PedidosAdminPage() {
   const [orders, setOrders] = useState<OrderListItem[]>([])
@@ -38,9 +51,25 @@ export default function PedidosAdminPage() {
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
 
+  const [detailOrderNumber, setDetailOrderNumber] = useState<string | null>(null)
+  const [detail, setDetail] = useState<OrderDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState('')
+
   useEffect(() => {
     loadOrders()
   }, [filter])
+
+  useEffect(() => {
+    if (!detailOrderNumber) return
+    setDetail(null)
+    setDetailError('')
+    setDetailLoading(true)
+    orderService.getOrderDetail(detailOrderNumber)
+      .then(setDetail)
+      .catch(() => setDetailError('No se pudo cargar el detalle del pedido.'))
+      .finally(() => setDetailLoading(false))
+  }, [detailOrderNumber])
 
   async function loadOrders() {
     setLoading(true)
@@ -78,11 +107,17 @@ export default function PedidosAdminPage() {
     }
   }
 
+  function closeDetail() {
+    setDetailOrderNumber(null)
+    setDetail(null)
+    setDetailError('')
+  }
+
   return (
     <div style={{ padding: '30px 40px 60px' }}>
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 28, color: 'var(--navy)', marginBottom: 4 }}>Pedidos</h1>
-        <p style={{ color: 'var(--gray-warm)', fontSize: 14 }}>Gestión de producción y envíos — {orders.length} pedido(s)</p>
+        <p style={{ color: 'var(--gray-warm)', fontSize: 14 }}>Gestión de producción y envíos — {orders.length} pedido(s) · clic en una fila para ver el detalle</p>
       </div>
 
       {/* Filtro por estado */}
@@ -109,8 +144,12 @@ export default function PedidosAdminPage() {
             {orders.map((o) => {
               const sc = STATUS_COLORS[o.status]
               return (
-                <tr key={o.order_number} style={{ borderBottom: '1px dashed rgba(212,132,138,.12)' }}>
-                  <td style={tdStyle}><span style={{ fontWeight: 700, color: 'var(--navy)' }}>{o.order_number}</span></td>
+                <tr
+                  key={o.order_number}
+                  onClick={() => setDetailOrderNumber(o.order_number)}
+                  style={{ borderBottom: '1px dashed rgba(212,132,138,.12)', cursor: 'pointer' }}
+                >
+                  <td style={tdStyle}><span style={{ fontWeight: 700, color: 'var(--navy)', textDecoration: 'underline', textDecorationColor: 'rgba(212,132,138,.4)' }}>{o.order_number}</span></td>
                   <td style={tdStyle}>
                     <div style={{ fontWeight: 600, color: 'var(--navy)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.customer_name}</div>
                     <div style={{ fontSize: 11, color: 'var(--gray-warm)' }}>{o.customer_email}</div>
@@ -124,7 +163,7 @@ export default function PedidosAdminPage() {
                   <td style={{ ...tdStyle, fontWeight: 700, color: 'var(--terracotta)', whiteSpace: 'nowrap' }}>{fmt(o.total_amount)}</td>
                   <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>{fmt(o.deposit_amount)}</td>
                   <td style={{ ...tdStyle, color: 'var(--gray-warm)', whiteSpace: 'nowrap' }}>{fmtDate(o.created_at)}</td>
-                  <td style={tdStyle}>
+                  <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
                     <select
                       value={o.status}
                       disabled={statusUpdating === o.order_number}
@@ -134,7 +173,7 @@ export default function PedidosAdminPage() {
                       {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
                     </select>
                   </td>
-                  <td style={tdStyle}>
+                  <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <input
                         value={trackingInputs[o.order_number] ?? ''}
@@ -154,10 +193,188 @@ export default function PedidosAdminPage() {
           </tbody>
         </table>
       </div>
+
+      {detailOrderNumber && (
+        <OrderDetailModal
+          orderNumber={detailOrderNumber}
+          detail={detail}
+          loading={detailLoading}
+          error={detailError}
+          onClose={closeDetail}
+        />
+      )}
     </div>
   )
 }
 
+function OrderDetailModal({
+  orderNumber, detail, loading, error, onClose,
+}: {
+  orderNumber: string
+  detail: OrderDetail | null
+  loading: boolean
+  error: string
+  onClose: () => void
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Detalle del pedido ${orderNumber}`}
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(27,42,74,.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', zIndex: 200, overflowY: 'auto' }}
+    >
+      <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 760, padding: '24px 28px 32px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+          <div>
+            <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 22, color: 'var(--navy)' }}>Pedido {orderNumber}</h2>
+            {detail && <span style={{ fontSize: 13, color: 'var(--gray-warm)' }}>{fmtDateTime(detail.created_at)} · {STATUS_LABELS[detail.status]}</span>}
+          </div>
+          <button onClick={onClose} aria-label="Cerrar" style={{ background: 'none', border: 'none', fontSize: 22, color: 'var(--gray-warm)', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+        </div>
+
+        {loading && <p style={{ color: 'var(--gray-warm)' }}>Cargando detalle...</p>}
+        {error && <p style={{ color: '#c23b3b' }}>{error}</p>}
+
+        {detail && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+            {/* Cliente */}
+            <section>
+              <h3 style={sectionTitle}>Cliente</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 6, fontSize: 13 }}>
+                <Field label="Nombre" value={detail.customer_name} />
+                <Field label="Email" value={detail.customer_email} />
+                <Field label="Teléfono" value={detail.customer_phone || '—'} />
+                <Field label="Dirección" value={detail.address} />
+                <Field label="Ciudad" value={`${detail.city}, ${detail.department}`} />
+                <Field label="Código postal" value={detail.postal_code || '—'} />
+              </div>
+            </section>
+
+            {/* Totales */}
+            <section>
+              <h3 style={sectionTitle}>Totales</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 6, fontSize: 13 }}>
+                <Field label="Subtotal productos" value={fmt(detail.total_amount)} />
+                <Field label="Envío" value={fmt(detail.shipping_amount)} />
+                <Field label="Descuento (pago completo)" value={detail.discount_amount > 0 ? `- ${fmt(detail.discount_amount)}` : '—'} />
+                <Field label="Modo de pago" value={PAYMENT_MODE_LABELS[detail.payment_mode] ?? detail.payment_mode} />
+                <Field label="Pagado ahora (Wompi)" value={fmt(detail.amount_paid_now)} />
+                <Field label="Saldo pendiente" value={fmt(detail.balance_amount)} />
+                <Field label="Estado de pago" value={detail.payment?.status ?? '—'} />
+                <Field label="Guía / transportadora" value={detail.tracking_number ? `${detail.tracking_number}${detail.shipping_carrier ? ` (${detail.shipping_carrier})` : ''}` : '—'} />
+              </div>
+            </section>
+
+            {/* Ítems */}
+            <section>
+              <h3 style={sectionTitle}>Productos ({detail.items.length})</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {detail.items.map((item) => <OrderItemCard key={item.id} item={item} />)}
+              </div>
+            </section>
+
+            {/* Historial */}
+            {detail.status_history.length > 0 && (
+              <section>
+                <h3 style={sectionTitle}>Historial de estados</h3>
+                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6, fontSize: 12, color: 'var(--gray-warm)' }}>
+                  {detail.status_history.map((h) => (
+                    <li key={h.id}>
+                      <span style={{ color: 'var(--navy)', fontWeight: 600 }}>
+                        {STATUS_LABELS[h.previous_status as OrderStatus] ?? h.previous_status} → {STATUS_LABELS[h.new_status as OrderStatus] ?? h.new_status}
+                      </span>
+                      {' · '}{fmtDateTime(h.changed_at)}
+                      {h.changed_by_email ? ` · ${h.changed_by_email}` : ''}
+                      {h.notes ? ` — ${h.notes}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function OrderItemCard({ item }: { item: OrderItemRead }) {
+  const hasPersonalization = item.has_huella || item.has_corazon || item.has_audio
+  return (
+    <div style={{ border: '1px solid rgba(212,132,138,.2)', borderRadius: 12, padding: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontWeight: 700, color: 'var(--navy)', fontSize: 14 }}>{item.peluch_title}</div>
+          <div style={{ fontSize: 12, color: 'var(--gray-warm)', display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+            <span>Talla: {item.size.label} · {item.size.cm}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              Color: <span style={{ width: 12, height: 12, borderRadius: '50%', background: item.color.hex_code, border: '1px solid rgba(27,42,74,.15)', display: 'inline-block' }} /> {item.color.name}
+            </span>
+            <span>Cantidad: {item.quantity}</span>
+          </div>
+        </div>
+        <div style={{ textAlign: 'right', fontSize: 12, color: 'var(--gray-warm)' }}>
+          <div>Unitario: {fmt(item.unit_price)}</div>
+          {item.personalization_cost > 0 && <div>Personalización: +{fmt(item.personalization_cost)}</div>}
+          <div style={{ color: 'var(--terracotta)', fontWeight: 700, fontSize: 14, marginTop: 2 }}>{fmt(item.line_total)}</div>
+        </div>
+      </div>
+
+      {hasPersonalization && (
+        <div data-testid="item-personalization" style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed rgba(212,132,138,.25)', display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Personalización</div>
+
+          {item.has_huella && (
+            <div>
+              <span style={{ fontWeight: 600, color: 'var(--navy)' }}>🐾 Huella</span>
+              {' — '}{HUELLA_TYPE_LABELS[item.huella_type] ?? item.huella_type}
+              {item.huella_type === 'image' ? (
+                item.huella_media_url ? (
+                  <a href={item.huella_media_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--coral)', fontWeight: 600, marginLeft: 8 }}>Ver imagen</a>
+                ) : <span style={{ color: 'var(--gray-warm)', marginLeft: 8 }}>(sin archivo)</span>
+              ) : (
+                item.huella_text ? <>: <b style={{ color: 'var(--navy)' }}>{item.huella_text}</b></> : null
+              )}
+            </div>
+          )}
+
+          {item.has_corazon && (
+            <div>
+              <span style={{ fontWeight: 600, color: 'var(--navy)' }}>💖 Corazón</span>
+              {item.corazon_phrase ? <>: <b style={{ color: 'var(--navy)' }}>“{item.corazon_phrase}”</b></> : <span style={{ color: 'var(--gray-warm)' }}> (sin frase)</span>}
+            </div>
+          )}
+
+          {item.has_audio && (
+            <div data-testid="item-audio">
+              <span style={{ fontWeight: 600, color: 'var(--navy)' }}>🔊 Audio personalizado</span>
+              {item.audio_duration_sec != null && <span style={{ color: 'var(--gray-warm)' }}> · {item.audio_duration_sec.toFixed(1)}s</span>}
+              {item.audio_size_kb != null && <span style={{ color: 'var(--gray-warm)' }}> · {item.audio_size_kb} KB</span>}
+              {item.audio_media_url ? (
+                <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <audio controls src={item.audio_media_url} style={{ height: 34 }}>Tu navegador no soporta audio.</audio>
+                  <a href={item.audio_media_url} target="_blank" rel="noopener noreferrer" download style={{ color: 'var(--coral)', fontWeight: 600, fontSize: 12 }}>Descargar</a>
+                </div>
+              ) : <span style={{ color: 'var(--gray-warm)', marginLeft: 8 }}>(archivo no disponible)</span>}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span style={{ color: 'var(--gray-warm)', fontSize: 11, display: 'block', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</span>
+      <span style={{ color: 'var(--navy)', fontWeight: 600 }}>{value}</span>
+    </div>
+  )
+}
+
+const sectionTitle: React.CSSProperties = { fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 14, color: 'var(--navy)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.06em' }
 const thStyle: React.CSSProperties = { padding: '12px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--navy)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.06em', whiteSpace: 'nowrap' }
 const tdStyle: React.CSSProperties = { padding: '10px 14px' }
 function filterBtn(active: boolean): React.CSSProperties {

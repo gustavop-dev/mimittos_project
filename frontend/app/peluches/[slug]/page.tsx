@@ -104,6 +104,7 @@ export default function PeluchDetailPage() {
   const [huellaText, setHuellaText] = useState('')
   const [huellaMediaId, setHuellaMediaId] = useState<number | null>(null)
   const [huellaUploading, setHuellaUploading] = useState(false)
+  const [huellaError, setHuellaError] = useState('')
   const huellaInputRef = useRef<HTMLInputElement>(null)
 
   // Corazón
@@ -113,6 +114,8 @@ export default function PeluchDetailPage() {
   const [audioMediaId, setAudioMediaId] = useState<number | null>(null)
   const [audioUploading, setAudioUploading] = useState(false)
   const [audioFileName, setAudioFileName] = useState('')
+  const [audioError, setAudioError] = useState('')
+  const [audioMeta, setAudioMeta] = useState<{ url: string; durationSec: number | null; sizeKb: number } | null>(null)
   const audioInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -195,18 +198,30 @@ export default function PeluchDetailPage() {
     (userHasCorazon ? peluch.corazon_extra_cost : 0) +
     (userHasAudio ? peluch.audio_extra_cost : 0)
 
+  const personalizationBreakdown: Array<{ icon: string; label: string; cost: number }> = []
+  if (userHasHuella && peluch.huella_extra_cost > 0) personalizationBreakdown.push({ icon: '🐾', label: 'Huella', cost: peluch.huella_extra_cost })
+  if (userHasCorazon && peluch.corazon_extra_cost > 0) personalizationBreakdown.push({ icon: '💖', label: 'Corazón personalizado', cost: peluch.corazon_extra_cost })
+  if (userHasAudio && peluch.audio_extra_cost > 0) personalizationBreakdown.push({ icon: '🔊', label: 'Audio personalizado', cost: peluch.audio_extra_cost })
+
   const unitPrice = effectivePrice(activeSizePrice?.price ?? peluch.min_price ?? 0, peluch.discount_pct)
   const total = (unitPrice + personalizationCost) * qty
   const depositPct = activeSizePrice?.deposit_percentage ?? 50
   const deposit = computeDeposit(total, depositPct)
 
+  function uploadErrorMessage(err: unknown, fallback: string) {
+    const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+    return detail ?? fallback
+  }
+
   async function handleHuellaImageUpload(file: File) {
     setHuellaUploading(true)
+    setHuellaError('')
     try {
       const result = await mediaService.uploadImage(file)
       setHuellaMediaId(result.media_id)
-    } catch {
-      // silently fail, user can retry
+    } catch (err: unknown) {
+      setHuellaMediaId(null)
+      setHuellaError(uploadErrorMessage(err, 'No se pudo subir la imagen. Intenta de nuevo.'))
     } finally {
       setHuellaUploading(false)
     }
@@ -214,12 +229,17 @@ export default function PeluchDetailPage() {
 
   async function handleAudioUpload(file: File) {
     setAudioUploading(true)
+    setAudioError('')
     setAudioFileName(file.name)
     try {
       const result = await mediaService.uploadAudio(file)
       setAudioMediaId(result.media_id)
-    } catch {
+      setAudioMeta({ url: result.file_url, durationSec: result.duration_sec, sizeKb: result.file_size_kb })
+    } catch (err: unknown) {
       setAudioFileName('')
+      setAudioMediaId(null)
+      setAudioMeta(null)
+      setAudioError(uploadErrorMessage(err, 'No se pudo subir el audio. Intenta de nuevo.'))
     } finally {
       setAudioUploading(false)
     }
@@ -340,18 +360,31 @@ export default function PeluchDetailPage() {
           </p>
 
           {/* Price */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 0', borderTop: '1px dashed rgba(212,132,138,.3)', borderBottom: '1px dashed rgba(212,132,138,.3)', marginBottom: 24, flexWrap: 'wrap' }}>
-            <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 38, color: 'var(--terracotta)', lineHeight: 1 }}>
-              {fmt(total)}
+          <div style={{ padding: '18px 0', borderTop: '1px dashed rgba(212,132,138,.3)', borderBottom: '1px dashed rgba(212,132,138,.3)', marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 38, color: 'var(--terracotta)', lineHeight: 1 }}>
+                {fmt(total)}
+              </div>
+              {peluch.discount_pct > 0 && activeSizePrice && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ background: 'var(--terracotta)', color: '#fff', borderRadius: 999, padding: '4px 12px', fontSize: 13, fontWeight: 700 }}>
+                    -{peluch.discount_pct}%
+                  </span>
+                  <span style={{ textDecoration: 'line-through', color: 'var(--gray-warm)', fontSize: 20, fontFamily: "'Quicksand', sans-serif", fontWeight: 600 }}>
+                    {fmt((activeSizePrice.price + personalizationCost) * qty)}
+                  </span>
+                </div>
+              )}
             </div>
-            {peluch.discount_pct > 0 && activeSizePrice && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ background: 'var(--terracotta)', color: '#fff', borderRadius: 999, padding: '4px 12px', fontSize: 13, fontWeight: 700 }}>
-                  -{peluch.discount_pct}%
-                </span>
-                <span style={{ textDecoration: 'line-through', color: 'var(--gray-warm)', fontSize: 20, fontFamily: "'Quicksand', sans-serif", fontWeight: 600 }}>
-                  {fmt((activeSizePrice.price + personalizationCost) * qty)}
-                </span>
+            {personalizationBreakdown.length > 0 && (
+              <div data-testid="personalization-breakdown" style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ fontSize: 12, color: 'var(--gray-warm)', fontWeight: 600 }}>Incluye personalización:</div>
+                {personalizationBreakdown.map(({ icon, label, cost }) => (
+                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--navy)' }}>
+                    <span>{icon} {label}{qty > 1 ? ` × ${qty}` : ''}</span>
+                    <b style={{ color: 'var(--terracotta)', fontWeight: 700 }}>+{fmt(cost * qty)}</b>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -445,10 +478,13 @@ export default function PeluchDetailPage() {
                       <button
                         type="button"
                         onClick={() => huellaInputRef.current?.click()}
-                        style={{ padding: '10px 18px', borderRadius: 10, border: '1.5px dashed rgba(27,42,74,.2)', background: '#fff', color: 'var(--navy)', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+                        style={{ padding: '10px 18px', borderRadius: 10, border: `1.5px dashed ${huellaMediaId ? 'var(--coral)' : 'rgba(27,42,74,.2)'}`, background: huellaMediaId ? 'var(--pink-melo)' : '#fff', color: 'var(--navy)', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
                       >
-                        {huellaUploading ? 'Subiendo...' : huellaMediaId ? '✓ Imagen subida' : 'Subir imagen'}
+                        {huellaUploading ? 'Subiendo...' : huellaMediaId ? '✓ Imagen subida — cambiar' : 'Subir imagen'}
                       </button>
+                      {huellaError && (
+                        <div role="alert" style={{ marginTop: 8, background: '#FFEBEE', color: '#C62828', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>{huellaError}</div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -477,13 +513,47 @@ export default function PeluchDetailPage() {
                     🔊 Audio personalizado <span style={{ color: 'var(--terracotta)', fontWeight: 400, fontSize: 13 }}>+{fmt(peluch.audio_extra_cost)}</span>
                   </div>
                   <input ref={audioInputRef} type="file" accept="audio/*" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && handleAudioUpload(e.target.files[0])} />
-                  <button
-                    type="button"
-                    onClick={() => audioInputRef.current?.click()}
-                    style={{ padding: '10px 18px', borderRadius: 10, border: '1.5px dashed rgba(27,42,74,.2)', background: '#fff', color: 'var(--navy)', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
-                  >
-                    {audioUploading ? 'Subiendo...' : audioMediaId ? `✓ ${audioFileName}` : 'Subir audio (máx. 30s)'}
-                  </button>
+
+                  {!audioMediaId && (
+                    <button
+                      type="button"
+                      onClick={() => audioInputRef.current?.click()}
+                      disabled={audioUploading}
+                      style={{ padding: '10px 18px', borderRadius: 10, border: '1.5px dashed rgba(27,42,74,.2)', background: '#fff', color: 'var(--navy)', fontWeight: 600, fontSize: 13, cursor: audioUploading ? 'wait' : 'pointer', fontFamily: 'inherit' }}
+                    >
+                      {audioUploading ? 'Subiendo audio...' : 'Subir audio (máx. 30s)'}
+                    </button>
+                  )}
+
+                  {audioMediaId && (
+                    <div data-testid="audio-uploaded" style={{ background: '#fff', border: '1.5px solid var(--coral)', borderRadius: 12, padding: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                        <span style={{ color: '#2E7D32', fontWeight: 700, fontSize: 13 }}>✓ Audio listo</span>
+                        <span style={{ fontSize: 12, color: 'var(--gray-warm)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {audioFileName}
+                          {audioMeta?.durationSec != null ? ` · ${audioMeta.durationSec.toFixed(1)}s` : ''}
+                          {audioMeta?.sizeKb != null ? ` · ${audioMeta.sizeKb} KB` : ''}
+                        </span>
+                      </div>
+                      {audioMeta?.url && (
+                        <audio controls src={audioMeta.url} style={{ width: '100%', height: 36 }}>
+                          Tu navegador no soporta la reproducción de audio.
+                        </audio>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => audioInputRef.current?.click()}
+                        disabled={audioUploading}
+                        style={{ marginTop: 8, padding: '7px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600, border: '1.5px solid rgba(27,42,74,.15)', background: '#fff', color: 'var(--navy)', cursor: audioUploading ? 'wait' : 'pointer', fontFamily: 'inherit' }}
+                      >
+                        {audioUploading ? 'Subiendo...' : 'Cambiar audio'}
+                      </button>
+                    </div>
+                  )}
+
+                  {audioError && (
+                    <div role="alert" style={{ marginTop: 8, background: '#FFEBEE', color: '#C62828', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>{audioError}</div>
+                  )}
                 </div>
               )}
             </div>

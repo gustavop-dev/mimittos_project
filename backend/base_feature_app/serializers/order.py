@@ -99,17 +99,40 @@ class OrderItemReadSerializer(serializers.ModelSerializer):
     size = GlobalSizeSerializer(read_only=True)
     color = GlobalColorSerializer(read_only=True)
     line_total = serializers.IntegerField(read_only=True)
+    huella_media_url = serializers.SerializerMethodField()
+    audio_media_url = serializers.SerializerMethodField()
+    audio_duration_sec = serializers.SerializerMethodField()
+    audio_size_kb = serializers.SerializerMethodField()
 
     class Meta:
         model = OrderItem
         fields = [
             'id', 'peluch_title', 'peluch_slug', 'size', 'color', 'quantity',
             'unit_price', 'personalization_cost', 'line_total',
-            'has_huella', 'huella_type', 'huella_text',
+            'has_huella', 'huella_type', 'huella_text', 'huella_media_url',
             'has_corazon', 'corazon_phrase',
-            'has_audio',
+            'has_audio', 'audio_media_url', 'audio_duration_sec', 'audio_size_kb',
             'configuration_snapshot',
         ]
+
+    def _file_url(self, file_field):
+        if not file_field:
+            return None
+        url = file_field.url
+        request = self.context.get('request')
+        return request.build_absolute_uri(url) if request else url
+
+    def get_huella_media_url(self, obj):
+        return self._file_url(obj.huella_media.file) if obj.huella_media_id else None
+
+    def get_audio_media_url(self, obj):
+        return self._file_url(obj.audio_media.file) if obj.audio_media_id else None
+
+    def get_audio_duration_sec(self, obj):
+        return obj.audio_media.duration_sec if obj.audio_media_id else None
+
+    def get_audio_size_kb(self, obj):
+        return obj.audio_media.file_size_kb if obj.audio_media_id else None
 
 
 class OrderStatusHistorySerializer(serializers.ModelSerializer):
