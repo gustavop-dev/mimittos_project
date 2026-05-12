@@ -181,7 +181,10 @@ class PasswordCodeAdmin(admin.ModelAdmin):
 class PeluchSizePriceInline(admin.TabularInline):
     model = PeluchSizePrice
     extra = 1
-    fields = ('size', 'price', 'is_available')
+    fields = (
+        'size', 'price', 'is_available',
+        'deposit_percentage', 'full_payment_discount_pct', 'free_shipping', 'shipping_cost',
+    )
 
 
 class PeluchAdmin(AttachmentsAdminMixin, admin.ModelAdmin):
