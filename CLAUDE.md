@@ -275,7 +275,7 @@ flowchart TD
 #### Peluch
 - `badge`: `none | bestseller | new | limited_edition`
 - Personalizaciones opcionales: `has_huella`, `has_corazon`, `has_audio` (con `extra_cost` cada uno)
-- Precios por talla via `PeluchSizePrice` (FK a `GlobalSize`)
+- Config por talla via `PeluchSizePrice` (FK a `GlobalSize`): `price`, `is_available`, `deposit_percentage` (% anticipo contraentrega), `full_payment_discount_pct` (% descuento si paga todo), `free_shipping`, `shipping_cost`. El `discount_pct` general sigue a nivel `Peluch`.
 - Colores via M2M `available_colors` → `GlobalColor`
 - Imágenes via `django-attachments` Library/Attachment
 - Imágenes por color via `PeluchColorImage` (generadas con `seed_color_images`)
