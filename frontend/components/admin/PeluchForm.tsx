@@ -15,6 +15,10 @@ interface SizePriceRow {
   size_cm: string
   price: string
   is_available: boolean
+  deposit_percentage: string
+  full_payment_discount_pct: string
+  free_shipping: boolean
+  shipping_cost: string
 }
 
 interface ColorGalleryItem {
@@ -89,10 +93,6 @@ export function PeluchForm({ existing }: Props) {
     badge: 'none', is_active: true, is_featured: false,
     has_huella: false, has_corazon: false, has_audio: false,
     huella_extra_cost: '0', corazon_extra_cost: '0', audio_extra_cost: '0',
-    deposit_percentage: '50',
-    full_payment_discount_pct: '0',
-    free_shipping: false,
-    shipping_cost: '0',
   })
 
   const [descriptionJson, setDescriptionJson] = useState('')
@@ -128,6 +128,7 @@ export function PeluchForm({ existing }: Props) {
       setAllColors(colors)
       const rows: SizePriceRow[] = sizes.map((s) => ({
         size_id: s.id, size_label: s.label, size_cm: s.cm, price: '0', is_available: false,
+        deposit_percentage: '50', full_payment_discount_pct: '0', free_shipping: false, shipping_cost: '0',
       }))
 
       if (existing) {
@@ -145,10 +146,6 @@ export function PeluchForm({ existing }: Props) {
           huella_extra_cost: String(existing.huella_extra_cost ?? 0),
           corazon_extra_cost: String(existing.corazon_extra_cost ?? 0),
           audio_extra_cost: String(existing.audio_extra_cost ?? 0),
-          deposit_percentage: String(existing.deposit_percentage ?? 50),
-          full_payment_discount_pct: String(existing.full_payment_discount_pct ?? 0),
-          free_shipping: existing.free_shipping ?? false,
-          shipping_cost: String(existing.shipping_cost ?? 0),
         })
         setDiscountPct(existing.discount_pct ?? 0)
         setDisplayOrder(existing.display_order ?? 100)
@@ -160,7 +157,17 @@ export function PeluchForm({ existing }: Props) {
 
         const mergedRows = rows.map((row) => {
           const sp = existing.size_prices?.find((p) => p.size.id === row.size_id)
-          return sp ? { ...row, price: String(sp.price), is_available: sp.is_available } : row
+          return sp
+            ? {
+                ...row,
+                price: String(sp.price),
+                is_available: sp.is_available,
+                deposit_percentage: String(sp.deposit_percentage ?? 50),
+                full_payment_discount_pct: String(sp.full_payment_discount_pct ?? 0),
+                free_shipping: sp.free_shipping ?? false,
+                shipping_cost: String(sp.shipping_cost ?? 0),
+              }
+            : row
         })
         setSizePrices(mergedRows)
 
@@ -283,7 +290,10 @@ export function PeluchForm({ existing }: Props) {
     setSavingSize(true)
     try {
       const created = await globalPresetService.createSize({ label: newSize.label, cm: newSize.cm })
-      const newRow: SizePriceRow = { size_id: created.id, size_label: created.label, size_cm: created.cm, price: '0', is_available: false }
+      const newRow: SizePriceRow = {
+        size_id: created.id, size_label: created.label, size_cm: created.cm, price: '0', is_available: false,
+        deposit_percentage: '50', full_payment_discount_pct: '0', free_shipping: false, shipping_cost: '0',
+      }
       setSizePrices((prev) => [...prev, newRow])
       setNewSize({ label: '', cm: '' })
       setSizeModal(false)
@@ -313,7 +323,11 @@ export function PeluchForm({ existing }: Props) {
     }
   }
 
-  function updateSizePrice(size_id: number, field: 'price' | 'is_available', value: string | boolean) {
+  function updateSizePrice(
+    size_id: number,
+    field: 'price' | 'is_available' | 'deposit_percentage' | 'full_payment_discount_pct' | 'free_shipping' | 'shipping_cost',
+    value: string | boolean,
+  ) {
     setSizePrices((prev) => prev.map((row) => row.size_id === size_id ? { ...row, [field]: value } : row))
   }
 
@@ -371,16 +385,20 @@ export function PeluchForm({ existing }: Props) {
         huella_extra_cost: Number(form.huella_extra_cost),
         corazon_extra_cost: Number(form.corazon_extra_cost),
         audio_extra_cost: Number(form.audio_extra_cost),
-        deposit_percentage: Math.min(100, Math.max(1, Number(form.deposit_percentage) || 50)),
-        full_payment_discount_pct: Math.min(100, Math.max(0, Number(form.full_payment_discount_pct) || 0)),
-        free_shipping: form.free_shipping,
-        shipping_cost: form.free_shipping ? 0 : Math.max(0, Number(form.shipping_cost) || 0),
         specifications: specifications ?? {},
         care_instructions: care_instructions ?? [],
         available_color_ids: selectedColors,
         size_prices_data: sizePrices
           .filter((r) => r.is_available && Number(r.price) > 0)
-          .map((r) => ({ size_id: r.size_id, price: Number(r.price), is_available: true })),
+          .map((r) => ({
+            size_id: r.size_id,
+            price: Number(r.price),
+            is_available: true,
+            deposit_percentage: Math.min(100, Math.max(1, Number(r.deposit_percentage) || 50)),
+            full_payment_discount_pct: Math.min(100, Math.max(0, Number(r.full_payment_discount_pct) || 0)),
+            free_shipping: r.free_shipping,
+            shipping_cost: r.free_shipping ? 0 : Math.max(0, Number(r.shipping_cost) || 0),
+          })),
       }
 
       if (existing) {
@@ -515,23 +533,48 @@ export function PeluchForm({ existing }: Props) {
       <Section title="Tallas y precios">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
           {sizePrices.map((row) => (
-            <div key={row.size_id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px', background: row.is_available ? '#fff' : 'var(--cream-warm)', borderRadius: 10, border: `1.5px solid ${row.is_available ? 'rgba(212,132,138,.3)' : 'rgba(27,42,74,.06)'}` }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 180, cursor: 'pointer' }}>
-                <input type="checkbox" checked={row.is_available} onChange={(e) => updateSizePrice(row.size_id, 'is_available', e.target.checked)} />
-                <span style={{ fontWeight: 600, color: 'var(--navy)' }}>{row.size_label}</span>
-                <span style={{ fontSize: 11, color: 'var(--gray-warm)' }}>{row.size_cm}</span>
-              </label>
-              <span style={{ fontSize: 13, color: 'var(--gray-warm)' }}>$</span>
-              <input type="number" min={0} step={100} value={row.price} disabled={!row.is_available} onChange={(e) => updateSizePrice(row.size_id, 'price', e.target.value)} style={{ ...I, width: 140, opacity: row.is_available ? 1 : .4 }} placeholder="0" />
-              <span style={{ fontSize: 12, color: 'var(--gray-warm)' }}>COP</span>
-              <button
-                type="button"
-                onClick={() => handleDeleteSize(row.size_id, row.size_label)}
-                title="Eliminar esta talla globalmente"
-                style={{ marginLeft: 'auto', width: 28, height: 28, borderRadius: 7, border: '1px solid #FFCDD2', background: '#FFF5F5', color: '#C62828', cursor: 'pointer', fontSize: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
-              </button>
+            <div key={row.size_id} style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 14px', background: row.is_available ? '#fff' : 'var(--cream-warm)', borderRadius: 10, border: `1.5px solid ${row.is_available ? 'rgba(212,132,138,.3)' : 'rgba(27,42,74,.06)'}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 180, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={row.is_available} onChange={(e) => updateSizePrice(row.size_id, 'is_available', e.target.checked)} />
+                  <span style={{ fontWeight: 600, color: 'var(--navy)' }}>{row.size_label}</span>
+                  <span style={{ fontSize: 11, color: 'var(--gray-warm)' }}>{row.size_cm}</span>
+                </label>
+                <span style={{ fontSize: 13, color: 'var(--gray-warm)' }}>$</span>
+                <input type="number" min={0} step={100} value={row.price} disabled={!row.is_available} onChange={(e) => updateSizePrice(row.size_id, 'price', e.target.value)} style={{ ...I, width: 140, opacity: row.is_available ? 1 : .4 }} placeholder="0" />
+                <span style={{ fontSize: 12, color: 'var(--gray-warm)' }}>COP</span>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteSize(row.size_id, row.size_label)}
+                  title="Eliminar esta talla globalmente"
+                  style={{ marginLeft: 'auto', width: 28, height: 28, borderRadius: 7, border: '1px solid #FFCDD2', background: '#FFF5F5', color: '#C62828', cursor: 'pointer', fontSize: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+                </button>
+              </div>
+              {row.is_available && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', paddingLeft: 28 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gray-warm)' }}>
+                    Anticipo %
+                    <input type="number" min={1} max={100} value={row.deposit_percentage} onChange={(e) => updateSizePrice(row.size_id, 'deposit_percentage', e.target.value)} style={{ ...I, width: 70 }} />
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gray-warm)' }}>
+                    Desc. pago completo %
+                    <input type="number" min={0} max={100} value={row.full_payment_discount_pct} onChange={(e) => updateSizePrice(row.size_id, 'full_payment_discount_pct', e.target.value)} style={{ ...I, width: 70 }} />
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gray-warm)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={row.free_shipping} onChange={(e) => updateSizePrice(row.size_id, 'free_shipping', e.target.checked)} />
+                    Envío gratis
+                  </label>
+                  {!row.free_shipping && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--gray-warm)' }}>
+                      Costo envío
+                      <input type="number" min={0} value={row.shipping_cost} onChange={(e) => updateSizePrice(row.size_id, 'shipping_cost', e.target.value)} style={{ ...I, width: 110 }} placeholder="0" />
+                      <span>COP</span>
+                    </label>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -612,67 +655,6 @@ export function PeluchForm({ existing }: Props) {
           <input ref={colorFileInputRef} type="file" accept="image/*" multiple hidden onChange={handleColorFileSelect} />
         </Section>
       )}
-
-      {/* ── PAGOS Y ENVÍOS ───────────────────────────────── */}
-      <Section title="Pagos y envíos">
-        <p style={HintStyle}>
-          Estos valores se aplican <strong>por producto</strong>. En carritos con varios peluches el sistema
-          calcula el anticipo y descuento ponderados por línea, y suma los envíos no gratuitos.
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 14 }}>
-          <div>
-            <label style={L}>% de anticipo (contraentrega)</label>
-            <input
-              type="number"
-              min={1}
-              max={100}
-              value={form.deposit_percentage}
-              onChange={f('deposit_percentage')}
-              style={I}
-            />
-            <p style={{ fontSize: 11, color: 'var(--gray-warm)', marginTop: 4 }}>
-              Porcentaje del precio que el cliente paga por adelantado vía Wompi. El resto va al recibir.
-            </p>
-          </div>
-          <div>
-            <label style={L}>% descuento si paga todo de una</label>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={form.full_payment_discount_pct}
-              onChange={f('full_payment_discount_pct')}
-              style={I}
-            />
-            <p style={{ fontSize: 11, color: 'var(--gray-warm)', marginTop: 4 }}>
-              Incentivo para que el cliente elija pago completo. Aplica solo al subtotal del producto, no al envío.
-            </p>
-          </div>
-        </div>
-
-        <div style={{ marginTop: 16, padding: 14, background: form.free_shipping ? 'rgba(76,175,80,.08)' : 'var(--cream-warm)', borderRadius: 10, border: `1.5px solid ${form.free_shipping ? 'rgba(76,175,80,.3)' : 'rgba(27,42,74,.06)'}` }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, color: 'var(--navy)', fontSize: 14, cursor: 'pointer' }}>
-            <input type="checkbox" checked={form.free_shipping} onChange={fBool('free_shipping')} />
-            Envío gratis
-          </label>
-          {!form.free_shipping && (
-            <div style={{ marginTop: 12 }}>
-              <label style={{ ...L, marginTop: 0 }}>Costo de envío (COP)</label>
-              <input
-                type="number"
-                min={0}
-                value={form.shipping_cost}
-                onChange={f('shipping_cost')}
-                placeholder="15000"
-                style={I}
-              />
-              <p style={{ fontSize: 11, color: 'var(--gray-warm)', marginTop: 4 }}>
-                Se cobra una vez por unidad de este peluche. Se ignora cuando el toggle de arriba está activo.
-              </p>
-            </div>
-          )}
-        </div>
-      </Section>
 
       {/* ── PERSONALIZACIONES ────────────────────────────── */}
       <Section title="Personalizaciones">

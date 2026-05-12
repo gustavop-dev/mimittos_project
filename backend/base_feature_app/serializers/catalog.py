@@ -114,7 +114,11 @@ class PeluchSizePriceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PeluchSizePrice
-        fields = ['id', 'size', 'price', 'is_available']
+        fields = [
+            'id', 'size', 'price', 'is_available',
+            'deposit_percentage', 'full_payment_discount_pct',
+            'free_shipping', 'shipping_cost',
+        ]
 
 
 class PeluchListSerializer(serializers.ModelSerializer):
@@ -136,8 +140,6 @@ class PeluchListSerializer(serializers.ModelSerializer):
             'color_images_meta',
             'average_rating', 'review_count',
             'has_huella', 'has_corazon', 'has_audio',
-            'deposit_percentage', 'full_payment_discount_pct',
-            'free_shipping', 'shipping_cost',
         ]
 
     def get_min_price(self, obj):
@@ -203,8 +205,6 @@ class PeluchDetailSerializer(serializers.ModelSerializer):
             'gallery_urls', 'color_images_meta',
             'has_huella', 'has_corazon', 'has_audio',
             'huella_extra_cost', 'corazon_extra_cost', 'audio_extra_cost',
-            'deposit_percentage', 'full_payment_discount_pct',
-            'free_shipping', 'shipping_cost',
             'created_at', 'updated_at',
         ]
 
@@ -252,6 +252,10 @@ class PeluchSizePriceWriteSerializer(serializers.Serializer):
     size_id = serializers.IntegerField()
     price = serializers.DecimalField(max_digits=10, decimal_places=2)
     is_available = serializers.BooleanField(default=True)
+    deposit_percentage = serializers.IntegerField(default=50, min_value=1, max_value=100)
+    full_payment_discount_pct = serializers.IntegerField(default=0, min_value=0, max_value=100)
+    free_shipping = serializers.BooleanField(default=False)
+    shipping_cost = serializers.IntegerField(default=0, min_value=0)
 
 
 class PeluchCreateUpdateSerializer(serializers.ModelSerializer):
@@ -269,8 +273,6 @@ class PeluchCreateUpdateSerializer(serializers.ModelSerializer):
             'discount_pct', 'display_order',
             'has_huella', 'has_corazon', 'has_audio',
             'huella_extra_cost', 'corazon_extra_cost', 'audio_extra_cost',
-            'deposit_percentage', 'full_payment_discount_pct',
-            'free_shipping', 'shipping_cost',
             'available_color_ids', 'size_prices_data',
         ]
 
@@ -286,7 +288,14 @@ class PeluchCreateUpdateSerializer(serializers.ModelSerializer):
             PeluchSizePrice.objects.update_or_create(
                 peluch=peluch,
                 size_id=sp_data['size_id'],
-                defaults={'price': sp_data['price'], 'is_available': sp_data['is_available']},
+                defaults={
+                    'price': sp_data['price'],
+                    'is_available': sp_data['is_available'],
+                    'deposit_percentage': sp_data['deposit_percentage'],
+                    'full_payment_discount_pct': sp_data['full_payment_discount_pct'],
+                    'free_shipping': sp_data['free_shipping'],
+                    'shipping_cost': sp_data['shipping_cost'],
+                },
             )
 
     def create(self, validated_data):

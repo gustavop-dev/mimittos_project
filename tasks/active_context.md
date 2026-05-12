@@ -5,7 +5,25 @@ description: Current work focus, recent changes, active decisions, and next step
 
 # Active Context — Mimittos
 
-Last updated: 2026-05-01
+Last updated: 2026-05-12
+
+---
+
+## Branch `feat/per-size-pricing` (2026-05-12)
+
+Moved the per-product pricing knobs onto `PeluchSizePrice` so each size is configured independently:
+`deposit_percentage`, `full_payment_discount_pct`, `free_shipping`, `shipping_cost` now live on `PeluchSizePrice`
+(alongside `price`), not on `Peluch`. `discount_pct` (general always-on discount) stays on `Peluch`.
+Migration `0012_per_size_pricing_config` copies each peluche's old values onto all of its size rows, then drops
+the four columns from `Peluch`. `OrderService.create_order` reads deposit/discount/shipping per matched size;
+everything downstream (`Order` snapshot fields, `WompiTransaction.amount_in_cents`, `wompi_service.py`,
+`/payment/*`) is unchanged. Frontend: product detail snapshots the selected size's config onto the `CartItem`
+(shape unchanged) and shows that size's "Abono X%"; the backoffice `PeluchForm` edits the four fields per size
+row instead of in a global "Pagos y envíos" section. Spec/plan: `docs/superpowers/specs/2026-05-12-per-size-pricing-config-design.md`,
+`docs/superpowers/plans/2026-05-12-per-size-pricing-config.md`.
+
+Note: dev DB is now MySQL (`.env`); the `mimittos` user can't create the pytest `test_*` DB, so run backend
+tests with `DJANGO_DB_ENGINE=django.db.backends.sqlite3 pytest ...` (the project's original SQLite test setup).
 
 ---
 
