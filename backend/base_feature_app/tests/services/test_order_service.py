@@ -58,6 +58,46 @@ def peluch_with_price(peluch, size):
 
 
 @pytest.fixture
+def size_l(db):
+    return GlobalSize.objects.create(label='Grande', slug='grande', cm='40cm', sort_order=2)
+
+
+@pytest.fixture
+def peluch_per_size(peluch, size, size_l):
+    PeluchSizePrice.objects.create(
+        peluch=peluch, size=size, price=80000,
+        deposit_percentage=30, full_payment_discount_pct=10,
+        free_shipping=False, shipping_cost=5000,
+    )
+    PeluchSizePrice.objects.create(
+        peluch=peluch, size=size_l, price=120000,
+        deposit_percentage=50, full_payment_discount_pct=0,
+        free_shipping=True, shipping_cost=0,
+    )
+    return peluch
+
+
+def _order_data(peluch, *items):
+    """items: (size, color, quantity) tuples. Returns a create_order payload dict."""
+    return {
+        'customer_name': 'Ana García',
+        'customer_email': 'ana@example.com',
+        'customer_phone': '3001234567',
+        'address': 'Calle 123',
+        'city': 'Bogotá',
+        'department': 'Cundinamarca',
+        'items': [
+            {
+                'peluch': peluch, 'size': sz, 'color': col, 'quantity': q,
+                'has_huella': False, 'has_corazon': False, 'has_audio': False,
+                'huella_media': None, 'audio_media': None,
+            }
+            for (sz, col, q) in items
+        ],
+    }
+
+
+@pytest.fixture
 def base_order_data(peluch_with_price, size, color):
     return {
         'customer_name': 'Ana García',
@@ -210,6 +250,73 @@ def test_create_order_assigns_customer_when_user_provided(mock_media, base_order
 def test_create_order_customer_is_none_for_anonymous(mock_media, base_order_data):
     order = OrderService.create_order(base_order_data, user=None)
     assert order.customer is None
+
+
+# ---------------------------------------------------------------------------
+# create_order — per-size pricing config
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+@patch('base_feature_app.services.order_service.OrderService.mark_media_as_used')
+def test_create_order_uses_per_size_deposit_percentage(mock_media, peluch_per_size, size, color):
+    order = OrderService.create_order(_order_data(peluch_per_size, (size, color, 1)))
+    assert order.deposit_amount == 24000  # 80000 * 30%
+    assert order.amount_paid_now == 24000
+
+
+@pytest.mark.django_db
+@patch('base_feature_app.services.order_service.OrderService.mark_media_as_used')
+def test_create_order_per_size_shipping_cost_is_added(mock_media, peluch_per_size, size, color):
+    order = OrderService.create_order(_order_data(peluch_per_size, (size, color, 1)))
+    assert order.shipping_amount == 5000
+
+
+@pytest.mark.django_db
+@patch('base_feature_app.services.order_service.OrderService.mark_media_as_used')
+def test_create_order_per_size_free_shipping_contributes_zero(mock_media, peluch_per_size, size_l, color):
+    order = OrderService.create_order(_order_data(peluch_per_size, (size_l, color, 1)))
+    assert order.shipping_amount == 0
+
+
+@pytest.mark.django_db
+@patch('base_feature_app.services.order_service.OrderService.mark_media_as_used')
+def test_create_order_full_payment_uses_per_size_discount(mock_media, peluch_per_size, size, color):
+    data = _order_data(peluch_per_size, (size, color, 1))
+    data['payment_mode'] = Order.PaymentMode.FULL
+    order = OrderService.create_order(data)
+    assert order.discount_amount == 8000  # 80000 * 10%
+    assert order.amount_paid_now == 77000  # 80000 - 8000 + 5000 shipping
+    assert order.balance_amount == 0
+
+
+@pytest.mark.django_db
+@patch('base_feature_app.services.order_service.OrderService.mark_media_as_used')
+def test_create_order_wompi_amount_matches_amount_paid_now(mock_media, peluch_per_size, size, color):
+    order = OrderService.create_order(_order_data(peluch_per_size, (size, color, 2)))
+    tx = WompiTransaction.objects.get(order=order)
+    assert tx.amount_in_cents == order.amount_paid_now * 100
+
+
+@pytest.mark.django_db
+@patch('base_feature_app.services.order_service.OrderService.mark_media_as_used')
+def test_create_order_mixed_sizes_weighted_deposit(mock_media, peluch_per_size, size, size_l, color):
+    # size: price 80000, deposit 30%, ship 5000  |  size_l: price 120000, deposit 50%, free ship
+    order = OrderService.create_order(_order_data(peluch_per_size, (size, color, 1), (size_l, color, 1)))
+    assert order.total_amount == 200000
+    assert order.deposit_amount == 84000      # 80000*30% + 120000*50% = 24000 + 60000
+    assert order.shipping_amount == 5000
+    assert order.balance_amount == 121000     # (200000 - 84000) + 5000
+
+
+@pytest.mark.django_db
+@patch('base_feature_app.services.order_service.OrderService.mark_media_as_used')
+def test_create_order_snapshot_stores_per_size_config(mock_media, peluch_per_size, size, color):
+    order = OrderService.create_order(_order_data(peluch_per_size, (size, color, 1)))
+    snap = order.items.first().configuration_snapshot
+    assert snap['deposit_percentage'] == 30
+    assert snap['full_payment_discount_pct'] == 10
+    assert snap['shipping_cost'] == 5000
+    assert snap['free_shipping'] is False
 
 
 # ---------------------------------------------------------------------------

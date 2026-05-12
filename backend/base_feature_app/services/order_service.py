@@ -33,8 +33,8 @@ class OrderService:
         return _round_to_100(total * percentage / 100)
 
     @staticmethod
-    def _item_subtotal(item: dict, peluch) -> tuple[int, int]:
-        """Return (unit_price, line_subtotal) for a cart item dict."""
+    def _item_subtotal(item: dict, peluch):
+        """Return (size_price, unit_price, personalization_cost, line_subtotal) for a cart item dict."""
         size_price = PeluchSizePrice.objects.get(
             peluch=peluch,
             size=item['size'],
@@ -48,7 +48,7 @@ class OrderService:
         discount = getattr(peluch, 'discount_pct', 0) or 0
         unit_price = round(size_price.price * (100 - discount) / 100)
         line_subtotal = (unit_price + personalization_cost) * item['quantity']
-        return unit_price, personalization_cost, line_subtotal
+        return size_price, unit_price, personalization_cost, line_subtotal
 
     @staticmethod
     @transaction.atomic
@@ -63,21 +63,22 @@ class OrderService:
 
         for item in items_data:
             peluch = item['peluch']
-            unit_price, personalization_cost, line_subtotal = OrderService._item_subtotal(item, peluch)
+            size_price, unit_price, personalization_cost, line_subtotal = OrderService._item_subtotal(item, peluch)
             item['unit_price'] = unit_price
             item['personalization_cost'] = personalization_cost
             item['_line_subtotal'] = line_subtotal
+            item['_size_price'] = size_price
 
             product_subtotal += line_subtotal
 
-            deposit_pct = peluch.deposit_percentage or int(getattr(settings, 'DEPOSIT_PERCENTAGE', 50))
+            deposit_pct = size_price.deposit_percentage or int(getattr(settings, 'DEPOSIT_PERCENTAGE', 50))
             weighted_deposit_raw += line_subtotal * deposit_pct / 100
 
-            full_disc_pct = peluch.full_payment_discount_pct or 0
+            full_disc_pct = size_price.full_payment_discount_pct or 0
             weighted_full_discount_raw += line_subtotal * full_disc_pct / 100
 
-            if not peluch.free_shipping:
-                shipping_total += peluch.shipping_cost * item['quantity']
+            if not size_price.free_shipping:
+                shipping_total += size_price.shipping_cost * item['quantity']
 
         deposit_amount = _round_to_100(weighted_deposit_raw)
         discount_amount = _round_to_100(weighted_full_discount_raw)
@@ -106,9 +107,7 @@ class OrderService:
 
         for item in items_data:
             peluch = item['peluch']
-            size_price = PeluchSizePrice.objects.get(
-                peluch=peluch, size=item['size'], is_available=True,
-            )
+            size_price = item['_size_price']
             OrderItem.objects.create(
                 order=order,
                 peluch=peluch,
@@ -133,10 +132,10 @@ class OrderService:
                     'color_hex': item['color'].hex_code,
                     'discount_pct': peluch.discount_pct,
                     'original_unit_price': size_price.price,
-                    'deposit_percentage': peluch.deposit_percentage,
-                    'full_payment_discount_pct': peluch.full_payment_discount_pct,
-                    'free_shipping': peluch.free_shipping,
-                    'shipping_cost': peluch.shipping_cost,
+                    'deposit_percentage': size_price.deposit_percentage,
+                    'full_payment_discount_pct': size_price.full_payment_discount_pct,
+                    'free_shipping': size_price.free_shipping,
+                    'shipping_cost': size_price.shipping_cost,
                     'has_huella': item.get('has_huella', False),
                     'huella_type': item.get('huella_type', ''),
                     'huella_text': item.get('huella_text', ''),
