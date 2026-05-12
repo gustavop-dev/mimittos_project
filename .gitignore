@@ -121,3 +121,4 @@ pids
 
 # Quality gate reports
 test-results/test-quality-report.json
+.playwright_prod/
