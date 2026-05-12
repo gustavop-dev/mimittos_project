@@ -22,10 +22,6 @@ export const mockPeluches: Peluch[] = [
     has_huella: true,
     has_corazon: false,
     has_audio: false,
-    deposit_percentage: 50,
-    full_payment_discount_pct: 0,
-    free_shipping: false,
-    shipping_cost: 0,
   },
   {
     id: 2,
@@ -48,10 +44,6 @@ export const mockPeluches: Peluch[] = [
     has_huella: false,
     has_corazon: true,
     has_audio: false,
-    deposit_percentage: 50,
-    full_payment_discount_pct: 0,
-    free_shipping: false,
-    shipping_cost: 0,
   },
   {
     id: 3,
@@ -74,10 +66,6 @@ export const mockPeluches: Peluch[] = [
     has_huella: false,
     has_corazon: false,
     has_audio: true,
-    deposit_percentage: 50,
-    full_payment_discount_pct: 0,
-    free_shipping: false,
-    shipping_cost: 0,
   },
 ]
 

@@ -43,6 +43,10 @@ export type PeluchSizePrice = {
   size: GlobalSize
   price: number
   is_available: boolean
+  deposit_percentage: number
+  full_payment_discount_pct: number
+  free_shipping: boolean
+  shipping_cost: number
 }
 
 export type Peluch = {
@@ -66,10 +70,6 @@ export type Peluch = {
   has_huella: boolean
   has_corazon: boolean
   has_audio: boolean
-  deposit_percentage: number
-  full_payment_discount_pct: number
-  free_shipping: boolean
-  shipping_cost: number
 }
 
 export type PeluchDetail = Peluch & {
