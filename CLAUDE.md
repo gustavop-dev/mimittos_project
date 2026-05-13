@@ -345,3 +345,15 @@ flowchart TD
 - Memory Bank basado en [rules_template](https://github.com/Bhartendu-Kumar/rules_template)
 - Actualizar `tasks/active_context.md` y `tasks/tasks_plan.md` tras cambios significativos
 - Actualizar `docs/methodology/architecture.md` cuando cambien flujos o componentes clave
+<!-- session-start-protocol:begin -->
+## Session Start Protocol
+
+Al inicio de **cada sesión y antes de editar archivos**, debes invocar la skill `git-sync` para este repo. Razón: el operador trabaja desde múltiples máquinas y procesos automatizados (cron, CI) pueden haber commiteado cambios que tu copia local no tiene; editar sobre una versión desactualizada genera conflictos o trabajo duplicado.
+
+**Flujo:**
+1. Un hook `SessionStart` (definido en `.claude/settings.json`) ejecuta `git fetch + git status` read-only y te inyecta el estado de este repo como contexto.
+2. Si el reporte indica `behind > 0` o `dirty > 0`, **invoca la skill `git-sync`** antes de hacer cualquier cambio. `git-sync` hace rebase contra el parent branch y, si hay conflictos, te guía interactivamente por la resolución.
+3. Si el reporte indica `behind=0 ahead=0 dirty=0`, el repo ya está sincronizado y puedes proceder.
+
+**Importante:** Nunca uses `git pull --force`, `git reset --hard` ni stash automático para "resolver" el sync — usa siempre la skill `git-sync`, que es segura y reproducible.
+<!-- session-start-protocol:end -->
