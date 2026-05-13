@@ -4,6 +4,10 @@ import { render, screen, waitFor } from '@testing-library/react'
 import CatalogPage from '../page'
 import { peluchService } from '../../../lib/services/peluchService'
 
+jest.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(),
+}))
+
 jest.mock('../../../lib/services/peluchService', () => ({
   peluchService: {
     listPeluches: jest.fn(),

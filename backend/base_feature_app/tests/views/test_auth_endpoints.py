@@ -489,10 +489,11 @@ def test_update_password_success(api_client):
 
 
 @pytest.mark.django_db
-def test_validate_token_requires_auth(api_client):
+def test_validate_token_returns_invalid_for_anonymous(api_client):
     response = api_client.get(reverse('validate_token'))
 
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()['valid'] is False
 
 
 @pytest.mark.django_db

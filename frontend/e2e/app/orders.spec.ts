@@ -52,7 +52,7 @@ async function setupAuthMocks(page: Page) {
   });
   // Stub all auth-related API calls to avoid hitting the real backend with fake tokens
   await page.route('**/api/validate_token/', (route: Route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ user: mockUser }) })
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, user: mockUser }) })
   );
   await page.route('**/api/token/refresh/', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access: 'mock-access-token' }) })

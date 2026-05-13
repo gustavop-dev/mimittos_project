@@ -12,7 +12,29 @@ class MediaOptimizationService:
     AUDIO_BITRATE = '64k'
     AUDIO_MAX_DURATION_SEC = 30
     AUDIO_MAX_KB = 1024
-    ALLOWED_AUDIO_FORMATS = {'mp3', 'm4a', 'wav', 'ogg'}
+    ALLOWED_AUDIO_FORMATS = {'mp3', 'm4a', 'wav', 'ogg', 'opus', 'aac', 'webm', 'flac', 'amr', 'aiff', '3gp', 'mp4'}
+    AUDIO_MIME_TO_FORMAT = {
+        'audio/mpeg': 'mp3',
+        'audio/mp3': 'mp3',
+        'audio/ogg': 'ogg',
+        'audio/opus': 'opus',
+        'audio/aac': 'aac',
+        'audio/x-aac': 'aac',
+        'audio/webm': 'webm',
+        'audio/amr': 'amr',
+        'audio/flac': 'flac',
+        'audio/x-flac': 'flac',
+        'audio/mp4': 'mp4',
+        'audio/x-m4a': 'm4a',
+        'audio/3gpp': '3gp',
+        'audio/aiff': 'aiff',
+        'audio/x-aiff': 'aiff',
+        'audio/wav': 'wav',
+        'audio/x-wav': 'wav',
+        'video/webm': 'webm',
+        'video/mp4': 'mp4',
+        'video/3gpp': '3gp',
+    }
 
     @staticmethod
     def optimize_image(file) -> InMemoryUploadedFile:
@@ -56,10 +78,16 @@ class MediaOptimizationService:
 
     @staticmethod
     def optimize_audio(file) -> tuple[InMemoryUploadedFile, float]:
-        ext = file.name.rsplit('.', 1)[-1].lower()
-        if ext not in MediaOptimizationService.ALLOWED_AUDIO_FORMATS:
+        ext = file.name.rsplit('.', 1)[-1].lower() if '.' in file.name else ''
+        mime_type = getattr(file, 'content_type', '') or ''
+
+        if ext in MediaOptimizationService.ALLOWED_AUDIO_FORMATS:
+            fmt = ext
+        elif mime_type in MediaOptimizationService.AUDIO_MIME_TO_FORMAT:
+            fmt = MediaOptimizationService.AUDIO_MIME_TO_FORMAT[mime_type]
+        else:
             raise ValidationError(
-                f'Formato de audio no soportado. Use: {", ".join(MediaOptimizationService.ALLOWED_AUDIO_FORMATS)}'
+                f'Formato de audio no soportado. Formatos válidos: mp3, m4a, wav, ogg, opus, aac, webm, flac.'
             )
 
         try:
@@ -68,7 +96,7 @@ class MediaOptimizationService:
             raise ValidationError('pydub no está instalado.')
 
         try:
-            audio = AudioSegment.from_file(file, format=ext)
+            audio = AudioSegment.from_file(file, format=fmt)
         except Exception:
             raise ValidationError('No se pudo procesar el archivo de audio.')
 

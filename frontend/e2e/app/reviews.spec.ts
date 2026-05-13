@@ -42,7 +42,7 @@ async function setupAuth(page: Page) {
     document.cookie = 'refresh_token=mock-refresh-token; path=/';
   });
   await page.route('**/api/validate_token/', (route: Route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ user: mockUser }) })
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, user: mockUser }) })
   );
   await page.route('**/api/token/refresh/', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access: 'mock-access-token' }) })

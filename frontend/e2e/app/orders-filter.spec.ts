@@ -14,7 +14,7 @@ const mockUser = {
 
 const orders = [
   {
-    order_number: 'PELUCH-1111-AAAA',
+    order_number: 'MMT-1111-AAAA',
     status: 'pending_payment',
     total_amount: 100000,
     deposit_amount: 50000,
@@ -26,7 +26,7 @@ const orders = [
     items: [],
   },
   {
-    order_number: 'PELUCH-2222-BBBB',
+    order_number: 'MMT-2222-BBBB',
     status: 'in_production',
     total_amount: 150000,
     deposit_amount: 75000,
@@ -38,7 +38,7 @@ const orders = [
     items: [],
   },
   {
-    order_number: 'PELUCH-3333-CCCC',
+    order_number: 'MMT-3333-CCCC',
     status: 'delivered',
     total_amount: 200000,
     deposit_amount: 100000,
@@ -57,7 +57,7 @@ async function setupAuthMocks(page: Page) {
     document.cookie = 'refresh_token=mock-refresh-token; path=/';
   });
   await page.route('**/api/validate_token/', (route: Route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ user: mockUser }) }),
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, user: mockUser }) }),
   );
   await page.route('**/api/token/refresh/', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access: 'mock-access-token' }) }),
@@ -76,15 +76,15 @@ test(
     await page.goto('/orders');
     await waitForPageLoad(page);
 
-    await expect(page.getByText('PELUCH-1111-AAAA')).toBeVisible();
-    await expect(page.getByText('PELUCH-2222-BBBB')).toBeVisible();
-    await expect(page.getByText('PELUCH-3333-CCCC')).toBeVisible();
+    await expect(page.getByText('MMT-1111-AAAA')).toBeVisible();
+    await expect(page.getByText('MMT-2222-BBBB')).toBeVisible();
+    await expect(page.getByText('MMT-3333-CCCC')).toBeVisible();
 
     await page.getByRole('button', { name: /En producción/ }).click();
 
-    await expect(page.getByText('PELUCH-2222-BBBB')).toBeVisible();
-    await expect(page.getByText('PELUCH-1111-AAAA')).toHaveCount(0);
-    await expect(page.getByText('PELUCH-3333-CCCC')).toHaveCount(0);
+    await expect(page.getByText('MMT-2222-BBBB')).toBeVisible();
+    await expect(page.getByText('MMT-1111-AAAA')).toHaveCount(0);
+    await expect(page.getByText('MMT-3333-CCCC')).toHaveCount(0);
   },
 );
 
@@ -97,13 +97,13 @@ test(
     await page.goto('/orders');
     await waitForPageLoad(page);
 
-    await expect(page.getByText('PELUCH-1111-AAAA')).toBeVisible();
-    await expect(page.getByText('PELUCH-2222-BBBB')).toBeVisible();
+    await expect(page.getByText('MMT-1111-AAAA')).toBeVisible();
+    await expect(page.getByText('MMT-2222-BBBB')).toBeVisible();
 
     await page.getByPlaceholder('Buscar por # pedido...').fill('3333');
 
-    await expect(page.getByText('PELUCH-3333-CCCC')).toBeVisible();
-    await expect(page.getByText('PELUCH-1111-AAAA')).toHaveCount(0);
-    await expect(page.getByText('PELUCH-2222-BBBB')).toHaveCount(0);
+    await expect(page.getByText('MMT-3333-CCCC')).toBeVisible();
+    await expect(page.getByText('MMT-1111-AAAA')).toHaveCount(0);
+    await expect(page.getByText('MMT-2222-BBBB')).toHaveCount(0);
   },
 );

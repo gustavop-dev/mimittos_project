@@ -53,7 +53,7 @@ async function setupStaffAuth(page: Page) {
     { name: 'refresh_token', value: 'fake-admin-refresh', domain: 'localhost', path: '/' },
   ])
   await page.route('**/api/validate_token/**', (route: Route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ user: mockAdmin }) }),
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, user: mockAdmin }) }),
   )
   await page.route('**/api/token/refresh/**', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access: 'fake-admin-access' }) }),

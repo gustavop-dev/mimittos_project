@@ -86,6 +86,7 @@ test.describe('Backoffice', () => {
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
+            valid: true,
             user: { id: 1, email: 'admin@test.com', first_name: 'Admin', last_name: 'Test', role: 'admin', is_staff: true },
           }),
         })

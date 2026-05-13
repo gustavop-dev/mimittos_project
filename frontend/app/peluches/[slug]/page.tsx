@@ -228,6 +228,11 @@ export default function PeluchDetailPage() {
   }
 
   async function handleAudioUpload(file: File) {
+    const MAX_AUDIO_MB = 10
+    if (file.size > MAX_AUDIO_MB * 1024 * 1024) {
+      setAudioError(`El archivo es demasiado grande. Máximo ${MAX_AUDIO_MB}MB.`)
+      return
+    }
     setAudioUploading(true)
     setAudioError('')
     setAudioFileName(file.name)
