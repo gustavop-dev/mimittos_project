@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -5,6 +7,8 @@ from rest_framework.response import Response
 
 from base_feature_app.models import PersonalizationMedia
 from base_feature_app.services.media_service import MediaOptimizationService
+
+logger = logging.getLogger(__name__)
 
 
 @api_view(['POST'])
@@ -33,6 +37,13 @@ def upload_media(request):
             optimized_file, duration_sec = MediaOptimizationService.optimize_audio(file)
             file_size_kb = optimized_file.size // 1024
     except Exception as exc:
+        logger.exception(
+            'media upload failed (media_type=%s, filename=%s, content_type=%s, size=%s)',
+            media_type,
+            getattr(file, 'name', None),
+            getattr(file, 'content_type', None),
+            getattr(file, 'size', None),
+        )
         return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
     media = PersonalizationMedia.objects.create(
