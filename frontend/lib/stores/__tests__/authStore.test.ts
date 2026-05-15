@@ -191,6 +191,7 @@ describe('authStore', () => {
     mockGetAccessToken.mockReturnValue('access');
     mockApi.get.mockResolvedValueOnce({
       data: {
+        valid: true,
         user: {
           id: 7,
           email: 'restore@example.com',

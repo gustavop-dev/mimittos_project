@@ -152,7 +152,7 @@ def test_optimize_audio_output_name_has_mp3_extension(mock_audio_segment):
 
 @pytest.mark.django_db
 def test_optimize_audio_raises_for_unsupported_format():
-    file = _make_fake_file(name='video.mp4')
+    file = _make_fake_file(name='document.xyz')
     with pytest.raises(ValidationError) as exc_info:
         MediaOptimizationService.optimize_audio(file)
     assert 'Formato de audio no soportado' in str(exc_info.value)
