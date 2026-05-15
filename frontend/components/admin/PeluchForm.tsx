@@ -388,17 +388,15 @@ export function PeluchForm({ existing }: Props) {
         specifications: specifications ?? {},
         care_instructions: care_instructions ?? [],
         available_color_ids: selectedColors,
-        size_prices_data: sizePrices
-          .filter((r) => r.is_available && Number(r.price) > 0)
-          .map((r) => ({
-            size_id: r.size_id,
-            price: Number(r.price),
-            is_available: true,
-            deposit_percentage: Math.min(100, Math.max(1, Number(r.deposit_percentage) || 50)),
-            full_payment_discount_pct: Math.min(100, Math.max(0, Number(r.full_payment_discount_pct) || 0)),
-            free_shipping: r.free_shipping,
-            shipping_cost: r.free_shipping ? 0 : Math.max(0, Number(r.shipping_cost) || 0),
-          })),
+        size_prices_data: sizePrices.map((r) => ({
+          size_id: r.size_id,
+          price: r.is_available ? Number(r.price) : 0,
+          is_available: r.is_available,
+          deposit_percentage: Math.min(100, Math.max(1, Number(r.deposit_percentage) || 50)),
+          full_payment_discount_pct: Math.min(100, Math.max(0, Number(r.full_payment_discount_pct) || 0)),
+          free_shipping: r.free_shipping,
+          shipping_cost: r.free_shipping ? 0 : Math.max(0, Number(r.shipping_cost) || 0),
+        })),
       }
 
       if (existing) {
