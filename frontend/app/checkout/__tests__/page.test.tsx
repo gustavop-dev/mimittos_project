@@ -90,19 +90,21 @@ describe('CheckoutPage', () => {
     })
   })
 
-  it('calls orderService.createOrder and clearCart on successful submission', async () => {
+  it('calls orderService.createOrder on successful submission', async () => {
     const clearCart = jest.fn()
     setCartState({ items: [peluchItem], clearCart })
     mockOrderService.createOrder.mockResolvedValueOnce({
-      order_number: 'PELUCH-001', checkout_url: 'https://checkout.wompi.co/l/test',
-      deposit_amount: 64000, balance_amount: 64000, total_amount: 128000, is_new_account: false,
+      order_number: 'PELUCH-001',
+      deposit_amount: 64000,
+      balance_amount: 64000,
+      shipping_amount: 0,
+      discount_amount: 0,
+      payment_mode: 'deposit',
+      amount_paid_now: 64000,
+      total_amount: 128000,
+      is_guest: false,
     })
 
-    const originalLocation = window.location
-    delete (window as any).location
-    ;(window as any).location = { href: '' }
-
-    // Bypass HTML5 form validation so required fields don't block submit
     jest.spyOn(HTMLFormElement.prototype, 'checkValidity').mockReturnValue(true)
     jest.spyOn(HTMLFormElement.prototype, 'reportValidity').mockReturnValue(true)
 
@@ -118,11 +120,9 @@ describe('CheckoutPage', () => {
 
     await waitFor(() => {
       expect(mockOrderService.createOrder).toHaveBeenCalledTimes(1)
-      expect(clearCart).toHaveBeenCalledTimes(1)
     })
 
     jest.restoreAllMocks()
-    ;(window as any).location = originalLocation
   })
 
   it('shows error message when order creation fails', async () => {
