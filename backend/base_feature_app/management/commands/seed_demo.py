@@ -204,7 +204,7 @@ PELUCHES = [
 
 DEMO_USER = {
     "email": "demo@mimittos.com",
-    "password": "Demo1234!",
+    "password": "password",
     "first_name": "Valentina",
     "last_name": "Gómez",
     "phone": "+57 310 555 0001",
@@ -294,7 +294,7 @@ class Command(BaseCommand):
         self._seed_orders(user, peluches, sizes, colors)
 
         self.stdout.write(self.style.SUCCESS("\n✅  Demo seed complete!\n"))
-        self.stdout.write(f"   👤  demo@mimittos.com  /  Demo1234!\n")
+        self.stdout.write(f"   👤  demo@mimittos.com  /  password\n")
         self.stdout.write(f"   🧸  {len(peluches)} peluches creados\n")
         self.stdout.write(f"   🛒  {len(ORDERS)} órdenes creadas\n\n")
 

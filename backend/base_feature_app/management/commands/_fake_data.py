@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw
 FAKE_EMAIL_DOMAIN = 'fake.mimittos.local'
 FAKE_BLOG_TITLE_PREFIX = '[FAKE]'
 FAKE_SLUG_PREFIX = 'fake-'
-FAKE_DEFAULT_PASSWORD = 'FakeData123!'
+FAKE_DEFAULT_PASSWORD = 'password'
 
 GRADIENT_PALETTES = [
     ((255, 179, 186), (255, 205, 210)),
