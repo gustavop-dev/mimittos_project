@@ -9,7 +9,7 @@ from base_feature_app.serializers import SaleSerializer
 def create_sale(request):
     """
     Create a new sale with the provided data.
-    
+
     Args:
         request (HttpRequest): The request object containing the data for the sale.
 

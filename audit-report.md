@@ -1,197 +1,158 @@
-# Vulnerability Audit Report — `double-check-30042026`
+# Vulnerability Audit & Dependency Update Report
 
-**Project**: mimittos_project
-**Date**: 2026-04-30
-**Branch**: `double-check-30042026` (from `origin/main`)
-**Scope**: Patch + minor dependency updates only. No major bumps.
+**Branch:** main
+**Date:** 2026-05-17
+**Base:** main @ 6f6d5ba
+**Scope:** patch + minor updates only (no major version bumps)
 
----
+## Summary
 
-## Summary CVEs
+| Surface  | Vulns (initial) | Vulns (final) | Outdated (initial) | Updated |
+|----------|-----------------|---------------|--------------------|---------|
+| Frontend | 2 (1 high, 1 moderate) | 3 moderate* | 16 | 14 (2 SKIP MAJOR) |
+| Backend  | 24 CVEs en 7 paquetes | 7 CVEs en 3 paquetes† | 16 | 9 paquetes |
 
-### Frontend (npm audit)
+\* Las 3 moderate restantes están en `postcss` **empaquetado dentro de `next`** — la única "solución" de npm es downgrade a `next@9.3.3` (breaking change). Inaplicable.
 
-| Severity | Count |
-|----------|------:|
-| High     | 3 |
-| Moderate | 5 |
-| Low      | 0 |
-| **Total**| **8** |
-
-### Backend (pip-audit)
-
-| Severity | Count |
-|----------|------:|
-| Total CVEs | 10 |
-| Affected packages | 4 |
+† Vulnerabilidades restantes en dependencias transitivas no gestionadas directamente en `requirements.txt` (`pip`, `python-dotenv`, `urllib3`).
 
 ---
 
-## Frontend Outdated Table
+## Frontend — `npm audit` (initial)
 
-| Package | Current | Wanted | Latest | Bump Type |
-|---------|---------|--------|--------|-----------|
-| @playwright/test | 1.58.2 | 1.59.1 | 1.59.1 | minor |
-| @react-oauth/google | 0.13.4 | 0.13.5 | 0.13.5 | patch |
-| @tailwindcss/postcss | 4.2.1 | 4.2.4 | 4.2.4 | patch |
-| @types/node | 25.3.0 | 25.6.0 | 25.6.0 | minor |
-| axios | 1.13.5 | 1.15.2 | 1.15.2 | minor |
-| eslint | 9.39.3 | 9.39.4 | 10.2.1 | patch (major skipped) |
-| eslint-config-next | 16.1.6 | 16.1.6 | 16.2.4 | minor |
-| eslint-plugin-playwright | 2.7.1 | 2.10.2 | 2.10.2 | minor |
-| jest | 30.2.0 | 30.3.0 | 30.3.0 | minor |
-| jest-environment-jsdom | 30.2.0 | 30.3.0 | 30.3.0 | minor |
-| next | 16.1.6 | 16.1.6 | 16.2.4 | minor |
-| next-intl | 4.8.3 | 4.11.0 | 4.11.0 | minor |
-| react | 19.2.4 | 19.2.4 | 19.2.5 | patch |
-| react-dom | 19.2.4 | 19.2.4 | 19.2.5 | patch |
-| swiper | 12.1.3 | 12.1.4 | 12.1.4 | patch |
-| tailwindcss | 4.2.1 | 4.2.4 | 4.2.4 | patch |
-| typescript | 5.9.3 | 5.9.3 | 6.0.3 | none (major skipped) |
-| zustand | 5.0.11 | 5.0.12 | 5.0.12 | patch |
+| Paquete | Severity | CVEs / Notas |
+|---------|----------|-------------|
+| `next` 16.2.4 | **high** | DoS, middleware bypass, cache poisoning, XSS, SSRF (≥13 CVEs) |
+| `postcss` (transitivo en next) | moderate | XSS via `</style>` no escapado — GHSA-qx2v-qp2m-jg93 |
 
-## Backend Outdated Table
+**Totales iniciales:** 0 critical / 1 high / 1 moderate / 0 low = **2 total**
 
-| Package | Current | Latest | Bump Type |
-|---------|---------|--------|-----------|
-| coverage | 7.13.4 | 7.13.5 | patch |
-| Django | 6.0.2 | 6.0.4 | patch |
-| djangorestframework | 3.16.1 | 3.17.1 | minor |
-| Faker | 40.5.1 | 40.15.0 | minor |
-| gunicorn | 23.0.0 | 25.3.0 | major (skipped, pinned `<24.0`) |
-| pillow | 12.1.1 | 12.2.0 | minor |
-| pytest | 9.0.2 | 9.0.3 | patch |
-| pytest-cov | 7.0.0 | 7.1.0 | minor |
-| requests | 2.32.5 | 2.33.1 | minor |
-| ruff | 0.15.2 | 0.15.12 | patch |
+## Frontend — `npm outdated` (initial)
+
+| Paquete | Current | Wanted | Latest | Acción |
+|---------|---------|--------|--------|--------|
+| `@playwright/test` | 1.59.1 | 1.60.0 | 1.60.0 | actualizado |
+| `@tailwindcss/postcss` | 4.2.4 | 4.3.0 | 4.3.0 | actualizado |
+| `@types/node` | 25.6.0 | 25.8.0 | 25.8.0 | actualizado |
+| `axios` | 1.15.2 | 1.16.1 | 1.16.1 | actualizado |
+| `eslint` | 9.39.4 | 9.39.4 | 10.4.0 | SKIP MAJOR (9→10) |
+| `eslint-config-next` | 16.2.4 | 16.2.4 | 16.2.6 | actualizado |
+| `jest` | 30.3.0 | 30.4.2 | 30.4.2 | actualizado |
+| `jest-environment-jsdom` | 30.3.0 | 30.4.1 | 30.4.1 | actualizado |
+| `js-cookie` | 3.0.5 | 3.0.7 | 3.0.7 | actualizado |
+| `next` | 16.2.4 | 16.2.4 | 16.2.6 | actualizado (fix high) |
+| `next-intl` | 4.11.0 | 4.12.0 | 4.12.0 | actualizado |
+| `react` | 19.2.5 | 19.2.5 | 19.2.6 | actualizado |
+| `react-dom` | 19.2.5 | 19.2.5 | 19.2.6 | actualizado |
+| `tailwindcss` | 4.2.4 | 4.3.0 | 4.3.0 | actualizado |
+| `typescript` | 5.9.3 | 5.9.3 | 6.0.3 | SKIP MAJOR (5→6) |
+| `zustand` | 5.0.12 | 5.0.13 | 5.0.13 | actualizado |
 
 ---
 
-## CVE Details
+## Backend — `pip-audit` (initial, desde venv)
 
-### Frontend
+> **Nota:** el venv tenía versiones anteriores a las del `requirements.txt` — la sincronización con `pip install -r requirements.txt` resolvio la mayoría de las vulnerabilidades.
 
-| Package | Severity | Advisory |
-|---------|----------|----------|
-| axios | moderate | NO_PROXY Hostname Normalization Bypass (SSRF); Unrestricted Cloud Metadata Exfiltration via Header Injection |
-| brace-expansion | moderate | Zero-step sequence causes process hang and memory exhaustion |
-| flatted | high | Prototype Pollution via parse() |
-| follow-redirects | moderate | Leaks Custom Authentication Headers to Cross-Domain Redirect Targets |
-| next | high | HTTP request smuggling in rewrites; unbounded next/image cache; unbounded postpone resume DoS; null-origin Server Actions CSRF bypass; null-origin dev HMR CSRF bypass; DoS with Server Components |
-| next-intl | moderate | Open redirect vulnerability |
-| picomatch | high | Method injection in POSIX character classes; ReDoS via extglob quantifiers |
-| postcss | moderate | XSS via unescaped `</style>` in CSS stringify output |
+| Paquete | Version venv | CVEs | Fix mínimo | Acción |
+|---------|-------------|------|------------|--------|
+| `django` | 6.0.2 | 10 (DoS, XSS, middleware bypass) | 6.0.5 | → 6.0.5 |
+| `pillow` | 12.1.1 | 5 (GZIP, PDF, PSD, overflow) | 12.2.0 | → 12.2.0 |
+| `pytest` | 9.0.2 | 1 (tmpdir race — CVE-2025-71176) | 9.0.3 | → 9.0.3 |
+| `python-dotenv` | 1.2.1 | 1 (symlink follow — CVE-2026-28684) | 1.2.2 | transitivo, no en requirements.txt |
+| `requests` | 2.32.5 | 1 (zip path traversal — CVE-2026-25645) | 2.33.0 | → 2.34.2 |
+| `urllib3` | 2.6.3 | 2 (redirect headers, streaming) | 2.7.0 | transitivo, no en requirements.txt |
+| `pip` | 24.0 | 4 (tar/wheel extraction) | 25.3–26.1 | herramienta venv, no en requirements.txt |
 
-### Backend
+## Backend — `pip list --outdated` (initial)
 
-| Package | Version | CVE IDs | Fix Versions |
-|---------|---------|---------|--------------|
-| Django | 6.0.2 | CVE-2026-25674, CVE-2026-25673, CVE-2026-33033, CVE-2026-33034, CVE-2026-4292, CVE-2026-4277, CVE-2026-3902 | 6.0.3 / 6.0.4 |
-| pillow | 12.1.1 | CVE-2026-40192 | 12.2.0 |
-| pytest | 9.0.2 | CVE-2025-71176 | 9.0.3 |
-| requests | 2.32.5 | CVE-2026-25645 | 2.33.0 / 2.33.1 |
-
----
-
-## Reproducibility
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm audit --json > /tmp/mimittos_project-npm-audit.json
-npm outdated --json > /tmp/mimittos_project-npm-outdated.json
-```
-
-### Backend
-
-```bash
-cd backend
-python3 -m venv .venv-audit
-.venv-audit/bin/pip install --upgrade pip pip-audit
-.venv-audit/bin/pip install -r requirements.txt
-.venv-audit/bin/pip-audit -r requirements.txt --format json > /tmp/mimittos_project-pip-audit.json
-.venv-audit/bin/pip list --outdated --format json > /tmp/mimittos_project-pip-outdated.json
-```
-
----
-
-## Majors Skipped
-
-Per the policy in this branch (patch + minor only, no major bumps):
-
-| Package | Current | Latest Major | Reason |
-|---------|---------|--------------|--------|
-| eslint | 9.39.3 | 10.2.1 | major version bump |
-| typescript | 5.9.3 | 6.0.3 | major version bump |
-| gunicorn | 23.0.0 | 25.3.0 | constrained by `<24.0` pin in requirements.txt |
-
-These should be addressed in a dedicated upgrade PR with breaking-change validation.
+| Paquete | Instalado | Latest | Acción |
+|---------|-----------|--------|--------|
+| Django | 6.0.2 | 6.0.5 | pin 6.0.4→6.0.5 + sync venv |
+| Faker | 40.5.1 | 40.18.0 | pin 40.15.0→40.18.0 |
+| coverage | 7.13.4 | 7.14.0 | pin 7.13.5→7.14.0 |
+| djangorestframework | 3.16.1 | 3.17.1 | ya en requirements.txt, sync venv |
+| gunicorn | 23.0.0 | 26.0.0 | pin `<24.0` — no hay 23.x mas nuevo |
+| huey | 3.0.0 | 3.0.1 | satisface `>=2.5.0`, sync venv |
+| idna | 3.13 | 3.15 | transitivo |
+| packaging | 26.1 | 26.2 | transitivo |
+| pillow | 12.1.1 | 12.2.0 | ya en requirements.txt, sync venv |
+| pip | 24.0 | 26.1.1 | herramienta venv — SKIP MAJOR |
+| pytest | 9.0.2 | 9.0.3 | ya en requirements.txt, sync venv |
+| pytest-cov | 7.0.0 | 7.1.0 | ya en requirements.txt, sync venv |
+| python-dotenv | 1.2.1 | 1.2.2 | transitivo, no en requirements.txt |
+| requests | 2.32.5 | 2.34.2 | pin 2.33.1→2.34.2 |
+| ruff | 0.15.2 | 0.15.13 | pin 0.15.12→0.15.13 |
+| urllib3 | 2.6.3 | 2.7.0 | transitivo |
 
 ---
 
 ## Updates Applied
 
-### Frontend (`frontend/package.json`)
+### Frontend (commit `deps(frontend): apply patch+minor updates` — a88997c)
 
-Applied via `npm audit fix` and `npx npm-check-updates -u --target minor`:
+| Paquete | Antes | Despues |
+|---------|-------|---------|
+| `next` | 16.2.4 | 16.2.6 |
+| `eslint-config-next` | 16.2.4 | 16.2.6 |
+| `@playwright/test` | ^1.59.1 | ^1.60.0 |
+| `@tailwindcss/postcss` | ^4.2.4 | ^4.3.0 |
+| `@types/node` | ^25.6.0 | ^25.8.0 |
+| `axios` | ^1.15.2 | ^1.16.1 |
+| `jest` | ^30.3.0 | ^30.4.2 |
+| `jest-environment-jsdom` | ^30.3.0 | ^30.4.1 |
+| `js-cookie` | ^3.0.5 | ^3.0.7 |
+| `next-intl` | ^4.11.0 | ^4.12.0 |
+| `react` | 19.2.5 | 19.2.6 |
+| `react-dom` | 19.2.5 | 19.2.6 |
+| `tailwindcss` | ^4.2.4 | ^4.3.0 |
+| `zustand` | ^5.0.12 | ^5.0.13 |
 
-- @playwright/test ^1.58.2 → ^1.59.1
-- @react-oauth/google ^0.13.4 → ^0.13.5
-- @tailwindcss/postcss ^4.2.1 → ^4.2.4
-- @testing-library/dom ^10.0.0 → ^10.4.1
-- @testing-library/jest-dom ^6.4.2 → ^6.9.1
-- @testing-library/user-event ^14.5.2 → ^14.6.1
-- @types/node ^25.3.0 → ^25.6.0
-- axios ^1.13.5 → ^1.15.2
-- eslint ^9.39.3 → ^9.39.4
-- eslint-config-next 16.1.6 → 16.2.4
-- eslint-plugin-playwright ^2.7.1 → ^2.10.2
-- jest ^30.2.0 → ^30.3.0
-- jest-environment-jsdom ^30.2.0 → ^30.3.0
-- next 16.1.6 → 16.2.4
-- next-intl ^4.8.3 → ^4.11.0
-- react 19.2.4 → 19.2.5
-- react-dom 19.2.4 → 19.2.5
-- swiper ^12.1.3 → ^12.1.4
-- tailwindcss ^4.2.1 → ^4.2.4
-- zustand ^5.0.11 → ^5.0.12
+`npm audit` final: 0 critical / 0 high / 3 moderate / 0 low
+Moderate restantes: `postcss` empaquetado en `next/node_modules/postcss` — la correccion de npm (`next@9.3.3`) es un downgrade de 7 majors. Inaplicable sin breaking change.
 
-### Backend (`backend/requirements.txt`)
+### Backend (commit `deps(backend): apply patch+minor updates` — 7f1ecd1)
 
-- Django 6.0.2 → 6.0.4
-- djangorestframework 3.16.1 → 3.17.1
-- Faker 40.5.1 → 40.15.0
-- pillow 12.1.1 → 12.2.0
-- pytest 9.0.2 → 9.0.3
-- pytest-cov 7.0.0 → 7.1.0
-- coverage 7.13.4 → 7.13.5
-- ruff 0.15.2 → 0.15.12
-- requests 2.32.5 → 2.33.1
+Cambios en `requirements.txt`:
 
-### Post-update CVE status
+| Paquete | Antes | Despues |
+|---------|-------|---------|
+| Django | 6.0.4 | 6.0.5 |
+| Faker | 40.15.0 | 40.18.0 |
+| requests | 2.33.1 | 2.34.2 |
+| ruff | 0.15.12 | 0.15.13 |
+| coverage | 7.13.5 | 7.14.0 |
 
-- **Backend pip-audit**: 0 vulnerabilities (was 10).
-- **Frontend npm audit**: 3 moderate (was 8 — 3 high, 5 moderate). All 3 high vulns resolved.
-  - Remaining: postcss 8.4.31 transitive under `next@16.2.4` (next bundles its own postcss). Cannot resolve without major upgrade or `overrides` (avoided per policy and to skip force).
+Paquetes actualizados en venv por sincronizacion (ya estaban en requirements.txt):
 
-## Build & Test Verification
+| Paquete | Venv antes | Venv despues |
+|---------|-----------|-------------|
+| django | 6.0.2 | 6.0.5 |
+| pillow | 12.1.1 | 12.2.0 |
+| pytest | 9.0.2 | 9.0.3 |
+| pytest-cov | 7.0.0 | 7.1.0 |
+| djangorestframework | 3.16.1 | 3.17.1 |
+| requests | 2.32.5 | 2.34.2 |
+| ruff | 0.15.2 | 0.15.13 |
+| coverage | 7.13.4 | 7.14.0 |
+| Faker | 40.5.1 | 40.18.0 |
 
-### Frontend
-
-- `npm run build`: SUCCESS (Next.js 16.2.4 Turbopack, 25 routes generated).
-- `npm run test`: 60 suites / 324 tests PASS.
-- `npm run lint`: pre-existing errors in `scripts/*.cjs` (require-style imports) — not introduced by this update; not fixed in this scope.
-
-### Backend
-
-- `python manage.py check`: SUCCESS (0 issues).
-- `pytest`: 459 passed, 9 warnings (210s). All green.
+`pip-audit` final: 7 CVEs en 3 paquetes (todos transitivos / herramienta):
+- `pip 24.0`: 4 CVEs — herramienta venv, no en requirements.txt. Fix requiere pip 26.x (MAJOR).
+- `python-dotenv 1.2.1`: 1 CVE (CVE-2026-28684) — transitivo, fix 1.2.2 disponible pero no es dependencia directa.
+- `urllib3 2.6.3`: 2 CVEs (CVE-2026-44431/44432) — transitivo, fix 2.7.0 disponible pero no es dependencia directa.
 
 ## Rollbacks
 
-None. All proposed patch+minor bumps installed cleanly and passed verification.
+Ninguno.
 
-Notes on pydub: pydub 0.25.1 remained unchanged (not flagged as outdated). Native `ffmpeg` is a runtime requirement; not a security concern for this audit.
+## Verification Results
 
+### Frontend
+- `npm audit`: 1 high → 0 high (eliminado), 3 moderate restantes (postcss en next).
+- `npm run build`: success — todas las rutas compiladas.
+
+### Backend
+- `python manage.py check`: System check identified no issues (0 silenced)
+- `pytest --collect-only -q`: 472 tests collected, 0 errores de coleccion
+- Slice — `pytest base_feature_app/tests/models/test_password_code_model.py -v`: 5 passed

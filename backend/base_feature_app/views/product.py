@@ -10,7 +10,7 @@ from base_feature_app.serializers.product import ProductSerializer
 def product_list(request):
     """
     API view to retrieve a list of products.
-    
+
     :param request: The HTTP request object.
     :return: JSON response with the serialized list of products and HTTP status 200.
     """
