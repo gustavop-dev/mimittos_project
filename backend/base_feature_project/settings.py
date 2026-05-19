@@ -32,7 +32,7 @@ ENABLE_SILK = config('ENABLE_SILK', default=False, cast=bool)
 SECRET_KEY = config('DJANGO_SECRET_KEY', default='change-me')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DJANGO_DEBUG', default=True, cast=bool)
+DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('DJANGO_ALLOWED_HOSTS', default='', cast=Csv())
 
@@ -120,8 +120,6 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ),
 }
-
-GOOGLE_OAUTH_CLIENT_ID = config('DJANGO_GOOGLE_CLIENT_ID', default='').strip()
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(

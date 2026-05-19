@@ -117,38 +117,6 @@ describe('authStore', () => {
     expect(result).toEqual({ email: 'new@example.com' });
   });
 
-  it('logs in with google credentials', async () => {
-    mockGetAccessToken.mockReturnValue('access');
-    mockGetRefreshToken.mockReturnValue('refresh');
-    mockApi.post.mockResolvedValueOnce({
-      data: {
-        access: 'access',
-        refresh: 'refresh',
-        user: {
-          id: 3,
-          email: 'google@example.com',
-          first_name: 'Google',
-          last_name: 'User',
-          role: 'customer',
-          is_staff: false,
-        },
-      },
-    });
-
-    await act(async () => {
-      await useAuthStore.getState().googleLogin({ credential: 'token', email: 'google@example.com' });
-    });
-
-    expect(mockSetTokens).toHaveBeenCalledWith({ access: 'access', refresh: 'refresh' });
-    expect(useAuthStore.getState().isAuthenticated).toBe(true);
-  });
-
-  it('throws when google login response is missing tokens', async () => {
-    mockApi.post.mockResolvedValueOnce({ data: { access: null, refresh: null } });
-
-    await expect(useAuthStore.getState().googleLogin({ credential: 'token' })).rejects.toThrow('Respuesta de tokens inválida');
-  });
-
   it('signs out and clears tokens', () => {
     useAuthStore.setState({ isAuthenticated: true, accessToken: 'access', refreshToken: 'refresh' });
 

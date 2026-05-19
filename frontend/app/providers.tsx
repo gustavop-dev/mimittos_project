@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { GoogleOAuthProvider } from '@react-oauth/google';
 
 import { useAuthStore } from '@/lib/stores/authStore';
 import { getAccessToken } from '@/lib/services/tokens';
@@ -21,20 +20,10 @@ interface ProvidersProps {
 }
 
 export default function Providers({ children }: ProvidersProps) {
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
-
-  const inner = (
+  return (
     <>
       <AuthInitializer />
       {children}
     </>
-  );
-
-  if (!googleClientId) return inner;
-
-  return (
-    <GoogleOAuthProvider clientId={googleClientId}>
-      {inner}
-    </GoogleOAuthProvider>
   );
 }

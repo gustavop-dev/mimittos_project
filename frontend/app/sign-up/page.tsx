@@ -4,26 +4,15 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { FormEvent, Suspense, useEffect, useRef, useState } from 'react'
-import { GoogleLogin, CredentialResponse } from '@react-oauth/google'
-import { jwtDecode } from 'jwt-decode'
 import ReCAPTCHA from 'react-google-recaptcha'
 
 import { useAuthStore } from '@/lib/stores/authStore'
 import { api } from '@/lib/services/http'
 
-type GoogleUser = {
-  email: string
-  given_name?: string
-  family_name?: string
-  picture?: string
-}
-
 function SignUpContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { signUp, verifyRegistration, resendVerification, googleLogin } = useAuthStore()
-
-  const hasGoogleClientId = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
+  const { signUp, verifyRegistration, resendVerification } = useAuthStore()
 
   const [step, setStep] = useState<'form' | 'verify'>('form')
   const [pendingEmail, setPendingEmail] = useState('')
@@ -47,7 +36,6 @@ function SignUpContent() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [mounted, setMounted] = useState(false)
   const recaptchaRef = useRef<ReCAPTCHA>(null)
 
   const pwStrength = (() => {
@@ -64,7 +52,6 @@ function SignUpContent() {
   const meterColors = ['rgba(27,42,74,.1)', 'rgba(27,42,74,.1)', 'rgba(27,42,74,.1)', 'rgba(27,42,74,.1)'].map((_, i) => i < pwStrength ? (pwStrength < 2 ? '#E53935' : pwStrength < 3 ? '#FB8C00' : pwStrength < 4 ? '#FDD835' : '#43A047') : 'rgba(27,42,74,.1)')
 
   useEffect(() => {
-    setMounted(true)
     api.get('google-captcha/site-key/')
       .then((res) => setSiteKey(res.data.site_key || ''))
       .catch(() => {})
@@ -143,28 +130,6 @@ function SignUpContent() {
       setResendCooldown(60)
     } catch {
       // silently ignore
-    }
-  }
-
-  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
-    try {
-      setLoading(true)
-      setError('')
-      if (!credentialResponse.credential) { setError('Error con Google'); return }
-      let decoded: GoogleUser | null = null
-      try { decoded = jwtDecode<GoogleUser>(credentialResponse.credential) } catch { decoded = null }
-      await googleLogin({
-        credential: credentialResponse.credential,
-        email: decoded?.email,
-        given_name: decoded?.given_name,
-        family_name: decoded?.family_name,
-        picture: decoded?.picture,
-      })
-      router.replace('/orders')
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al registrarse con Google')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -269,12 +234,6 @@ function SignUpContent() {
       <div style={{ background: '#fff', borderRadius: 24, padding: 40, boxShadow: '0 20px 60px -20px rgba(27,42,74,.2)' }}>
         <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--navy)', marginBottom: 6 }}>Únete a la familia MIMITTOS 🌸</h2>
         <p style={{ fontSize: 13, color: 'var(--gray-warm)', marginBottom: 22 }}>Solo tomará 30 segundos.</p>
-
-        {mounted && hasGoogleClientId && (
-          <div style={{ marginBottom: 22 }}>
-            <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setError('Error al registrarse con Google')} size="large" text="signup_with" shape="rectangular" width="100%" />
-          </div>
-        )}
 
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

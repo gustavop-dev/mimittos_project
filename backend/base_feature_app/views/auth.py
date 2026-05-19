@@ -9,9 +9,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth import get_user_model
-from django.conf import settings
-
-import requests
 
 from base_feature_app.models import PasswordCode
 from base_feature_app.utils.auth_utils import (
@@ -61,11 +58,6 @@ def sign_up(request):
             return Response(
                 {'detail': 'Ya existe una cuenta pendiente de verificación. Te reenviamos el código a tu correo.', 'email': email},
                 status=status.HTTP_200_OK
-            )
-        if not existing.has_usable_password():
-            return Response(
-                {'error': 'Este correo ya tiene una cuenta creada con Google. Inicia sesión con Google.'},
-                status=status.HTTP_400_BAD_REQUEST
             )
         return Response(
             {'error': 'Este correo ya está registrado. ¿Olvidaste tu contraseña?'},
@@ -197,97 +189,6 @@ def sign_in(request):
         )
 
     tokens = generate_auth_tokens(user)
-    return Response(tokens, status=status.HTTP_200_OK)
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def google_login(request):
-    credential = request.data.get('credential') or request.data.get('id_token')
-
-    if not credential:
-        return Response({'error': 'Se requiere la credencial de Google'}, status=status.HTTP_400_BAD_REQUEST)
-
-    email = request.data.get('email', '').strip().lower()
-    given_name = request.data.get('given_name', '').strip()
-    family_name = request.data.get('family_name', '').strip()
-    picture_url = request.data.get('picture', '')
-
-    payload = None
-    aud_mismatch = False
-    try:
-        tokeninfo = requests.get(
-            'https://oauth2.googleapis.com/tokeninfo',
-            params={'id_token': credential},
-            timeout=5,
-        )
-        if tokeninfo.status_code == 200:
-            payload = tokeninfo.json()
-        else:
-            logger.warning('Google tokeninfo rejected credential: status=%s body=%s', tokeninfo.status_code, tokeninfo.text)
-    except (requests.RequestException, ValueError) as exc:
-        logger.warning('Google token validation failed: %s', exc)
-
-    if payload is not None:
-        aud = payload.get('aud', '')
-        allowed_auds = [v.strip() for v in (settings.GOOGLE_OAUTH_CLIENT_ID or '').split(',') if v.strip()]
-        if allowed_auds and aud not in allowed_auds:
-            logger.warning('Google aud mismatch. aud=%s allowed=%s', aud, allowed_auds)
-            aud_mismatch = True
-            payload = None
-
-    if payload is None and not settings.DEBUG:
-        if aud_mismatch:
-            return Response({'error': 'Cliente de Google inválido'}, status=status.HTTP_401_UNAUTHORIZED)
-        return Response({'error': 'Credencial de Google inválida'}, status=status.HTTP_401_UNAUTHORIZED)
-
-    if payload is not None:
-        token_email = (payload.get('email') or '').strip().lower()
-        if token_email:
-            email = token_email
-
-        token_given = (payload.get('given_name') or '').strip()
-        token_family = (payload.get('family_name') or '').strip()
-        token_picture = payload.get('picture') or ''
-
-        if token_given:
-            given_name = token_given
-        if token_family:
-            family_name = token_family
-        if token_picture:
-            picture_url = token_picture
-
-    if not email:
-        return Response(
-            {'error': 'Se requiere el correo electrónico'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    user, created = User.objects.get_or_create(
-        email=email,
-        defaults={
-            'first_name': given_name,
-            'last_name': family_name,
-            'is_active': True,
-        }
-    )
-
-    if created:
-        user.set_unusable_password()
-        user.save(update_fields=['password'])
-
-    if not created:
-        if not user.first_name and given_name:
-            user.first_name = given_name
-        if not user.last_name and family_name:
-            user.last_name = family_name
-        if user.first_name or user.last_name:
-            user.save()
-
-    tokens = generate_auth_tokens(user)
-    tokens['created'] = created
-    tokens['google_validated'] = payload is not None
-
     return Response(tokens, status=status.HTTP_200_OK)
 
 

@@ -4,25 +4,14 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { FormEvent, useState, useEffect, useRef } from 'react'
-import { GoogleLogin, CredentialResponse } from '@react-oauth/google'
-import { jwtDecode } from 'jwt-decode'
 import ReCAPTCHA from 'react-google-recaptcha'
 
 import { useAuthStore } from '@/lib/stores/authStore'
 import { api } from '@/lib/services/http'
 
-type GoogleUser = {
-  email: string
-  given_name?: string
-  family_name?: string
-  picture?: string
-}
-
 export default function SignInPage() {
   const router = useRouter()
-  const { signIn, googleLogin } = useAuthStore()
-
-  const hasGoogleClientId = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
+  const { signIn } = useAuthStore()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -58,36 +47,6 @@ export default function SignInPage() {
       setError(err.response?.data?.error || 'Correo o contraseña incorrectos')
       recaptchaRef.current?.reset()
       setCaptchaToken(null)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
-    try {
-      setLoading(true)
-      setError('')
-
-      if (!credentialResponse.credential) {
-        setError('Error con Google')
-        return
-      }
-
-      let decoded: GoogleUser | null = null
-      try { decoded = jwtDecode<GoogleUser>(credentialResponse.credential) } catch { decoded = null }
-
-      await googleLogin({
-        credential: credentialResponse.credential,
-        email: decoded?.email,
-        given_name: decoded?.given_name,
-        family_name: decoded?.family_name,
-        picture: decoded?.picture,
-      })
-
-      const loggedUser = useAuthStore.getState().user
-      router.replace(loggedUser?.is_staff ? '/backoffice' : '/orders')
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al iniciar sesión con Google')
     } finally {
       setLoading(false)
     }
@@ -140,13 +99,6 @@ export default function SignInPage() {
       <div style={{ background: '#fff', borderRadius: 24, padding: 40, boxShadow: '0 20px 60px -20px rgba(27,42,74,.2)' }}>
         <h2 style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 26, color: 'var(--navy)', marginBottom: 6 }}>¡Qué lindo verte de nuevo! 💕</h2>
         <p style={{ fontSize: 13, color: 'var(--gray-warm)', marginBottom: 22 }}>Entra para ver el estado de tus peluches.</p>
-
-        {/* Google login */}
-        {hasGoogleClientId && (
-          <div style={{ marginBottom: 22 }}>
-            <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setError('Error al iniciar sesión con Google')} size="large" text="signin_with" shape="rectangular" width="100%" />
-          </div>
-        )}
 
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
