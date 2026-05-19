@@ -14,7 +14,7 @@ Run these steps on the production server at `/home/ryzepeck/webapps/mimittos_pro
 
 1. Quick status snapshot before deploy:
 ```bash
-bash /home/ryzepeck/webapps/ops/vps/scripts/diagnostics/quick-status.sh
+bash /home/ryzepeck/webapps/vps-ops-toolkit/scripts/diagnostics/quick-status.sh
 ```
 
 ## Deploy Steps
@@ -48,7 +48,7 @@ sudo systemctl restart mimittos_project mimittos-huey mimittos-frontend
 
 7. Run post-deploy check for mimittos_project:
 ```bash
-bash /home/ryzepeck/webapps/ops/vps/scripts/deployment/post-deploy-check.sh mimittos_project
+bash /home/ryzepeck/webapps/vps-ops-toolkit/scripts/deployment/post-deploy-check.sh mimittos_project
 ```
 Expected: PASS on all checks, FAIL=0.
 
@@ -80,7 +80,7 @@ sudo tail -20 /var/log/nginx/error.log
 
 ## Notes
 
-- VPS operations scripts viven en `/home/ryzepeck/webapps/ops/vps/scripts/`.
+- VPS operations scripts viven en `/home/ryzepeck/webapps/vps-ops-toolkit/scripts/`.
 - `DJANGO_SETTINGS_MODULE=base_feature_project.settings_prod` debe estar seteado para migrate y collectstatic (manage.py por defecto usa `settings_dev`).
 - Git branch es `main`.
 - Node v20.19.4 vía nvm para el frontend build.
