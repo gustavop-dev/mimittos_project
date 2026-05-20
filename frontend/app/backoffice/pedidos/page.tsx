@@ -146,6 +146,7 @@ export default function PedidosAdminPage() {
               return (
                 <tr
                   key={o.order_number}
+                  data-testid={`order-row-${o.order_number}`}
                   onClick={() => setDetailOrderNumber(o.order_number)}
                   style={{ borderBottom: '1px dashed rgba(212,132,138,.12)', cursor: 'pointer' }}
                 >
@@ -353,7 +354,7 @@ function OrderItemCard({ item }: { item: OrderItemRead }) {
               {item.audio_size_kb != null && <span style={{ color: 'var(--gray-warm)' }}> · {item.audio_size_kb} KB</span>}
               {item.audio_media_url ? (
                 <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <audio controls src={item.audio_media_url} style={{ height: 34 }}>Tu navegador no soporta audio.</audio>
+                  <audio data-testid="audio-player" controls src={item.audio_media_url} style={{ height: 34 }}>Tu navegador no soporta audio.</audio>
                   <a href={item.audio_media_url} target="_blank" rel="noopener noreferrer" download style={{ color: 'var(--coral)', fontWeight: 600, fontSize: 12 }}>Descargar</a>
                 </div>
               ) : <span style={{ color: 'var(--gray-warm)', marginLeft: 8 }}>(archivo no disponible)</span>}

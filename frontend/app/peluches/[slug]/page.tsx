@@ -517,7 +517,7 @@ export default function PeluchDetailPage() {
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 10 }}>
                     🔊 Audio personalizado <span style={{ color: 'var(--terracotta)', fontWeight: 400, fontSize: 13 }}>+{fmt(peluch.audio_extra_cost)}</span>
                   </div>
-                  <input ref={audioInputRef} type="file" accept="audio/*" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && handleAudioUpload(e.target.files[0])} />
+                  <input ref={audioInputRef} type="file" accept="audio/*" data-testid="audio-upload-input" style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && handleAudioUpload(e.target.files[0])} />
 
                   {!audioMediaId && (
                     <button
@@ -541,7 +541,7 @@ export default function PeluchDetailPage() {
                         </span>
                       </div>
                       {audioMeta?.url && (
-                        <audio controls src={audioMeta.url} style={{ width: '100%', height: 36 }}>
+                        <audio data-testid="audio-player" controls src={audioMeta.url} style={{ width: '100%', height: 36 }}>
                           Tu navegador no soporta la reproducción de audio.
                         </audio>
                       )}
