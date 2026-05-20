@@ -192,8 +192,8 @@ describe('PedidosAdminPage', () => {
     const user = userEvent.setup()
     render(<PedidosAdminPage />)
 
-    await waitFor(() => expect(screen.getByText('MIM-001')).toBeInTheDocument())
-    await user.click(screen.getByText('MIM-001'))
+    await waitFor(() => expect(screen.getByTestId('order-row-MIM-001')).toBeInTheDocument())
+    await user.click(screen.getByTestId('order-row-MIM-001'))
 
     await waitFor(() => expect(mockGetOrderDetail).toHaveBeenCalledWith('MIM-001'))
     expect(await screen.findByRole('dialog', { name: /Detalle del pedido MIM-001/i })).toBeInTheDocument()
@@ -204,8 +204,8 @@ describe('PedidosAdminPage', () => {
     const user = userEvent.setup()
     render(<PedidosAdminPage />)
 
-    await waitFor(() => expect(screen.getByText('MIM-001')).toBeInTheDocument())
-    await user.click(screen.getByText('MIM-001'))
+    await waitFor(() => expect(screen.getByTestId('order-row-MIM-001')).toBeInTheDocument())
+    await user.click(screen.getByTestId('order-row-MIM-001'))
 
     const dialog = await screen.findByRole('dialog')
     expect(dialog).toHaveTextContent('Osito Coral')
@@ -218,11 +218,11 @@ describe('PedidosAdminPage', () => {
     const user = userEvent.setup()
     render(<PedidosAdminPage />)
 
-    await waitFor(() => expect(screen.getByText('MIM-001')).toBeInTheDocument())
-    await user.click(screen.getByText('MIM-001'))
+    await waitFor(() => expect(screen.getByTestId('order-row-MIM-001')).toBeInTheDocument())
+    await user.click(screen.getByTestId('order-row-MIM-001'))
 
-    const audioBlock = await screen.findByTestId('item-audio')
-    expect(audioBlock.querySelector('audio')).toHaveAttribute('src', 'http://example.com/audio/1.mp3')
+    await screen.findByTestId('item-audio')
+    expect(screen.getByTestId('audio-player')).toHaveAttribute('src', 'http://example.com/audio/1.mp3')
   })
 
   it('shows an error in the detail modal when getOrderDetail rejects', async () => {
@@ -231,8 +231,8 @@ describe('PedidosAdminPage', () => {
     const user = userEvent.setup()
     render(<PedidosAdminPage />)
 
-    await waitFor(() => expect(screen.getByText('MIM-001')).toBeInTheDocument())
-    await user.click(screen.getByText('MIM-001'))
+    await waitFor(() => expect(screen.getByTestId('order-row-MIM-001')).toBeInTheDocument())
+    await user.click(screen.getByTestId('order-row-MIM-001'))
 
     expect(await screen.findByText(/No se pudo cargar el detalle del pedido/i)).toBeInTheDocument()
   })
