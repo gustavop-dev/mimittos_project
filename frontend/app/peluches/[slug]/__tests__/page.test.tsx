@@ -161,10 +161,10 @@ describe('PeluchDetailPage', () => {
   it('shows an error alert when the audio upload fails', async () => {
     mockPeluchService.getPeluchBySlug.mockResolvedValue({ ...mockPeluchDetail, has_audio: true })
     mockMediaService.uploadAudio.mockRejectedValue({ response: { data: { detail: 'Formato de audio no soportado.' } } })
-    const { container } = render(<PeluchDetailPage />)
+    render(<PeluchDetailPage />)
     await waitFor(() => expect(screen.getByText(/Audio personalizado/i)).toBeInTheDocument())
 
-    const input = container.querySelector('input[accept="audio/*"]') as HTMLInputElement
+    const input = screen.getByTestId('audio-upload-input') as HTMLInputElement
     await userEvent.upload(input, new File(['x'], 'mi-audio.wav', { type: 'audio/wav' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Formato de audio no soportado.')
@@ -173,24 +173,24 @@ describe('PeluchDetailPage', () => {
   it('shows the confirmation and an audio player after a successful upload', async () => {
     mockPeluchService.getPeluchBySlug.mockResolvedValue({ ...mockPeluchDetail, has_audio: true })
     mockMediaService.uploadAudio.mockResolvedValue({ media_id: 7, file_url: 'http://example.com/audio/7.mp3', duration_sec: 12.3, file_size_kb: 80 })
-    const { container } = render(<PeluchDetailPage />)
+    render(<PeluchDetailPage />)
     await waitFor(() => expect(screen.getByText(/Audio personalizado/i)).toBeInTheDocument())
 
-    const input = container.querySelector('input[accept="audio/*"]') as HTMLInputElement
+    const input = screen.getByTestId('audio-upload-input') as HTMLInputElement
     await userEvent.upload(input, new File(['x'], 'mi-audio.mp3', { type: 'audio/mpeg' }))
 
     const card = await screen.findByTestId('audio-uploaded')
     expect(card).toHaveTextContent('Audio listo')
-    expect(card.querySelector('audio')).toHaveAttribute('src', 'http://example.com/audio/7.mp3')
+    expect(screen.getByTestId('audio-player')).toHaveAttribute('src', 'http://example.com/audio/7.mp3')
   })
 
   it('adds the audio cost to the price breakdown after a successful upload', async () => {
     mockPeluchService.getPeluchBySlug.mockResolvedValue({ ...mockPeluchDetail, has_audio: true })
     mockMediaService.uploadAudio.mockResolvedValue({ media_id: 7, file_url: 'http://example.com/audio/7.mp3', duration_sec: 5, file_size_kb: 40 })
-    const { container } = render(<PeluchDetailPage />)
+    render(<PeluchDetailPage />)
     await waitFor(() => expect(screen.getByText(/Audio personalizado/i)).toBeInTheDocument())
 
-    const input = container.querySelector('input[accept="audio/*"]') as HTMLInputElement
+    const input = screen.getByTestId('audio-upload-input') as HTMLInputElement
     await userEvent.upload(input, new File(['x'], 'mi-audio.mp3', { type: 'audio/mpeg' }))
 
     const breakdown = await screen.findByTestId('personalization-breakdown')
