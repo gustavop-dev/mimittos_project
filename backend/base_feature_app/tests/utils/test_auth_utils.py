@@ -19,6 +19,7 @@ def test_generate_auth_tokens_contains_user_payload():
 
 @pytest.mark.django_db
 def test_send_password_reset_code_success(monkeypatch):
+    """Verifica que send_password_reset_code llama a send_mail con el destinatario correcto."""
     User = get_user_model()
     user = User.objects.create_user(email='reset@example.com', password='pass1234', first_name='Reset')
     sent = {}
