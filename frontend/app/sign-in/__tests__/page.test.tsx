@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import SignInPage from '../page';
@@ -56,9 +56,9 @@ describe('SignInPage', () => {
 
     render(<SignInPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('sofia@ejemplo.com'), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByRole('button', { name: /Entrar/i }));
+    await user.type(screen.getByPlaceholderText('sofia@ejemplo.com'), 'user@example.com');
+    await user.type(screen.getByPlaceholderText('••••••••'), 'password123');
+    await user.click(screen.getByRole('button', { name: /Entrar/i }));
 
     await waitFor(() => {
       expect(signIn).toHaveBeenCalledWith({ email: 'user@example.com', password: 'password123', captcha_token: undefined });
@@ -73,9 +73,9 @@ describe('SignInPage', () => {
 
     render(<SignInPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('sofia@ejemplo.com'), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByRole('button', { name: /Entrar/i }));
+    await user.type(screen.getByPlaceholderText('sofia@ejemplo.com'), 'user@example.com');
+    await user.type(screen.getByPlaceholderText('••••••••'), 'password123');
+    await user.click(screen.getByRole('button', { name: /Entrar/i }));
 
     expect(await screen.findByText('Invalid')).toBeInTheDocument();
   });
@@ -87,9 +87,9 @@ describe('SignInPage', () => {
 
     render(<SignInPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('sofia@ejemplo.com'), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByRole('button', { name: /Entrar/i }));
+    await user.type(screen.getByPlaceholderText('sofia@ejemplo.com'), 'user@example.com');
+    await user.type(screen.getByPlaceholderText('••••••••'), 'password123');
+    await user.click(screen.getByRole('button', { name: /Entrar/i }));
 
     expect(await screen.findByText('Correo o contraseña incorrectos')).toBeInTheDocument();
   });
@@ -101,9 +101,9 @@ describe('SignInPage', () => {
 
     render(<SignInPage />);
 
-    fireEvent.change(screen.getByPlaceholderText('sofia@ejemplo.com'), { target: { value: 'user@example.com' } });
-    fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'password123' } });
-    fireEvent.click(screen.getByRole('button', { name: /Entrar/i }));
+    await user.type(screen.getByPlaceholderText('sofia@ejemplo.com'), 'user@example.com');
+    await user.type(screen.getByPlaceholderText('••••••••'), 'password123');
+    await user.click(screen.getByRole('button', { name: /Entrar/i }));
 
     expect(await screen.findByText('Correo o contraseña incorrectos')).toBeInTheDocument();
   });
