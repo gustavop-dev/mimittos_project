@@ -18,7 +18,6 @@ jest.mock('@/lib/services/peluchAdminService', () => ({
   peluchAdminService: {
     create: jest.fn(),
     update: jest.fn(),
-    getColorImages: jest.fn(),
     uploadColorImage: jest.fn(),
     deleteColorImage: jest.fn(),
   },
@@ -63,9 +62,8 @@ const mockExisting: PeluchDetail = {
   display_order: 100,
   min_price: 85000,
   discounted_min_price: 85000,
-  available_colors: [{ id: 1, name: 'Coral', slug: 'coral', hex_code: '#FF6B6B', sort_order: 1 }],
+  available_colors: [{ id: 1, name: 'Coral', slug: 'coral', hex_code: '#FF6B6B', sort_order: 1, preview_url: null, image_count: 0, images: [] }],
   gallery_urls: [],
-  color_images_meta: [],
   average_rating: 4.9,
   review_count: 10,
   has_huella: false,

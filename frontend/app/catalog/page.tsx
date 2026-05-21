@@ -209,7 +209,7 @@ function CatalogContent() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
                 {peluches.map((p) => {
-                  const cover = p.color_images_meta?.[0]?.preview_url ?? p.gallery_urls[0]
+                  const cover = p.available_colors?.[0]?.preview_url ?? p.gallery_urls[0]
                   return (
                     <Link key={p.id} href={`/peluches/${p.slug}`} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', cursor: 'pointer', textDecoration: 'none' }}>
                       <div style={{ position: 'relative', aspectRatio: '1/1', background: 'var(--pink-melo)', overflow: 'hidden' }}>

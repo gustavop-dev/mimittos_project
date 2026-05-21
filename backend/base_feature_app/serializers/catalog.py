@@ -9,6 +9,36 @@ from base_feature_app.models import GlobalSize, GlobalColor, Category, Peluch, P
 from django_attachments.models import Library
 
 
+def colors_with_images(peluch, *, include_images):
+    """Serialize a peluch's available colors, each enriched with its per-product images.
+
+    Relies on the views' prefetch of `available_colors`, `color_images__color` and
+    `color_images__attachment`, so iterating `.all()` here triggers no extra queries.
+    `include_images=False` (list endpoints) keeps the payload light: only the cover
+    preview and the count, no full image array.
+    """
+    images_by_color = defaultdict(list)
+    for ci in peluch.color_images.all():
+        images_by_color[ci.color_id].append({'id': ci.pk, 'url': ci.attachment.file.url})
+
+    result = []
+    for color in peluch.available_colors.all():
+        imgs = images_by_color.get(color.id, [])
+        entry = {
+            'id': color.id,
+            'name': color.name,
+            'slug': color.slug,
+            'hex_code': color.hex_code,
+            'sort_order': color.sort_order,
+            'preview_url': imgs[0]['url'] if imgs else None,
+            'image_count': len(imgs),
+        }
+        if include_images:
+            entry['images'] = imgs
+        result.append(entry)
+    return result
+
+
 class GlobalSizeSerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(required=False)
 
@@ -126,9 +156,8 @@ class PeluchListSerializer(serializers.ModelSerializer):
     category_slug = serializers.CharField(source='category.slug', read_only=True)
     min_price = serializers.SerializerMethodField()
     discounted_min_price = serializers.SerializerMethodField()
-    available_colors = GlobalColorSerializer(many=True, read_only=True)
+    available_colors = serializers.SerializerMethodField()
     gallery_urls = serializers.SerializerMethodField()
-    color_images_meta = serializers.SerializerMethodField()
 
     class Meta:
         model = Peluch
@@ -137,7 +166,6 @@ class PeluchListSerializer(serializers.ModelSerializer):
             'lead_description', 'badge', 'is_featured',
             'discount_pct', 'display_order',
             'min_price', 'discounted_min_price', 'available_colors', 'gallery_urls',
-            'color_images_meta',
             'average_rating', 'review_count',
             'has_huella', 'has_corazon', 'has_audio',
         ]
@@ -154,26 +182,8 @@ class PeluchListSerializer(serializers.ModelSerializer):
             return round(sp.price * (100 - obj.discount_pct) / 100)
         return sp.price
 
-    def get_color_images_meta(self, obj):
-        first_by_color = {}
-        counts = defaultdict(int)
-        for ci in obj.color_images.select_related('color', 'attachment').order_by('color__sort_order', 'display_order'):
-            counts[ci.color_id] += 1
-            if ci.color_id not in first_by_color:
-                first_by_color[ci.color_id] = ci
-        result = []
-        for color in obj.available_colors.order_by('sort_order'):
-            first = first_by_color.get(color.id)
-            url = first.attachment.file.url if first else None
-            result.append({
-                'color_id': color.id,
-                'color_slug': color.slug,
-                'color_name': color.name,
-                'hex_code': color.hex_code,
-                'preview_url': url,
-                'count': counts.get(color.id, 0),
-            })
-        return result
+    def get_available_colors(self, obj):
+        return colors_with_images(obj, include_images=False)
 
     def get_gallery_urls(self, obj):
         try:
@@ -186,12 +196,11 @@ class PeluchDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
     category_slug = serializers.CharField(source='category.slug', read_only=True)
-    available_colors = GlobalColorSerializer(many=True, read_only=True)
+    available_colors = serializers.SerializerMethodField()
     size_prices = PeluchSizePriceSerializer(many=True, read_only=True)
     min_price = serializers.SerializerMethodField()
     discounted_min_price = serializers.SerializerMethodField()
     gallery_urls = serializers.SerializerMethodField()
-    color_images_meta = serializers.SerializerMethodField()
 
     class Meta:
         model = Peluch
@@ -202,7 +211,7 @@ class PeluchDetailSerializer(serializers.ModelSerializer):
             'discount_pct', 'display_order',
             'min_price', 'discounted_min_price',
             'average_rating', 'review_count', 'view_count',
-            'gallery_urls', 'color_images_meta',
+            'gallery_urls',
             'has_huella', 'has_corazon', 'has_audio',
             'huella_extra_cost', 'corazon_extra_cost', 'audio_extra_cost',
             'created_at', 'updated_at',
@@ -226,26 +235,8 @@ class PeluchDetailSerializer(serializers.ModelSerializer):
         except Exception:
             return []
 
-    def get_color_images_meta(self, obj):
-        first_by_color = {}
-        counts = defaultdict(int)
-        for ci in obj.color_images.select_related('color', 'attachment').order_by('color__sort_order', 'display_order'):
-            counts[ci.color_id] += 1
-            if ci.color_id not in first_by_color:
-                first_by_color[ci.color_id] = ci
-        result = []
-        for color in obj.available_colors.order_by('sort_order'):
-            first = first_by_color.get(color.id)
-            url = first.attachment.file.url if first else None
-            result.append({
-                'color_id': color.id,
-                'color_slug': color.slug,
-                'color_name': color.name,
-                'hex_code': color.hex_code,
-                'preview_url': url,
-                'count': counts.get(color.id, 0),
-            })
-        return result
+    def get_available_colors(self, obj):
+        return colors_with_images(obj, include_images=True)
 
 
 class PeluchSizePriceWriteSerializer(serializers.Serializer):

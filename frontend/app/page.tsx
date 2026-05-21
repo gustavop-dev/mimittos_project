@@ -66,7 +66,7 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 function PeluchCard({ p }: { p: Peluch }) {
-  const img = p.color_images_meta[0]?.preview_url ?? p.gallery_urls[0] ?? null
+  const img = p.available_colors[0]?.preview_url ?? p.gallery_urls[0] ?? null
   const badgeBg = BADGE_BG[p.badge] ?? ''
   return (
     <Link href={`/peluches/${p.slug}`} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', textDecoration: 'none' }}>

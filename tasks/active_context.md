@@ -5,7 +5,19 @@ description: Current work focus, recent changes, active decisions, and next step
 
 # Active Context — Mimittos
 
-Last updated: 2026-05-12
+Last updated: 2026-05-21
+
+---
+
+## Branch `fix/peluche-size-deselection-not-persisting` (2026-05-21)
+
+Fixed the product-detail color/photo mismatch (see `error-documentation.md` ERROR-001). The peluch
+serializers (`PeluchListSerializer`, `PeluchDetailSerializer`) no longer emit a separate
+`color_images_meta` array — each entry of `available_colors` now carries its own `preview_url`,
+`image_count`, and (detail only) `images`. List endpoints omit the full `images` array to keep the
+catalog payload light. The lazy per-color `getColorImages` fetch was removed; the detail payload
+ships all per-color images at once. Purchase flow untouched: cart/checkout still read the
+`CartItem.gallery_urls` snapshot, whose shape is unchanged.
 
 ---
 

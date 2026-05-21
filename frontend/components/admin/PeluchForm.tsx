@@ -123,7 +123,7 @@ export function PeluchForm({ existing }: Props) {
       peluchService.getCategories(),
       peluchService.getColors(),
       peluchService.getSizes(),
-    ]).then(async ([cats, colors, sizes]) => {
+    ]).then(([cats, colors, sizes]) => {
       setCategories(cats)
       setAllColors(colors)
       const rows: SizePriceRow[] = sizes.map((s) => ({
@@ -171,21 +171,11 @@ export function PeluchForm({ existing }: Props) {
         })
         setSizePrices(mergedRows)
 
-        // Load per-color galleries
-        const meta = existing.color_images_meta ?? []
+        // Per-color galleries arrive embedded in the detail payload.
         const newGallery: Record<string, ColorGalleryItem[]> = {}
-        await Promise.all(meta.map(async (m) => {
-          if (m.count > 0) {
-            try {
-              const items = await peluchAdminService.getColorImages(existing.slug, m.color_slug)
-              newGallery[m.color_slug] = items.map((item) => ({ id: item.id, url: item.url }))
-            } catch {
-              newGallery[m.color_slug] = []
-            }
-          } else {
-            newGallery[m.color_slug] = []
-          }
-        }))
+        for (const c of existing.available_colors) {
+          newGallery[c.slug] = (c.images ?? []).map((item) => ({ id: item.id, url: item.url }))
+        }
         setColorGallery(newGallery)
       } else {
         setSizePrices(rows)

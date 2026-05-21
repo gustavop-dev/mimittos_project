@@ -2,15 +2,6 @@
 
 export type ColorImageItem = { id: number; url: string }
 
-export type ColorImageMeta = {
-  color_id: number
-  color_slug: string
-  color_name: string
-  hex_code: string
-  preview_url: string | null
-  count: number
-}
-
 export type GlobalSize = {
   id: number
   label: string
@@ -25,6 +16,14 @@ export type GlobalColor = {
   slug: string
   hex_code: string
   sort_order: number
+}
+
+// A peluch's available color, enriched with that product's per-color images.
+// `images` is only sent by the detail endpoint; list endpoints omit it.
+export type PeluchColor = GlobalColor & {
+  preview_url: string | null
+  image_count: number
+  images?: ColorImageItem[]
 }
 
 export type Category = {
@@ -62,9 +61,8 @@ export type Peluch = {
   display_order: number
   min_price: number | null
   discounted_min_price: number | null
-  available_colors: GlobalColor[]
+  available_colors: PeluchColor[]
   gallery_urls: string[]
-  color_images_meta: ColorImageMeta[]
   average_rating: number
   review_count: number
   has_huella: boolean

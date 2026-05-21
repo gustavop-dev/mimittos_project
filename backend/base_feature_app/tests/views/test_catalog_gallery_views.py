@@ -228,3 +228,42 @@ def test_peluch_color_image_post_creates_image(admin_client, peluch, color):
     )
     assert response.status_code == 201
     assert 'id' in response.data
+
+
+# ---------------------------------------------------------------------------
+# Peluch detail — each available color carries its own per-product images
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_peluch_detail_color_without_images_has_null_preview(admin_client, api_client, peluch, color):
+    red = GlobalColor.objects.create(name='Rojo', slug='rojo', hex_code='#FF0000')
+    peluch.available_colors.add(red)
+    admin_client.post(
+        f'/api/peluches/{peluch.slug}/color-image/{red.slug}/',
+        {'image': _make_image_file()},
+        format='multipart',
+    )
+
+    response = api_client.get(f'/api/peluches/{peluch.slug}/')
+
+    assert response.status_code == 200
+    colors = {c['slug']: c for c in response.data['available_colors']}
+    assert colors[color.slug]['preview_url'] is None
+    assert colors[color.slug]['image_count'] == 0
+
+
+@pytest.mark.django_db
+def test_peluch_detail_color_with_images_carries_its_preview(admin_client, api_client, peluch):
+    red = GlobalColor.objects.create(name='Rojo', slug='rojo', hex_code='#FF0000')
+    peluch.available_colors.add(red)
+    admin_client.post(
+        f'/api/peluches/{peluch.slug}/color-image/{red.slug}/',
+        {'image': _make_image_file()},
+        format='multipart',
+    )
+
+    response = api_client.get(f'/api/peluches/{peluch.slug}/')
+
+    colors = {c['slug']: c for c in response.data['available_colors']}
+    assert colors['rojo']['image_count'] == 1
+    assert colors['rojo']['preview_url'] is not None

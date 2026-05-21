@@ -13,9 +13,8 @@ type PeluchDetailLite = {
   discount_pct?: number
   badge?: string
   category_name?: string
-  available_colors?: { id: number; name: string }[]
+  available_colors?: { id: number; name: string; preview_url?: string | null }[]
   gallery_urls?: string[]
-  color_images_meta?: { preview_url?: string }[]
   is_featured?: boolean
 }
 
@@ -48,7 +47,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const description = trim(rawDesc.replace(/\s+/g, ' ').trim(), 160)
 
   const cover =
-    p.color_images_meta?.[0]?.preview_url ||
+    p.available_colors?.[0]?.preview_url ||
     p.gallery_urls?.[0] ||
     '/mimittos/logo-dark-big.png'
 
@@ -87,7 +86,7 @@ export default async function PeluchLayout({
 
   if (p) {
     const cover =
-      p.color_images_meta?.[0]?.preview_url ||
+      p.available_colors?.[0]?.preview_url ||
       p.gallery_urls?.[0] ||
       `${SITE_URL}/mimittos/logo-dark-big.png`
     const price = p.discounted_min_price ?? p.min_price ?? null

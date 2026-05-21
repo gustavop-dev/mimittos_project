@@ -1,5 +1,5 @@
 import { api } from './http'
-import type { ColorImageItem, PeluchDetail } from '../types'
+import type { PeluchDetail } from '../types'
 
 interface SizePricePayload {
   size_id: number
@@ -42,9 +42,6 @@ export const peluchAdminService = {
 
   delete: (slug: string) =>
     api.delete(`/peluches/${slug}/`),
-
-  getColorImages: (slug: string, colorSlug: string) =>
-    api.get<ColorImageItem[]>(`/peluches/${slug}/color-image/${colorSlug}/`).then((r) => r.data),
 
   uploadColorImage: (slug: string, colorSlug: string, file: File) => {
     const fd = new FormData()
