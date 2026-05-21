@@ -67,6 +67,7 @@ export type Peluch = {
   category_slug: string
   lead_description: string
   badge: 'none' | 'bestseller' | 'new' | 'limited_edition'
+  is_active: boolean
   is_featured: boolean
   discount_pct: number
   display_order: number

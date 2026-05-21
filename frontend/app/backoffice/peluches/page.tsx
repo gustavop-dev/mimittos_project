@@ -203,7 +203,14 @@ export default function PeluchesAdminPage() {
                     />
                   </td>
                   <td style={tdStyle}>
-                    <div style={{ fontWeight: 600, color: 'var(--navy)' }}>{p.title}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: 600, color: 'var(--navy)' }}>{p.title}</span>
+                      {!p.is_active && (
+                        <span style={{ background: 'var(--cream-peach)', color: 'var(--terracotta)', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 999, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                          Borrador
+                        </span>
+                      )}
+                    </div>
                     <div style={{ fontSize: 11, color: 'var(--gray-warm)' }}>{p.slug}</div>
                   </td>
                   <td style={{ ...tdStyle, color: 'var(--gray-warm)' }}>{p.category_name}</td>
