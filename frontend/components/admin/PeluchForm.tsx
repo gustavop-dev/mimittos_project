@@ -118,9 +118,6 @@ export function PeluchForm({ existing }: Props) {
   const draftSlugRef = useRef<string | null>(null)
   const draftCreatingRef = useRef<Promise<string> | null>(null)
 
-  // The slug of the peluche being edited: the existing one, or the draft once created.
-  const targetSlug = existing?.slug ?? draftSlug
-
   // Builds the payload the backend needs to create/update a peluche.
   const buildPayload = useCallback((isActive: boolean) => ({
     title: form.title,

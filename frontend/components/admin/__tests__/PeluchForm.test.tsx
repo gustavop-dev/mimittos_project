@@ -343,4 +343,48 @@ describe('PeluchForm', () => {
       expect(peluchAdminService.create.mock.calls[0][0].is_active).toBe(false)
     })
   })
+
+  it('deletes the draft peluche when cancelling after upload', async () => {
+    const { peluchService } = require('@/lib/services/peluchService')
+    const { peluchAdminService } = require('@/lib/services/peluchAdminService')
+    const { uploadColorImageWithRetry } = require('@/lib/services/colorImageUpload')
+    peluchService.getCategories.mockResolvedValue([
+      { id: 1, name: 'Ositos', slug: 'ositos', description: '', display_order: 1, is_active: true, is_featured: false, image_url: null },
+    ])
+    peluchService.getSizes.mockResolvedValue([])
+    peluchService.getColors.mockResolvedValue([
+      { id: 1, name: 'Coral', slug: 'coral', hex_code: '#FF6B6B', sort_order: 1 },
+    ])
+    peluchAdminService.create.mockResolvedValue({ slug: 'osito-coral', available_colors: [] })
+    peluchAdminService.update.mockResolvedValue({})
+    peluchAdminService.delete.mockResolvedValue(undefined)
+    uploadColorImageWithRetry.mockResolvedValue({ id: 1, color_id: 1, url: '/srv.jpg' })
+
+    const mockPush = jest.fn()
+    mockUseRouter.mockReturnValue({ push: mockPush })
+
+    render(<PeluchForm />)
+
+    // Fill minimum fields so the draft create succeeds
+    await userEvent.type(await screen.findByPlaceholderText('Osito Suave Premium'), 'Osito Coral')
+    await userEvent.selectOptions(screen.getAllByRole('combobox')[0], '1')
+    // Select the color so the gallery section renders
+    await userEvent.click(screen.getByRole('button', { name: /Coral/ }))
+    // Click "+Foto" to set uploadingColorSlug before the file input fires
+    await userEvent.click(await screen.findByRole('button', { name: /Foto/i }))
+    const fileInput = document.querySelector('input[type="file"][accept="image/*"]') as HTMLInputElement
+    await userEvent.upload(fileInput, new File(['x'], 'p.jpg', { type: 'image/jpeg' }))
+
+    // Wait for the draft to be created
+    await waitFor(() => expect(peluchAdminService.create).toHaveBeenCalledTimes(1))
+
+    // Stub window.confirm to simulate the user confirming discard
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true)
+
+    await userEvent.click(screen.getByRole('button', { name: /Cancelar/ }))
+
+    await waitFor(() => expect(peluchAdminService.delete).toHaveBeenCalledWith('osito-coral'))
+
+    confirmSpy.mockRestore()
+  })
 })
