@@ -18,6 +18,7 @@ jest.mock('@/lib/services/peluchAdminService', () => ({
   peluchAdminService: {
     create: jest.fn(),
     update: jest.fn(),
+    delete: jest.fn(),
     uploadColorImage: jest.fn(),
     deleteColorImage: jest.fn(),
   },
@@ -277,6 +278,36 @@ describe('PeluchForm', () => {
     })
 
     await waitFor(() => expect(peluchAdminService.create).toHaveBeenCalledTimes(1))
+  })
+
+  it('disables the submit button while an image upload is pending', async () => {
+    const { peluchService } = require('@/lib/services/peluchService')
+    const { peluchAdminService } = require('@/lib/services/peluchAdminService')
+    const { uploadColorImageWithRetry } = require('@/lib/services/colorImageUpload')
+    peluchService.getCategories.mockResolvedValue([
+      { id: 1, name: 'Ositos', slug: 'ositos', description: '', display_order: 1, is_active: true, is_featured: false, image_url: null },
+    ])
+    peluchService.getSizes.mockResolvedValue([])
+    peluchService.getColors.mockResolvedValue([
+      { id: 1, name: 'Coral', slug: 'coral', hex_code: '#FF6B6B', sort_order: 1 },
+    ])
+    peluchAdminService.create.mockResolvedValue({ slug: 'osito-coral', available_colors: [] })
+    peluchAdminService.update.mockResolvedValue({})
+    // Make the upload fail so the item ends up in 'failed' status → hasPendingWork = true
+    uploadColorImageWithRetry.mockRejectedValue(new Error('upload failed'))
+
+    render(<PeluchForm />)
+    await userEvent.type(await screen.findByPlaceholderText('Osito Suave Premium'), 'Osito Coral')
+    await userEvent.selectOptions(screen.getAllByRole('combobox')[0], '1')
+    await userEvent.click(screen.getByRole('button', { name: /Coral/ }))
+    // Click "+Foto" to set uploadingColorSlug before the file input fires
+    await userEvent.click(await screen.findByRole('button', { name: /Foto/i }))
+    const fileInput = document.querySelector('input[type="file"][accept="image/*"]') as HTMLInputElement
+    await userEvent.upload(fileInput, new File(['x'], 'p.jpg', { type: 'image/jpeg' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Crear peluche/ })).toBeDisabled()
+    })
   })
 
   it('creates a draft peluche on the first color image upload', async () => {
