@@ -54,6 +54,7 @@ jest.mock('@/lib/utils/confirmDelete', () => ({
 import { useRouter } from 'next/navigation'
 import { peluchService } from '@/lib/services/peluchService'
 import { peluchAdminService } from '@/lib/services/peluchAdminService'
+import { uploadColorImageWithRetry } from '@/lib/services/colorImageUpload'
 import { globalPresetService } from '@/lib/services/globalPresetService'
 import { confirmDangerousDelete } from '@/lib/utils/confirmDelete'
 import { PeluchForm } from '../PeluchForm'
@@ -235,24 +236,21 @@ describe('PeluchForm', () => {
   })
 
   it('coalesces concurrent first-upload calls into a single draft peluche create', async () => {
-    const { peluchService } = require('@/lib/services/peluchService')
-    const { peluchAdminService } = require('@/lib/services/peluchAdminService')
-    const { uploadColorImageWithRetry } = require('@/lib/services/colorImageUpload')
-    peluchService.getCategories.mockResolvedValue([
+    ;(peluchService.getCategories as jest.Mock).mockResolvedValue([
       { id: 1, name: 'Ositos', slug: 'ositos', description: '', display_order: 1, is_active: true, is_featured: false, image_url: null },
     ])
-    peluchService.getSizes.mockResolvedValue([])
-    peluchService.getColors.mockResolvedValue([
+    ;(peluchService.getSizes as jest.Mock).mockResolvedValue([])
+    ;(peluchService.getColors as jest.Mock).mockResolvedValue([
       { id: 1, name: 'Coral', slug: 'coral', hex_code: '#FF6B6B', sort_order: 1 },
     ])
     // Back the create with a manually-controlled promise so both uploads race
     // before the draft slug is available.
     let resolveCreate!: (v: { slug: string; available_colors: never[] }) => void
-    peluchAdminService.create.mockImplementation(
+    ;(peluchAdminService.create as jest.Mock).mockImplementation(
       () => new Promise((res) => { resolveCreate = res }),
     )
-    peluchAdminService.update.mockResolvedValue({})
-    uploadColorImageWithRetry.mockResolvedValue({ id: 1, color_id: 1, url: '/srv.jpg' })
+    ;(peluchAdminService.update as jest.Mock).mockResolvedValue({})
+    ;(uploadColorImageWithRetry as jest.Mock).mockResolvedValue({ id: 1, color_id: 1, url: '/srv.jpg' })
 
     render(<PeluchForm />)
 
@@ -281,20 +279,17 @@ describe('PeluchForm', () => {
   })
 
   it('disables the submit button while an image upload is pending', async () => {
-    const { peluchService } = require('@/lib/services/peluchService')
-    const { peluchAdminService } = require('@/lib/services/peluchAdminService')
-    const { uploadColorImageWithRetry } = require('@/lib/services/colorImageUpload')
-    peluchService.getCategories.mockResolvedValue([
+    ;(peluchService.getCategories as jest.Mock).mockResolvedValue([
       { id: 1, name: 'Ositos', slug: 'ositos', description: '', display_order: 1, is_active: true, is_featured: false, image_url: null },
     ])
-    peluchService.getSizes.mockResolvedValue([])
-    peluchService.getColors.mockResolvedValue([
+    ;(peluchService.getSizes as jest.Mock).mockResolvedValue([])
+    ;(peluchService.getColors as jest.Mock).mockResolvedValue([
       { id: 1, name: 'Coral', slug: 'coral', hex_code: '#FF6B6B', sort_order: 1 },
     ])
-    peluchAdminService.create.mockResolvedValue({ slug: 'osito-coral', available_colors: [] })
-    peluchAdminService.update.mockResolvedValue({})
+    ;(peluchAdminService.create as jest.Mock).mockResolvedValue({ slug: 'osito-coral', available_colors: [] })
+    ;(peluchAdminService.update as jest.Mock).mockResolvedValue({})
     // Make the upload fail so the item ends up in 'failed' status → hasPendingWork = true
-    uploadColorImageWithRetry.mockRejectedValue(new Error('upload failed'))
+    ;(uploadColorImageWithRetry as jest.Mock).mockRejectedValue(new Error('upload failed'))
 
     render(<PeluchForm />)
     await userEvent.type(await screen.findByPlaceholderText('Osito Suave Premium'), 'Osito Coral')
@@ -311,19 +306,16 @@ describe('PeluchForm', () => {
   })
 
   it('creates a draft peluche on the first color image upload', async () => {
-    const { peluchService } = require('@/lib/services/peluchService')
-    const { peluchAdminService } = require('@/lib/services/peluchAdminService')
-    const { uploadColorImageWithRetry } = require('@/lib/services/colorImageUpload')
-    peluchService.getCategories.mockResolvedValue([
+    ;(peluchService.getCategories as jest.Mock).mockResolvedValue([
       { id: 1, name: 'Ositos', slug: 'ositos', description: '', display_order: 1, is_active: true, is_featured: false, image_url: null },
     ])
-    peluchService.getSizes.mockResolvedValue([])
-    peluchService.getColors.mockResolvedValue([
+    ;(peluchService.getSizes as jest.Mock).mockResolvedValue([])
+    ;(peluchService.getColors as jest.Mock).mockResolvedValue([
       { id: 1, name: 'Coral', slug: 'coral', hex_code: '#FF6B6B', sort_order: 1 },
     ])
-    peluchAdminService.create.mockResolvedValue({ slug: 'osito-coral', available_colors: [] })
-    peluchAdminService.update.mockResolvedValue({})
-    uploadColorImageWithRetry.mockResolvedValue({ id: 1, color_id: 1, url: '/srv.jpg' })
+    ;(peluchAdminService.create as jest.Mock).mockResolvedValue({ slug: 'osito-coral', available_colors: [] })
+    ;(peluchAdminService.update as jest.Mock).mockResolvedValue({})
+    ;(uploadColorImageWithRetry as jest.Mock).mockResolvedValue({ id: 1, color_id: 1, url: '/srv.jpg' })
 
     render(<PeluchForm />)
 
@@ -340,25 +332,22 @@ describe('PeluchForm', () => {
 
     await waitFor(() => {
       expect(peluchAdminService.create).toHaveBeenCalledTimes(1)
-      expect(peluchAdminService.create.mock.calls[0][0].is_active).toBe(false)
+      expect((peluchAdminService.create as jest.Mock).mock.calls[0][0].is_active).toBe(false)
     })
   })
 
   it('deletes the draft peluche when cancelling after upload', async () => {
-    const { peluchService } = require('@/lib/services/peluchService')
-    const { peluchAdminService } = require('@/lib/services/peluchAdminService')
-    const { uploadColorImageWithRetry } = require('@/lib/services/colorImageUpload')
-    peluchService.getCategories.mockResolvedValue([
+    ;(peluchService.getCategories as jest.Mock).mockResolvedValue([
       { id: 1, name: 'Ositos', slug: 'ositos', description: '', display_order: 1, is_active: true, is_featured: false, image_url: null },
     ])
-    peluchService.getSizes.mockResolvedValue([])
-    peluchService.getColors.mockResolvedValue([
+    ;(peluchService.getSizes as jest.Mock).mockResolvedValue([])
+    ;(peluchService.getColors as jest.Mock).mockResolvedValue([
       { id: 1, name: 'Coral', slug: 'coral', hex_code: '#FF6B6B', sort_order: 1 },
     ])
-    peluchAdminService.create.mockResolvedValue({ slug: 'osito-coral', available_colors: [] })
-    peluchAdminService.update.mockResolvedValue({})
-    peluchAdminService.delete.mockResolvedValue(undefined)
-    uploadColorImageWithRetry.mockResolvedValue({ id: 1, color_id: 1, url: '/srv.jpg' })
+    ;(peluchAdminService.create as jest.Mock).mockResolvedValue({ slug: 'osito-coral', available_colors: [] })
+    ;(peluchAdminService.update as jest.Mock).mockResolvedValue({})
+    ;(peluchAdminService.delete as jest.Mock).mockResolvedValue(undefined)
+    ;(uploadColorImageWithRetry as jest.Mock).mockResolvedValue({ id: 1, color_id: 1, url: '/srv.jpg' })
 
     const mockPush = jest.fn()
     mockUseRouter.mockReturnValue({ push: mockPush })

@@ -1,7 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { useColorImageUpload } from '../useColorImageUpload'
 import { uploadColorImageWithRetry } from '@/lib/services/colorImageUpload'
-import { compressImage } from '@/lib/utils/imageCompressor'
 
 jest.mock('@/lib/services/colorImageUpload', () => ({ uploadColorImageWithRetry: jest.fn() }))
 jest.mock('@/lib/services/peluchAdminService', () => ({
@@ -13,7 +12,6 @@ jest.mock('@/lib/utils/imageCompressor', () => ({
 }))
 
 const mockUpload = uploadColorImageWithRetry as jest.Mock
-const mockCompress = compressImage as jest.Mock
 const file = () => new File(['x'], 'a.jpg', { type: 'image/jpeg' })
 
 beforeEach(() => {
