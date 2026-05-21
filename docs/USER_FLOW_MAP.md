@@ -4,8 +4,8 @@
 
 Use this document to understand each flow's steps, branching conditions, role restrictions, and API contracts before writing or reviewing E2E tests.
 
-**Version:** 1.4.0
-**Last Updated:** 2026-05-01
+**Version:** 1.5.0
+**Last Updated:** 2026-05-21
 
 ---
 
@@ -93,6 +93,10 @@ Use this document to understand each flow's steps, branching conditions, role re
 | `backoffice-order-tracking-update` | Set Order Tracking Number | backoffice | P3 | staff | `/backoffice/pedidos` |
 | `backoffice-promo-banner-save` | Save Promo Banner | backoffice | P3 | staff | `/backoffice/configuracion` |
 | `backoffice-hero-image-upload` | Upload Hero Image | backoffice | P3 | staff | `/backoffice/configuracion` |
+| `backoffice-peluch-create-draft-on-color-upload` | Draft Auto-Created on First Color Upload | backoffice | P2 | staff | `/backoffice/peluches/nuevo` |
+| `backoffice-peluch-color-upload-per-image-status` | Per-Image Upload Status with Retry | backoffice | P2 | staff | `/backoffice/peluches/nuevo` |
+| `backoffice-peluch-create-cancel-discards-draft` | Cancel Discards Draft | backoffice | P2 | staff | `/backoffice/peluches/nuevo` |
+| `backoffice-peluch-list-draft-badge` | Draft Badge on Peluch List | backoffice | P2 | staff | `/backoffice/peluches` |
 
 ---
 
@@ -1544,3 +1548,126 @@ Staff toggles **Activa**, edits the message (max 120 chars), and picks backgroun
 | **API endpoints** | `POST /api/content/hero-image/upload/` |
 
 Staff drops a file onto the hero-image area or selects via the file picker. After preview, clicking **Subir imagen** sends a multipart `POST /api/content/hero-image/upload/`. On success the response URL replaces the preview and the new image is the active hero on the public homepage.
+
+---
+
+## Flows added in version 1.5.0 (2026-05-21)
+
+These flows were registered after the "incremental color image upload" feature was implemented in `PeluchForm`. The existing `backoffice-peluch-create` umbrella flow remains in place; the four flows below cover the new sub-behaviors with finer-grained specificity.
+
+### backoffice-peluch-create-draft-on-color-upload
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/peluches/nuevo` |
+| **API endpoints** | `POST /api/peluches/`, `POST /api/peluches/{slug}/color-image/{color}/` |
+
+**Preconditions:** Staff is on the create-peluch form. No draft yet exists for this session.
+
+**Steps:**
+
+1. Staff navigates to `/backoffice/peluches/nuevo`.
+2. Staff selects at least one color and picks an image file for it.
+3. Before the upload: no `POST /api/peluches/` has been issued yet.
+4. On the first color-image selection, the form automatically sends `POST /api/peluches/` with `is_active=false` (creating a DRAFT peluch).
+5. Backend returns the draft peluch with a `slug`.
+6. The form transitions to edit mode: subsequent image uploads use `POST /api/peluches/{slug}/color-image/{color}/`, and the main form submit sends `PATCH /api/peluches/{slug}/` instead of a new `POST`.
+
+**Branching conditions:**
+
+| Condition | Behavior |
+|-----------|----------|
+| Draft POST fails | Upload aborted; error shown; form remains in create mode |
+| No color images uploaded | `POST /api/peluches/` is NOT called until the form is submitted normally |
+
+---
+
+### backoffice-peluch-color-upload-per-image-status
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/peluches/nuevo` (also applies to `/backoffice/peluches/[slug]`) |
+| **API endpoints** | `POST /api/peluches/{slug}/color-image/{color}/` |
+
+**Preconditions:** A draft (or existing) peluch slug is available. At least one color is configured.
+
+**Steps:**
+
+1. Staff selects an image file for a color.
+2. The color-image row immediately shows an "uploading" spinner.
+3. On success: spinner replaced with a done checkmark (✓).
+4. On network/server error: spinner replaced with a "failed" badge and a per-image **Reintentar** button.
+5. If one or more images have failed, a **Reintentar fallidas** ("retry all failed") button appears.
+6. The **Guardar** / **Crear** submit button is DISABLED as long as any image upload is in `uploading` or `failed` state.
+7. The submit button re-enables once all started uploads have resolved to `done`.
+
+**Branching conditions:**
+
+| Condition | Behavior |
+|-----------|----------|
+| All uploads succeed | Submit button enabled; no retry buttons shown |
+| One or more uploads fail | Submit button disabled; per-image retry + global retry visible |
+| Staff clicks per-image retry | That image re-uploads; status cycles through uploading → done/failed |
+| Staff clicks retry-all | All failed images re-upload simultaneously |
+| Image exceeds size before upload | Client-side compression runs first; compressed blob is sent |
+
+---
+
+### backoffice-peluch-create-cancel-discards-draft
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/peluches/nuevo` |
+| **API endpoints** | `DELETE /api/peluches/{slug}/` |
+
+**Preconditions:** A draft peluch has been auto-created (first color-image upload triggered the draft POST).
+
+**Steps:**
+
+1. Staff clicks **Cancelar** on the create-peluch form.
+2. A confirmation prompt appears asking whether to discard the draft.
+3. Staff confirms discarding.
+4. Frontend calls `DELETE /api/peluches/{slug}/` to remove the draft from the backend.
+5. User is navigated to `/backoffice/peluches`.
+
+**Branching conditions:**
+
+| Condition | Behavior |
+|-----------|----------|
+| Staff dismisses the confirmation | Form stays open; draft is NOT deleted |
+| No draft yet created (cancel before first color upload) | No DELETE is issued; user navigates away immediately |
+| DELETE fails | Error message shown; user may retry or stay on form |
+
+---
+
+### backoffice-peluch-list-draft-badge
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | staff |
+| **Frontend route** | `/backoffice/peluches` |
+| **API endpoints** | `GET /api/peluches/` (admin endpoint returning all peluches including inactive) |
+
+**Preconditions:** At least one peluch with `is_active=false` exists in the database (e.g., an abandoned draft).
+
+**Steps:**
+
+1. Staff navigates to `/backoffice/peluches`.
+2. Frontend fetches all peluches via `peluchAdminService.listAll()`.
+3. The table renders each peluch row.
+4. For peluches with `is_active=false`, a **Borrador** badge is rendered next to the title.
+5. For peluches with `is_active=true`, no Borrador badge is shown.
+
+**Branching conditions:**
+
+| Condition | Behavior |
+|-----------|----------|
+| All peluches are active | No Borrador badges shown anywhere in the table |
+| All peluches are drafts | Every row shows the Borrador badge |
