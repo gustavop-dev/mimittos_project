@@ -9,6 +9,27 @@ Last updated: 2026-05-21
 
 ---
 
+## Incremental color image upload — draft model (2026-05-21)
+
+Branch `feat/21052026-incremental-color-image-upload`. La creación de peluches en el
+backoffice ya no acumula las fotos por color en memoria para subirlas al hacer "Crear":
+ahora, al seleccionar la primera foto de un color, se crea de inmediato un peluche
+**borrador** (`is_active=false`) vía `peluchAdminService.create`, y desde ahí el formulario
+se comporta como modo edición. Cada imagen se sube de a una con estado por imagen
+(subiendo / ✓ / ✗ con reintento) y auto-retry de fallos transitorios; el botón "Guardar"
+se bloquea mientras haya subidas pendientes o fallidas. "Cancelar" ofrece descartar el
+borrador (lo borra vía API). La compresión cliente (`lib/utils/imageCompressor.ts`)
+garantiza que cada imagen quede bajo un límite de bytes antes de subir. El listado del
+backoffice marca los peluches inactivos con un badge "Borrador". Piezas nuevas:
+`lib/utils/imageCompressor.ts` (reescrito), `lib/services/colorImageUpload.ts` (retry),
+`lib/hooks/useColorImageUpload.ts` (hook de subida incremental). Cambio de backend
+necesario: `is_active` se agregó a `PeluchListSerializer.fields` para que el badge
+funcione end-to-end. Spec/plan:
+`docs/superpowers/specs/2026-05-21-incremental-color-image-upload.md`,
+`docs/superpowers/plans/2026-05-21-incremental-color-image-upload.md`.
+
+---
+
 ## Cascade color/size deletion (2026-05-21)
 
 Admins can now hard-delete a global color or size from `PeluchForm`. `PeluchSizePrice.size` is
