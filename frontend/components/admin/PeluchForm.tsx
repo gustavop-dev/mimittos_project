@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { peluchService } from '@/lib/services/peluchService'
 import { peluchAdminService } from '@/lib/services/peluchAdminService'
 import { globalPresetService } from '@/lib/services/globalPresetService'
-import { compressImage } from '@/lib/utils/imageCompressor'
 import { buildColorImpact, buildSizeImpact, confirmDangerousDelete, notifyDeleteError } from '@/lib/utils/confirmDelete'
+import { useColorImageUpload, type ColorGalleryItem } from '@/lib/hooks/useColorImageUpload'
 import type { Category, GlobalColor, GlobalSize, PeluchDetail } from '@/lib/types'
 
 interface SizePriceRow {
@@ -20,13 +20,6 @@ interface SizePriceRow {
   full_payment_discount_pct: string
   free_shipping: boolean
   shipping_cost: string
-}
-
-interface ColorGalleryItem {
-  id: number | null
-  url: string
-  file?: File
-  uploading?: boolean
 }
 
 interface Props {
@@ -87,7 +80,6 @@ export function PeluchForm({ existing }: Props) {
   const [allColors, setAllColors] = useState<GlobalColor[]>([])
   const [sizePrices, setSizePrices] = useState<SizePriceRow[]>([])
   const [selectedColors, setSelectedColors] = useState<number[]>([])
-  const [colorGallery, setColorGallery] = useState<Record<string, ColorGalleryItem[]>>({})
 
   const [form, setForm] = useState({
     title: '', slug: '', category: '', lead_description: '',
@@ -118,6 +110,76 @@ export function PeluchForm({ existing }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [slugManual, setSlugManual] = useState(false)
+
+  const [draftSlug, setDraftSlug] = useState<string | null>(null)
+
+  // The slug of the peluche being edited: the existing one, or the draft once created.
+  const targetSlug = existing?.slug ?? draftSlug
+
+  // Builds the payload the backend needs to create/update a peluche.
+  const buildPayload = useCallback((isActive: boolean) => ({
+    title: form.title,
+    slug: form.slug,
+    category: Number(form.category),
+    lead_description: form.lead_description,
+    description: tryParseJson<string[]>(descriptionJson) ?? [],
+    badge: form.badge,
+    is_active: isActive,
+    is_featured: form.is_featured,
+    discount_pct: discountPct,
+    display_order: displayOrder,
+    has_huella: form.has_huella,
+    has_corazon: form.has_corazon,
+    has_audio: form.has_audio,
+    huella_extra_cost: Number(form.huella_extra_cost),
+    corazon_extra_cost: Number(form.corazon_extra_cost),
+    audio_extra_cost: Number(form.audio_extra_cost),
+    specifications: tryParseJson<Record<string, string>>(specificationsJson) ?? {},
+    care_instructions: tryParseJson<string[]>(careJson) ?? [],
+    available_color_ids: selectedColors,
+    size_prices_data: sizePrices.map((r) => ({
+      size_id: r.size_id,
+      price: r.is_available ? Number(r.price) : 0,
+      is_available: r.is_available,
+      deposit_percentage: Math.min(100, Math.max(1, Number(r.deposit_percentage) || 50)),
+      full_payment_discount_pct: Math.min(100, Math.max(0, Number(r.full_payment_discount_pct) || 0)),
+      free_shipping: r.free_shipping,
+      shipping_cost: r.free_shipping ? 0 : Math.max(0, Number(r.shipping_cost) || 0),
+    })),
+  }), [form, descriptionJson, specificationsJson, careJson, discountPct, displayOrder, selectedColors, sizePrices])
+
+  // Returns the slug to upload to: the existing peluche, or a draft created on
+  // first call. After the draft exists, keeps its colors in sync.
+  const resolveUploadSlug = useCallback(async (): Promise<string> => {
+    if (existing) return existing.slug
+    if (draftSlug) {
+      await peluchAdminService.update(draftSlug, { available_color_ids: selectedColors })
+      return draftSlug
+    }
+    if (!form.title.trim() || !form.slug.trim() || !form.category) {
+      throw new Error('Completa título y categoría antes de subir fotos.')
+    }
+    const created = await peluchAdminService.create(buildPayload(false))
+    setDraftSlug(created.slug)
+    return created.slug
+  }, [existing, draftSlug, selectedColors, form.title, form.slug, form.category, buildPayload])
+
+  const initialGallery = useMemo<Record<string, ColorGalleryItem[]>>(() => {
+    const gallery: Record<string, ColorGalleryItem[]> = {}
+    for (const c of existing?.available_colors ?? []) {
+      gallery[c.slug] = (c.images ?? []).map((item, i) => ({
+        key: `existing-${c.slug}-${i}`,
+        id: item.id,
+        url: item.url,
+        status: 'done' as const,
+      }))
+    }
+    return gallery
+  }, [existing])
+
+  const {
+    colorGallery, setColorGallery, uploadFiles, retryItem, retryAll, removeImage, hasPendingWork,
+  } = useColorImageUpload({ resolveUploadSlug, initialGallery })
 
   useEffect(() => {
     Promise.all([
@@ -172,12 +234,6 @@ export function PeluchForm({ existing }: Props) {
         })
         setSizePrices(mergedRows)
 
-        // Per-color galleries arrive embedded in the detail payload.
-        const newGallery: Record<string, ColorGalleryItem[]> = {}
-        for (const c of existing.available_colors) {
-          newGallery[c.slug] = (c.images ?? []).map((item) => ({ id: item.id, url: item.url }))
-        }
-        setColorGallery(newGallery)
       } else {
         setSizePrices(rows)
       }
@@ -214,52 +270,17 @@ export function PeluchForm({ existing }: Props) {
     const files = Array.from(e.target.files ?? [])
     e.target.value = ''
     const colorSlug = uploadingColorSlug
-    if (!colorSlug) return
-
-    for (const file of files) {
-      const compressed = await compressImage(file)
-      const objectUrl = URL.createObjectURL(compressed)
-
-      if (existing) {
-        setColorGallery((prev) => ({
-          ...prev,
-          [colorSlug]: [...(prev[colorSlug] ?? []), { id: null, url: objectUrl, uploading: true }],
-        }))
-        try {
-          const result = await peluchAdminService.uploadColorImage(existing.slug, colorSlug, compressed)
-          setColorGallery((prev) => ({
-            ...prev,
-            [colorSlug]: (prev[colorSlug] ?? []).map((img) =>
-              img.url === objectUrl ? { id: result.id, url: result.url } : img
-            ),
-          }))
-          URL.revokeObjectURL(objectUrl)
-        } catch {
-          setColorGallery((prev) => ({
-            ...prev,
-            [colorSlug]: (prev[colorSlug] ?? []).filter((img) => img.url !== objectUrl),
-          }))
-          URL.revokeObjectURL(objectUrl)
-          alert('No se pudo subir la imagen.')
-        }
-      } else {
-        setColorGallery((prev) => ({
-          ...prev,
-          [colorSlug]: [...(prev[colorSlug] ?? []), { id: null, url: objectUrl, file: compressed }],
-        }))
-      }
+    if (!colorSlug || files.length === 0) return
+    if (!existing && (!form.title.trim() || !form.slug.trim() || !form.category)) {
+      setError('Completa título y categoría antes de subir fotos.')
+      return
     }
+    setError('')
+    await uploadFiles(colorSlug, files)
   }
 
-  async function handleColorImageRemove(colorSlug: string, img: ColorGalleryItem) {
-    if (existing && img.id !== null) {
-      try { await peluchAdminService.deleteColorImage(existing.slug, colorSlug, img.id) } catch { /* ignore */ }
-    }
-    URL.revokeObjectURL(img.url)
-    setColorGallery((prev) => ({
-      ...prev,
-      [colorSlug]: (prev[colorSlug] ?? []).filter((i) => i.url !== img.url),
-    }))
+  async function handleColorImageRemove(colorSlug: string, item: ColorGalleryItem) {
+    await removeImage(colorSlug, item.key)
   }
 
   async function handleAddColor() {
@@ -637,10 +658,10 @@ export function PeluchForm({ existing }: Props) {
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                     {images.map((img) => (
-                      <div key={img.url} style={{ position: 'relative', width: 90, height: 90, borderRadius: 8, overflow: 'hidden', border: '1.5px solid rgba(27,42,74,.1)', background: '#fff' }}>
+                      <div key={img.key} style={{ position: 'relative', width: 90, height: 90, borderRadius: 8, overflow: 'hidden', border: '1.5px solid rgba(27,42,74,.1)', background: '#fff' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        {img.uploading && (
+                        {img.status === 'uploading' && (
                           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10 }}>Subiendo...</div>
                         )}
                         <button type="button" onClick={() => handleColorImageRemove(color.slug, img)} style={{ position: 'absolute', top: 3, right: 3, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,.6)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, lineHeight: '20px', textAlign: 'center', padding: 0 }}>×</button>

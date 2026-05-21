@@ -36,6 +36,11 @@ jest.mock('@/lib/services/globalPresetService', () => ({
 
 jest.mock('@/lib/utils/imageCompressor', () => ({
   compressImage: jest.fn((file: File) => Promise.resolve(file)),
+  ImageTooLargeError: class ImageTooLargeError extends Error {},
+}))
+
+jest.mock('@/lib/services/colorImageUpload', () => ({
+  uploadColorImageWithRetry: jest.fn(),
 }))
 
 jest.mock('@/lib/utils/confirmDelete', () => ({
@@ -99,6 +104,8 @@ describe('PeluchForm', () => {
     ;(peluchService.getCategories as jest.Mock).mockResolvedValue(mockCategories)
     ;(peluchService.getColors as jest.Mock).mockResolvedValue(mockColors)
     ;(peluchService.getSizes as jest.Mock).mockResolvedValue(mockSizes)
+    global.URL.createObjectURL = jest.fn().mockReturnValue('blob:mock')
+    global.URL.revokeObjectURL = jest.fn()
   })
 
   it('renders "Crear peluche" submit button in create mode', async () => {
@@ -223,6 +230,40 @@ describe('PeluchForm', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     await waitFor(() => {
       expect(peluchAdminService.update).toHaveBeenCalledWith('osito-coral', expect.any(Object))
+    })
+  })
+
+  it('creates a draft peluche on the first color image upload', async () => {
+    const { peluchService } = require('@/lib/services/peluchService')
+    const { peluchAdminService } = require('@/lib/services/peluchAdminService')
+    const { uploadColorImageWithRetry } = require('@/lib/services/colorImageUpload')
+    peluchService.getCategories.mockResolvedValue([
+      { id: 1, name: 'Ositos', slug: 'ositos', description: '', display_order: 1, is_active: true, is_featured: false, image_url: null },
+    ])
+    peluchService.getSizes.mockResolvedValue([])
+    peluchService.getColors.mockResolvedValue([
+      { id: 1, name: 'Coral', slug: 'coral', hex_code: '#FF6B6B', sort_order: 1 },
+    ])
+    peluchAdminService.create.mockResolvedValue({ slug: 'osito-coral', available_colors: [] })
+    peluchAdminService.update.mockResolvedValue({})
+    uploadColorImageWithRetry.mockResolvedValue({ id: 1, color_id: 1, url: '/srv.jpg' })
+
+    render(<PeluchForm />)
+
+    // fill the minimum fields the draft create needs
+    await userEvent.type(await screen.findByPlaceholderText('Osito Suave Premium'), 'Osito Coral')
+    await userEvent.selectOptions(screen.getAllByRole('combobox')[0], '1')
+    // select the color so its gallery section renders
+    await userEvent.click(screen.getByRole('button', { name: /Coral/ }))
+    // click the "+Foto" button to set uploadingColorSlug and trigger the file input
+    await userEvent.click(await screen.findByRole('button', { name: /Foto/i }))
+    // upload a file to that color (file input is now active with the correct colorSlug)
+    const fileInput = document.querySelector('input[type="file"][accept="image/*"]') as HTMLInputElement
+    await userEvent.upload(fileInput, new File(['x'], 'p.jpg', { type: 'image/jpeg' }))
+
+    await waitFor(() => {
+      expect(peluchAdminService.create).toHaveBeenCalledTimes(1)
+      expect(peluchAdminService.create.mock.calls[0][0].is_active).toBe(false)
     })
   })
 })
