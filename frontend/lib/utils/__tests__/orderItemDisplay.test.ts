@@ -16,7 +16,9 @@ it('uses the live FK when size is present', () => {
     configuration_snapshot: {},
   } as OrderItemRead
   expect(itemSizeLabel(item)).toBe('Mediano')
+  expect(itemSizeCm(item)).toBe('35cm')
   expect(itemColorName(item)).toBe('Rubí rojo')
+  expect(itemColorHex(item)).toBe('#C0182B')
 })
 
 it('falls back to the snapshot when the size FK is null', () => {
@@ -35,5 +37,7 @@ it('falls back to the snapshot when the size FK is null', () => {
 it('returns a dash when neither FK nor snapshot has the value', () => {
   const item = { ...baseItem, size: null, color: null, configuration_snapshot: {} } as OrderItemRead
   expect(itemSizeLabel(item)).toBe('—')
+  expect(itemSizeCm(item)).toBe('')
   expect(itemColorName(item)).toBe('—')
+  expect(itemColorHex(item)).toBe('#cccccc')
 })
