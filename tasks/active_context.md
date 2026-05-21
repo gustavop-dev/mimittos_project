@@ -9,6 +9,20 @@ Last updated: 2026-05-21
 
 ---
 
+## Cascade color/size deletion (2026-05-21)
+
+Admins can now hard-delete a global color or size from `PeluchForm`. `PeluchSizePrice.size` is
+`CASCADE` and `OrderItem.size/color` are `SET_NULL` (migration `0013`), so deletion is unblocked
+and cascades to the catalog while order history survives via `OrderItem.configuration_snapshot`
+(`size_label`/`color_name` already stored there). New admin endpoints `GET /colors|sizes/<id>/usage/`
+feed real impact counts into a branded SweetAlert2 dialog (`lib/utils/confirmDelete.ts`) that gates
+the delete button on typing the exact preset name. Order views fall back to the snapshot via
+`lib/utils/orderItemDisplay.ts` when the FK is null. Spec/plan:
+`docs/superpowers/specs/2026-05-21-cascade-color-size-deletion-design.md`,
+`docs/superpowers/plans/2026-05-21-cascade-color-size-deletion.md`.
+
+---
+
 ## Branch `fix/peluche-size-deselection-not-persisting` (2026-05-21)
 
 Fixed the product-detail color/photo mismatch (see `error-documentation.md` ERROR-001). The peluch
