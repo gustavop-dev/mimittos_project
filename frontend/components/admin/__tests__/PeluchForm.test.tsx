@@ -29,6 +29,8 @@ jest.mock('@/lib/services/globalPresetService', () => ({
     createSize: jest.fn(),
     deleteColor: jest.fn(),
     deleteSize: jest.fn(),
+    getColorUsage: jest.fn(),
+    getSizeUsage: jest.fn(),
   },
 }))
 
@@ -36,9 +38,18 @@ jest.mock('@/lib/utils/imageCompressor', () => ({
   compressImage: jest.fn((file: File) => Promise.resolve(file)),
 }))
 
+jest.mock('@/lib/utils/confirmDelete', () => ({
+  confirmDangerousDelete: jest.fn(),
+  buildColorImpact: jest.fn(() => []),
+  buildSizeImpact: jest.fn(() => []),
+  notifyDeleteError: jest.fn(),
+}))
+
 import { useRouter } from 'next/navigation'
 import { peluchService } from '@/lib/services/peluchService'
 import { peluchAdminService } from '@/lib/services/peluchAdminService'
+import { globalPresetService } from '@/lib/services/globalPresetService'
+import { confirmDangerousDelete } from '@/lib/utils/confirmDelete'
 import { PeluchForm } from '../PeluchForm'
 import type { PeluchDetail } from '@/lib/types'
 
@@ -95,6 +106,36 @@ describe('PeluchForm', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Crear peluche' })).toBeInTheDocument()
     })
+  })
+
+  it('deletes a color after the SweetAlert2 confirmation resolves true', async () => {
+    ;(globalPresetService.getColorUsage as jest.Mock).mockResolvedValue({ products: 2, photos: 3, orders: 0 })
+    ;(confirmDangerousDelete as jest.Mock).mockResolvedValue(true)
+    ;(globalPresetService.deleteColor as jest.Mock).mockResolvedValue(undefined)
+
+    render(<PeluchForm />)
+
+    const deleteButton = await screen.findByTitle('Eliminar este color globalmente')
+    await userEvent.click(deleteButton)
+
+    await waitFor(() => {
+      expect(globalPresetService.getColorUsage).toHaveBeenCalledWith(1)
+      expect(confirmDangerousDelete).toHaveBeenCalled()
+      expect(globalPresetService.deleteColor).toHaveBeenCalledWith(1)
+    })
+  })
+
+  it('does not delete a color when the confirmation resolves false', async () => {
+    ;(globalPresetService.getColorUsage as jest.Mock).mockResolvedValue({ products: 0, photos: 0, orders: 0 })
+    ;(confirmDangerousDelete as jest.Mock).mockResolvedValue(false)
+
+    render(<PeluchForm />)
+
+    const deleteButton = await screen.findByTitle('Eliminar este color globalmente')
+    await userEvent.click(deleteButton)
+
+    await waitFor(() => expect(confirmDangerousDelete).toHaveBeenCalled())
+    expect(globalPresetService.deleteColor).not.toHaveBeenCalled()
   })
 
   it('renders "Guardar cambios" submit button in edit mode', async () => {

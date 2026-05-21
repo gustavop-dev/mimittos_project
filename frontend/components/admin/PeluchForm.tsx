@@ -7,6 +7,7 @@ import { peluchService } from '@/lib/services/peluchService'
 import { peluchAdminService } from '@/lib/services/peluchAdminService'
 import { globalPresetService } from '@/lib/services/globalPresetService'
 import { compressImage } from '@/lib/utils/imageCompressor'
+import { buildColorImpact, buildSizeImpact, confirmDangerousDelete, notifyDeleteError } from '@/lib/utils/confirmDelete'
 import type { Category, GlobalColor, GlobalSize, PeluchDetail } from '@/lib/types'
 
 interface SizePriceRow {
@@ -322,22 +323,40 @@ export function PeluchForm({ existing }: Props) {
   }
 
   async function handleDeleteColor(id: number, name: string) {
-    if (!window.confirm(`¿Eliminar el color "${name}" de todos los peluches? Esta acción no se puede deshacer.`)) return
+    let impact: string[] = []
+    try {
+      impact = buildColorImpact(await globalPresetService.getColorUsage(id))
+    } catch {
+      impact = []
+    }
+    const confirmed = await confirmDangerousDelete({ entity: 'color', name, impact })
+    if (!confirmed) return
     try {
       const color = allColors.find((c) => c.id === id)
       await globalPresetService.deleteColor(id)
       setAllColors((prev) => prev.filter((c) => c.id !== id))
       setSelectedColors((prev) => prev.filter((c) => c !== id))
       if (color) setColorGallery((prev) => { const n = { ...prev }; delete n[color.slug]; return n })
-    } catch { alert('No se pudo eliminar el color.') }
+    } catch {
+      await notifyDeleteError('No se pudo eliminar el color.')
+    }
   }
 
   async function handleDeleteSize(size_id: number, label: string) {
-    if (!window.confirm(`¿Eliminar la talla "${label}" de todos los peluches? Esta acción no se puede deshacer.`)) return
+    let impact: string[] = []
+    try {
+      impact = buildSizeImpact(await globalPresetService.getSizeUsage(size_id))
+    } catch {
+      impact = []
+    }
+    const confirmed = await confirmDangerousDelete({ entity: 'talla', name: label, impact })
+    if (!confirmed) return
     try {
       await globalPresetService.deleteSize(size_id)
       setSizePrices((prev) => prev.filter((r) => r.size_id !== size_id))
-    } catch { alert('No se pudo eliminar la talla.') }
+    } catch {
+      await notifyDeleteError('No se pudo eliminar la talla.')
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
