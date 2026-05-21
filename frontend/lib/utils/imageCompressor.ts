@@ -1,4 +1,5 @@
 const MAX_DIM = 1400
+// Kept safely under the server's request body limit so every re-encoded image passes upload.
 export const TARGET_BYTES = 900_000
 const QUALITY_STEPS = [0.82, 0.65, 0.5, 0.4]
 

@@ -61,6 +61,16 @@ describe('compressImage', () => {
     expect(result.size).toBeLessThanOrEqual(TARGET_BYTES)
   })
 
+  it('re-encodes a heavy file even when its dimensions are within limits', async () => {
+    const heavy = new File([new Uint8Array(TARGET_BYTES + 1000)], 'heavy.jpg', { type: 'image/jpeg' })
+    mockImage(800, 600)
+    mockCanvas(() => 200_000)
+    const result = await compressImage(heavy)
+    expect(result).not.toBe(heavy)
+    expect(result.type).toBe('image/jpeg')
+    expect(result.size).toBeLessThanOrEqual(TARGET_BYTES)
+  })
+
   it('throws ImageTooLargeError when no quality step fits under the target', async () => {
     const big = new File([new Uint8Array(TARGET_BYTES + 1000)], 'huge.jpg', { type: 'image/jpeg' })
     mockImage(3000, 2000)
