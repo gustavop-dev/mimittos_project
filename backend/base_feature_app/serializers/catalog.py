@@ -163,7 +163,7 @@ class PeluchListSerializer(serializers.ModelSerializer):
         model = Peluch
         fields = [
             'id', 'title', 'slug', 'category_name', 'category_slug',
-            'lead_description', 'badge', 'is_featured',
+            'lead_description', 'badge', 'is_active', 'is_featured',
             'discount_pct', 'display_order',
             'min_price', 'discounted_min_price', 'available_colors', 'gallery_urls',
             'average_rating', 'review_count',

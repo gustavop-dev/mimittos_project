@@ -1,6 +1,6 @@
 {
-  "version": "1.4.0",
-  "lastUpdated": "2026-05-01",
+  "version": "1.5.0",
+  "lastUpdated": "2026-05-21",
   "flows": {
     "home-loads": {
       "name": "Home page loads",
@@ -720,6 +720,38 @@
       "roles": ["staff"],
       "priority": "P3",
       "description": "Staff drops or selects a file on /backoffice/configuracion and clicks 'Subir imagen'; multipart POST /api/content/hero-image/upload/ returns the new URL and the preview updates",
+      "expectedSpecs": 1
+    },
+    "backoffice-peluch-create-draft-on-color-upload": {
+      "name": "Draft peluch auto-created on first color image upload",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P2",
+      "description": "When staff uploads the first color image on /backoffice/peluches/nuevo, a DRAFT peluch (is_active=false) is POSTed to /api/peluches/ immediately; the form transitions to edit mode (PATCH thereafter). Before any color image is uploaded, no draft is created.",
+      "expectedSpecs": 1
+    },
+    "backoffice-peluch-color-upload-per-image-status": {
+      "name": "Per-image upload status with retry",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P2",
+      "description": "Each color image upload on /backoffice/peluches/nuevo shows an individual status: uploading spinner → done checkmark on success, or failed badge with a per-image retry button on network error. A 'retry all failed' button appears when at least one image has failed. The Guardar/Crear button is DISABLED while any upload is pending or failed, and re-enables once all uploads resolve successfully.",
+      "expectedSpecs": 1
+    },
+    "backoffice-peluch-create-cancel-discards-draft": {
+      "name": "Cancel discard draft peluch",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P2",
+      "description": "After a draft peluch has been auto-created, staff clicks 'Cancelar'. A confirmation prompt asks whether to discard the draft. On confirmation, DELETE /api/peluches/{slug}/ is called and the user is returned to /backoffice/peluches. If staff dismisses the prompt, the form stays open.",
+      "expectedSpecs": 1
+    },
+    "backoffice-peluch-list-draft-badge": {
+      "name": "Draft badge on backoffice peluche list",
+      "module": "backoffice",
+      "roles": ["staff"],
+      "priority": "P2",
+      "description": "On /backoffice/peluches, any peluch with is_active=false is shown with a 'Borrador' badge next to its title. Active peluches (is_active=true) do not display the badge.",
       "expectedSpecs": 1
     }
   }

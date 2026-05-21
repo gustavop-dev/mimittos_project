@@ -152,7 +152,12 @@ export default function PeluchDetailPage() {
     )
   }
 
-  const activeSizePrice: PeluchSizePrice | undefined = peluch.size_prices[activeSizeIdx]
+  // Solo las tallas habilitadas para este producto, ordenadas de menor a mayor
+  // por los centímetros extraídos del texto "X cm" de GlobalSize.cm.
+  const availableSizes = peluch.size_prices
+    .filter((sp) => sp.is_available)
+    .sort((a, b) => parseInt(a.size.cm, 10) - parseInt(b.size.cm, 10))
+  const activeSizePrice: PeluchSizePrice | undefined = availableSizes[activeSizeIdx]
   const activeColor = peluch.available_colors[activeColorIdx]
   const colorImages = activeColor?.images?.map((img) => img.url) ?? []
   const gallery = colorImages.length > 0
@@ -367,7 +372,7 @@ export default function PeluchDetailPage() {
           </div>
 
           {/* Size */}
-          {peluch.size_prices.length > 0 && (
+          {availableSizes.length > 0 && (
             <div style={{ marginBottom: 22 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <div style={configLblStyle}>Tamaño</div>
@@ -377,12 +382,12 @@ export default function PeluchDetailPage() {
                   </div>
                 )}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(peluch.size_prices.length, 4)},1fr)`, gap: 8 }}>
-                {peluch.size_prices.map((sp, i) => (
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(availableSizes.length, 4)},1fr)`, gap: 8 }}>
+                {availableSizes.map((sp, i) => (
                   <div
                     key={sp.id}
-                    onClick={() => sp.is_available && setActiveSizeIdx(i)}
-                    style={{ border: `1.5px solid ${i === activeSizeIdx ? 'var(--coral)' : 'rgba(27,42,74,.08)'}`, padding: '14px 10px', borderRadius: 14, background: i === activeSizeIdx ? 'var(--pink-melo)' : '#fff', textAlign: 'center', cursor: sp.is_available ? 'pointer' : 'not-allowed', opacity: sp.is_available ? 1 : .5, transition: 'all .2s' }}
+                    onClick={() => setActiveSizeIdx(i)}
+                    style={{ border: `1.5px solid ${i === activeSizeIdx ? 'var(--coral)' : 'rgba(27,42,74,.08)'}`, padding: '14px 10px', borderRadius: 14, background: i === activeSizeIdx ? 'var(--pink-melo)' : '#fff', textAlign: 'center', cursor: 'pointer', transition: 'all .2s' }}
                   >
                     <div style={{ fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 15, color: 'var(--navy)', marginBottom: 2 }}>{sp.size.label}</div>
                     <div style={{ fontSize: 11, color: i === activeSizeIdx ? 'var(--terracotta)' : 'var(--gray-warm)', fontWeight: i === activeSizeIdx ? 700 : 400 }}>
@@ -406,11 +411,11 @@ export default function PeluchDetailPage() {
                 <div style={configLblStyle}>Color del peluche</div>
                 {activeColor && <div style={{ fontSize: 14, color: 'var(--terracotta)', fontWeight: 700 }}>{activeColor.name}</div>}
               </div>
-              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-start' }}>
                 {peluch.available_colors.map((c, i) => (
-                  <div key={c.id} onClick={() => { setActiveColorIdx(i); setActiveImg(0) }} style={{ cursor: 'pointer', transition: 'transform .2s', transform: i === activeColorIdx ? 'translateY(-2px)' : 'none' }}>
-                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: c.hex_code, border: '3px solid #fff', boxShadow: i === activeColorIdx ? '0 0 0 2.5px var(--coral)' : '0 0 0 1.5px rgba(27,42,74,.1)', transition: 'box-shadow .2s' }} />
-                    <span style={{ display: 'block', textAlign: 'center', fontSize: 11, color: i === activeColorIdx ? 'var(--terracotta)' : 'var(--gray-warm)', fontWeight: 600, marginTop: 6 }}>{c.name}</span>
+                  <div key={c.id} onClick={() => { setActiveColorIdx(i); setActiveImg(0) }} style={{ width: 72, display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', transition: 'transform .2s', transform: i === activeColorIdx ? 'translateY(-2px)' : 'none' }}>
+                    <div style={{ width: 44, height: 44, flexShrink: 0, borderRadius: '50%', background: c.hex_code, border: '3px solid #fff', boxShadow: i === activeColorIdx ? '0 0 0 2.5px var(--coral)' : '0 0 0 1.5px rgba(27,42,74,.1)', transition: 'box-shadow .2s' }} />
+                    <span style={{ width: '100%', textAlign: 'center', fontSize: 11, color: i === activeColorIdx ? 'var(--terracotta)' : 'var(--gray-warm)', fontWeight: 600, marginTop: 6 }}>{c.name}</span>
                   </div>
                 ))}
               </div>

@@ -219,6 +219,18 @@ def test_peluch_update_syncs_colors(cat, db):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
+def test_peluch_list_serializer_includes_is_active_field(cat, db):
+    library = Library.objects.create(title='Draft Gallery')
+    peluch = Peluch.objects.create(
+        title='Borrador Peluch', slug='borrador-peluch', category=cat,
+        lead_description='Test', gallery=library, is_active=False,
+    )
+    ser = PeluchListSerializer(instance=peluch)
+    assert 'is_active' in ser.data
+    assert ser.data['is_active'] is False
+
+
+@pytest.mark.django_db
 def test_peluch_list_serializer_min_price_returns_none_without_prices(cat, db):
     library = Library.objects.create(title='Empty Gallery')
     peluch = Peluch.objects.create(

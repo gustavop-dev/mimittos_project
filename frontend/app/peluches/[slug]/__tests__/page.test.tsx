@@ -39,6 +39,7 @@ const mockPeluchDetail = {
   lead_description: 'El oseznito más querido',
   description: ['Un osito adorable hecho a mano'],
   badge: 'bestseller' as const,
+  is_active: true,
   is_featured: true,
   discount_pct: 0,
   display_order: 100,

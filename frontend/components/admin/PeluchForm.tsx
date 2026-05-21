@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { peluchService } from '@/lib/services/peluchService'
 import { peluchAdminService } from '@/lib/services/peluchAdminService'
 import { globalPresetService } from '@/lib/services/globalPresetService'
-import { compressImage } from '@/lib/utils/imageCompressor'
 import { buildColorImpact, buildSizeImpact, confirmDangerousDelete, notifyDeleteError } from '@/lib/utils/confirmDelete'
+import { useColorImageUpload, type ColorGalleryItem } from '@/lib/hooks/useColorImageUpload'
 import type { Category, GlobalColor, GlobalSize, PeluchDetail } from '@/lib/types'
 
 interface SizePriceRow {
@@ -20,13 +20,6 @@ interface SizePriceRow {
   full_payment_discount_pct: string
   free_shipping: boolean
   shipping_cost: string
-}
-
-interface ColorGalleryItem {
-  id: number | null
-  url: string
-  file?: File
-  uploading?: boolean
 }
 
 interface Props {
@@ -87,7 +80,6 @@ export function PeluchForm({ existing }: Props) {
   const [allColors, setAllColors] = useState<GlobalColor[]>([])
   const [sizePrices, setSizePrices] = useState<SizePriceRow[]>([])
   const [selectedColors, setSelectedColors] = useState<number[]>([])
-  const [colorGallery, setColorGallery] = useState<Record<string, ColorGalleryItem[]>>({})
 
   const [form, setForm] = useState({
     title: '', slug: '', category: '', lead_description: '',
@@ -118,6 +110,89 @@ export function PeluchForm({ existing }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [slugManual, setSlugManual] = useState(false)
+
+  const [draftSlug, setDraftSlug] = useState<string | null>(null)
+
+  // Synchronous mirror of draftSlug + the in-flight create promise. Refs (not
+  // state) so concurrent first-upload calls coalesce onto a single create.
+  const draftSlugRef = useRef<string | null>(null)
+  const draftCreatingRef = useRef<Promise<string> | null>(null)
+
+  // Builds the payload the backend needs to create/update a peluche.
+  const buildPayload = useCallback((isActive: boolean) => ({
+    title: form.title,
+    slug: form.slug,
+    category: Number(form.category),
+    lead_description: form.lead_description,
+    description: tryParseJson<string[]>(descriptionJson) ?? [],
+    badge: form.badge,
+    is_active: isActive,
+    is_featured: form.is_featured,
+    discount_pct: discountPct,
+    display_order: displayOrder,
+    has_huella: form.has_huella,
+    has_corazon: form.has_corazon,
+    has_audio: form.has_audio,
+    huella_extra_cost: Number(form.huella_extra_cost),
+    corazon_extra_cost: Number(form.corazon_extra_cost),
+    audio_extra_cost: Number(form.audio_extra_cost),
+    specifications: tryParseJson<Record<string, string>>(specificationsJson) ?? {},
+    care_instructions: tryParseJson<string[]>(careJson) ?? [],
+    available_color_ids: selectedColors,
+    size_prices_data: sizePrices.map((r) => ({
+      size_id: r.size_id,
+      price: r.is_available ? Number(r.price) : 0,
+      is_available: r.is_available,
+      deposit_percentage: Math.min(100, Math.max(1, Number(r.deposit_percentage) || 50)),
+      full_payment_discount_pct: Math.min(100, Math.max(0, Number(r.full_payment_discount_pct) || 0)),
+      free_shipping: r.free_shipping,
+      shipping_cost: r.free_shipping ? 0 : Math.max(0, Number(r.shipping_cost) || 0),
+    })),
+  }), [form, descriptionJson, specificationsJson, careJson, discountPct, displayOrder, selectedColors, sizePrices])
+
+  // Returns the slug to upload to: the existing peluche, or a draft created on
+  // first call. Concurrent first-upload calls are coalesced onto one create.
+  const resolveUploadSlug = useCallback(async (): Promise<string> => {
+    if (existing) return existing.slug
+    if (draftSlugRef.current) {
+      await peluchAdminService.update(draftSlugRef.current, { available_color_ids: selectedColors })
+      return draftSlugRef.current
+    }
+    if (!form.title.trim() || !form.slug.trim() || !form.category) {
+      throw new Error('Completa título y categoría antes de subir fotos.')
+    }
+    if (!draftCreatingRef.current) {
+      draftCreatingRef.current = peluchAdminService.create(buildPayload(false))
+        .then((created) => {
+          draftSlugRef.current = created.slug
+          setDraftSlug(created.slug)
+          return created.slug
+        })
+        .catch((err) => {
+          // Reset so a later upload attempt can retry creating the draft.
+          draftCreatingRef.current = null
+          throw err
+        })
+    }
+    return draftCreatingRef.current
+  }, [existing, selectedColors, form.title, form.slug, form.category, buildPayload])
+
+  const initialGallery = useMemo<Record<string, ColorGalleryItem[]>>(() => {
+    const gallery: Record<string, ColorGalleryItem[]> = {}
+    for (const c of existing?.available_colors ?? []) {
+      gallery[c.slug] = (c.images ?? []).map((item, i) => ({
+        key: `existing-${c.slug}-${i}`,
+        id: item.id,
+        url: item.url,
+        status: 'done' as const,
+      }))
+    }
+    return gallery
+  }, [existing])
+
+  const {
+    colorGallery, setColorGallery, uploadFiles, retryItem, retryAll, removeImage, hasPendingWork,
+  } = useColorImageUpload({ resolveUploadSlug, initialGallery })
 
   useEffect(() => {
     Promise.all([
@@ -172,12 +247,6 @@ export function PeluchForm({ existing }: Props) {
         })
         setSizePrices(mergedRows)
 
-        // Per-color galleries arrive embedded in the detail payload.
-        const newGallery: Record<string, ColorGalleryItem[]> = {}
-        for (const c of existing.available_colors) {
-          newGallery[c.slug] = (c.images ?? []).map((item) => ({ id: item.id, url: item.url }))
-        }
-        setColorGallery(newGallery)
       } else {
         setSizePrices(rows)
       }
@@ -214,52 +283,17 @@ export function PeluchForm({ existing }: Props) {
     const files = Array.from(e.target.files ?? [])
     e.target.value = ''
     const colorSlug = uploadingColorSlug
-    if (!colorSlug) return
-
-    for (const file of files) {
-      const compressed = await compressImage(file)
-      const objectUrl = URL.createObjectURL(compressed)
-
-      if (existing) {
-        setColorGallery((prev) => ({
-          ...prev,
-          [colorSlug]: [...(prev[colorSlug] ?? []), { id: null, url: objectUrl, uploading: true }],
-        }))
-        try {
-          const result = await peluchAdminService.uploadColorImage(existing.slug, colorSlug, compressed)
-          setColorGallery((prev) => ({
-            ...prev,
-            [colorSlug]: (prev[colorSlug] ?? []).map((img) =>
-              img.url === objectUrl ? { id: result.id, url: result.url } : img
-            ),
-          }))
-          URL.revokeObjectURL(objectUrl)
-        } catch {
-          setColorGallery((prev) => ({
-            ...prev,
-            [colorSlug]: (prev[colorSlug] ?? []).filter((img) => img.url !== objectUrl),
-          }))
-          URL.revokeObjectURL(objectUrl)
-          alert('No se pudo subir la imagen.')
-        }
-      } else {
-        setColorGallery((prev) => ({
-          ...prev,
-          [colorSlug]: [...(prev[colorSlug] ?? []), { id: null, url: objectUrl, file: compressed }],
-        }))
-      }
+    if (!colorSlug || files.length === 0) return
+    if (!existing && (!form.title.trim() || !form.slug.trim() || !form.category)) {
+      setError('Completa título y categoría antes de subir fotos.')
+      return
     }
+    setError('')
+    await uploadFiles(colorSlug, files)
   }
 
-  async function handleColorImageRemove(colorSlug: string, img: ColorGalleryItem) {
-    if (existing && img.id !== null) {
-      try { await peluchAdminService.deleteColorImage(existing.slug, colorSlug, img.id) } catch { /* ignore */ }
-    }
-    URL.revokeObjectURL(img.url)
-    setColorGallery((prev) => ({
-      ...prev,
-      [colorSlug]: (prev[colorSlug] ?? []).filter((i) => i.url !== img.url),
-    }))
+  async function handleColorImageRemove(colorSlug: string, item: ColorGalleryItem) {
+    await removeImage(colorSlug, item.key)
   }
 
   async function handleAddColor() {
@@ -377,50 +411,14 @@ export function PeluchForm({ existing }: Props) {
 
     setSaving(true)
     try {
-      const payload = {
-        title: form.title,
-        slug: form.slug,
-        category: Number(form.category),
-        lead_description: form.lead_description,
-        description,
-        badge: form.badge,
-        is_active: form.is_active,
-        is_featured: form.is_featured,
-        discount_pct: discountPct,
-        display_order: displayOrder,
-        has_huella: form.has_huella,
-        has_corazon: form.has_corazon,
-        has_audio: form.has_audio,
-        huella_extra_cost: Number(form.huella_extra_cost),
-        corazon_extra_cost: Number(form.corazon_extra_cost),
-        audio_extra_cost: Number(form.audio_extra_cost),
-        specifications: specifications ?? {},
-        care_instructions: care_instructions ?? [],
-        available_color_ids: selectedColors,
-        size_prices_data: sizePrices.map((r) => ({
-          size_id: r.size_id,
-          price: r.is_available ? Number(r.price) : 0,
-          is_available: r.is_available,
-          deposit_percentage: Math.min(100, Math.max(1, Number(r.deposit_percentage) || 50)),
-          full_payment_discount_pct: Math.min(100, Math.max(0, Number(r.full_payment_discount_pct) || 0)),
-          free_shipping: r.free_shipping,
-          shipping_cost: r.free_shipping ? 0 : Math.max(0, Number(r.shipping_cost) || 0),
-        })),
-      }
-
       if (existing) {
-        await peluchAdminService.update(existing.slug, payload)
+        await peluchAdminService.update(existing.slug, buildPayload(form.is_active))
+      } else if (draftSlug) {
+        // The draft already exists (images were uploaded) — finalize it.
+        await peluchAdminService.update(draftSlug, buildPayload(form.is_active))
       } else {
-        const created = await peluchAdminService.create(payload)
-        for (const colorId of selectedColors) {
-          const color = allColors.find((c) => c.id === colorId)
-          if (!color) continue
-          for (const img of colorGallery[color.slug] ?? []) {
-            if (img.file) {
-              try { await peluchAdminService.uploadColorImage(created.slug, color.slug, img.file) } catch { /* continue */ }
-            }
-          }
-        }
+        // No images were uploaded; create the peluche directly.
+        await peluchAdminService.create(buildPayload(form.is_active))
       }
       router.push('/backoffice/peluches')
     } catch (err: unknown) {
@@ -429,6 +427,13 @@ export function PeluchForm({ existing }: Props) {
     } finally {
       setSaving(false)
     }
+  }
+
+  async function handleCancel() {
+    if (draftSlug && window.confirm('¿Descartar el borrador y sus fotos?')) {
+      try { await peluchAdminService.delete(draftSlug) } catch { /* ignore */ }
+    }
+    router.push('/backoffice/peluches')
   }
 
   const f = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -623,6 +628,11 @@ export function PeluchForm({ existing }: Props) {
       {selectedColors.length > 0 && (
         <Section title="Galería de fotos por color">
           <p style={HintStyle}>Sube una o varias fotos para cada color. Las imágenes se comprimen automáticamente (máx 1400px).</p>
+          {Object.values(colorGallery).some((items) => items.some((it) => it.status === 'failed')) && (
+            <button type="button" onClick={() => retryAll()} style={{ ...BtnOutline, marginBottom: 12 }}>
+              ⟳ Reintentar todas las imágenes fallidas
+            </button>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {selectedColors.map((colorId) => {
               const color = allColors.find((c) => c.id === colorId)
@@ -637,11 +647,19 @@ export function PeluchForm({ existing }: Props) {
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                     {images.map((img) => (
-                      <div key={img.url} style={{ position: 'relative', width: 90, height: 90, borderRadius: 8, overflow: 'hidden', border: '1.5px solid rgba(27,42,74,.1)', background: '#fff' }}>
+                      <div key={img.key} style={{ position: 'relative', width: 90, height: 90, borderRadius: 8, overflow: 'hidden', border: `1.5px solid ${img.status === 'failed' ? '#E0A0A0' : 'rgba(27,42,74,.1)'}`, background: '#fff' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        {img.uploading && (
-                          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10 }}>Subiendo...</div>
+                        {img.status === 'uploading' && (
+                          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10 }}>Subiendo...</div>
+                        )}
+                        {img.status === 'failed' && (
+                          <button type="button" onClick={() => retryItem(color.slug, img.key)} title={img.errorMessage} style={{ position: 'absolute', inset: 0, background: 'rgba(184,105,111,.85)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, fontWeight: 700 }}>
+                            ✗ Reintentar
+                          </button>
+                        )}
+                        {img.status === 'done' && (
+                          <span style={{ position: 'absolute', bottom: 3, left: 3, background: 'rgba(46,125,50,.9)', color: '#fff', borderRadius: 4, fontSize: 9, padding: '1px 4px' }}>✓</span>
                         )}
                         <button type="button" onClick={() => handleColorImageRemove(color.slug, img)} style={{ position: 'absolute', top: 3, right: 3, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,.6)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, lineHeight: '20px', textAlign: 'center', padding: 0 }}>×</button>
                       </div>
@@ -724,11 +742,16 @@ export function PeluchForm({ existing }: Props) {
 
       {error && <p style={{ color: '#c23b3b', fontSize: 13, marginBottom: 16, padding: '10px 14px', background: '#FFEBEE', borderRadius: 8 }}>{error}</p>}
 
+      {hasPendingWork && (
+        <p style={{ color: '#B8696F', fontSize: 13, marginBottom: 12, fontWeight: 600 }}>
+          ⚠ Hay imágenes subiendo o sin subir. Reinténtalas o quítalas para poder guardar.
+        </p>
+      )}
       <div style={{ display: 'flex', gap: 12 }}>
-        <button type="submit" disabled={saving} style={{ padding: '12px 28px', background: 'var(--coral)', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'inherit', opacity: saving ? .6 : 1 }}>
+        <button type="submit" disabled={saving || hasPendingWork} style={{ padding: '12px 28px', background: 'var(--coral)', color: '#fff', border: 'none', borderRadius: 10, cursor: (saving || hasPendingWork) ? 'not-allowed' : 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'inherit', opacity: (saving || hasPendingWork) ? .6 : 1 }}>
           {saving ? 'Guardando...' : (existing ? 'Guardar cambios' : 'Crear peluche')}
         </button>
-        <button type="button" onClick={() => router.push('/backoffice/peluches')} style={{ padding: '12px 20px', background: 'var(--cream-warm)', color: 'var(--navy)', border: '1px solid rgba(27,42,74,.1)', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: 'inherit' }}>
+        <button type="button" onClick={handleCancel} style={{ padding: '12px 20px', background: 'var(--cream-warm)', color: 'var(--navy)', border: '1px solid rgba(27,42,74,.1)', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: 'inherit' }}>
           Cancelar
         </button>
       </div>
