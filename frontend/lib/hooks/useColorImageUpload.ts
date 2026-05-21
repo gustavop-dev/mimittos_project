@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { peluchAdminService } from '@/lib/services/peluchAdminService'
 import { uploadColorImageWithRetry } from '@/lib/services/colorImageUpload'
@@ -28,6 +28,15 @@ const nextKey = () => `cgi-${Date.now()}-${keySeq++}`
 export function useColorImageUpload({ resolveUploadSlug, initialGallery }: UseColorImageUploadArgs) {
   const [colorGallery, setColorGallery] = useState<ColorGallery>(initialGallery ?? {})
 
+  // Tracks every blob: URL created for a local preview so they can all be
+  // revoked on unmount — an object URL held past its use leaks the File.
+  const createdUrls = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    const urls = createdUrls.current
+    return () => { urls.forEach((u) => URL.revokeObjectURL(u)) }
+  }, [])
+
   const patchItem = useCallback((colorSlug: string, key: string, patch: Partial<ColorGalleryItem>) => {
     setColorGallery((prev) => ({
       ...prev,
@@ -49,20 +58,29 @@ export function useColorImageUpload({ resolveUploadSlug, initialGallery }: UseCo
     try {
       const slug = await resolveUploadSlug(colorSlug)
       const uploaded = await uploadColorImageWithRetry(slug, colorSlug, compressed)
-      patchItem(colorSlug, key, { status: 'done', id: uploaded.id, url: uploaded.url, file: undefined })
+      // The local blob preview is replaced by the server URL — revoke the blob.
+      setColorGallery((prev) => ({
+        ...prev,
+        [colorSlug]: (prev[colorSlug] ?? []).map((it) => {
+          if (it.key !== key) return it
+          if (it.url.startsWith('blob:')) {
+            URL.revokeObjectURL(it.url)
+            createdUrls.current.delete(it.url)
+          }
+          return { ...it, status: 'done', id: uploaded.id, url: uploaded.url, file: undefined }
+        }),
+      }))
     } catch {
       patchItem(colorSlug, key, { status: 'failed', errorMessage: 'No se pudo subir la imagen.', file: compressed })
     }
   }, [patchItem, resolveUploadSlug])
 
   const uploadFiles = useCallback(async (colorSlug: string, files: File[]) => {
-    const items: ColorGalleryItem[] = files.map((f) => ({
-      key: nextKey(),
-      id: null,
-      url: URL.createObjectURL(f),
-      status: 'uploading',
-      file: f,
-    }))
+    const items: ColorGalleryItem[] = files.map((f) => {
+      const url = URL.createObjectURL(f)
+      createdUrls.current.add(url)
+      return { key: nextKey(), id: null, url, status: 'uploading' as const, file: f }
+    })
     setColorGallery((prev) => ({ ...prev, [colorSlug]: [...(prev[colorSlug] ?? []), ...items] }))
     await Promise.all(items.map((it) => uploadOne(colorSlug, it.key, it.file!)))
   }, [uploadOne])
@@ -93,7 +111,10 @@ export function useColorImageUpload({ resolveUploadSlug, initialGallery }: UseCo
         await peluchAdminService.deleteColorImage(slug, colorSlug, item.id)
       } catch { /* the image stays out of the gallery regardless */ }
     }
-    if (item) URL.revokeObjectURL(item.url)
+    if (item) {
+      URL.revokeObjectURL(item.url)
+      createdUrls.current.delete(item.url)
+    }
     setColorGallery((prev) => ({
       ...prev,
       [colorSlug]: (prev[colorSlug] ?? []).filter((it) => it.key !== key),
