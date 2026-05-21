@@ -4,8 +4,10 @@ from base_feature_app.views import catalog
 urlpatterns = [
     path('sizes/', catalog.sizes_list, name='sizes-list'),
     path('sizes/<int:size_id>/', catalog.size_detail, name='size-detail'),
+    path('sizes/<int:size_id>/usage/', catalog.size_usage, name='size-usage'),
     path('colors/', catalog.colors_list, name='colors-list'),
     path('colors/<int:color_id>/', catalog.color_detail, name='color-detail'),
+    path('colors/<int:color_id>/usage/', catalog.color_usage, name='color-usage'),
     path('categories/', catalog.categories, name='categories'),
     path('categories/featured/', catalog.categories_featured, name='categories-featured'),
     path('categories/<int:category_id>/', catalog.category_detail, name='category-detail'),
