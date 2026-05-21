@@ -113,6 +113,11 @@ export function PeluchForm({ existing }: Props) {
 
   const [draftSlug, setDraftSlug] = useState<string | null>(null)
 
+  // Synchronous mirror of draftSlug + the in-flight create promise. Refs (not
+  // state) so concurrent first-upload calls coalesce onto a single create.
+  const draftSlugRef = useRef<string | null>(null)
+  const draftCreatingRef = useRef<Promise<string> | null>(null)
+
   // The slug of the peluche being edited: the existing one, or the draft once created.
   const targetSlug = existing?.slug ?? draftSlug
 
@@ -149,20 +154,31 @@ export function PeluchForm({ existing }: Props) {
   }), [form, descriptionJson, specificationsJson, careJson, discountPct, displayOrder, selectedColors, sizePrices])
 
   // Returns the slug to upload to: the existing peluche, or a draft created on
-  // first call. After the draft exists, keeps its colors in sync.
+  // first call. Concurrent first-upload calls are coalesced onto one create.
   const resolveUploadSlug = useCallback(async (): Promise<string> => {
     if (existing) return existing.slug
-    if (draftSlug) {
-      await peluchAdminService.update(draftSlug, { available_color_ids: selectedColors })
-      return draftSlug
+    if (draftSlugRef.current) {
+      await peluchAdminService.update(draftSlugRef.current, { available_color_ids: selectedColors })
+      return draftSlugRef.current
     }
     if (!form.title.trim() || !form.slug.trim() || !form.category) {
       throw new Error('Completa título y categoría antes de subir fotos.')
     }
-    const created = await peluchAdminService.create(buildPayload(false))
-    setDraftSlug(created.slug)
-    return created.slug
-  }, [existing, draftSlug, selectedColors, form.title, form.slug, form.category, buildPayload])
+    if (!draftCreatingRef.current) {
+      draftCreatingRef.current = peluchAdminService.create(buildPayload(false))
+        .then((created) => {
+          draftSlugRef.current = created.slug
+          setDraftSlug(created.slug)
+          return created.slug
+        })
+        .catch((err) => {
+          // Reset so a later upload attempt can retry creating the draft.
+          draftCreatingRef.current = null
+          throw err
+        })
+    }
+    return draftCreatingRef.current
+  }, [existing, selectedColors, form.title, form.slug, form.category, buildPayload])
 
   const initialGallery = useMemo<Record<string, ColorGalleryItem[]>>(() => {
     const gallery: Record<string, ColorGalleryItem[]> = {}

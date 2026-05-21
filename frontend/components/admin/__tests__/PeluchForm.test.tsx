@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from '@jest/globals'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 jest.mock('next/navigation', () => ({
@@ -231,6 +231,52 @@ describe('PeluchForm', () => {
     await waitFor(() => {
       expect(peluchAdminService.update).toHaveBeenCalledWith('osito-coral', expect.any(Object))
     })
+  })
+
+  it('coalesces concurrent first-upload calls into a single draft peluche create', async () => {
+    const { peluchService } = require('@/lib/services/peluchService')
+    const { peluchAdminService } = require('@/lib/services/peluchAdminService')
+    const { uploadColorImageWithRetry } = require('@/lib/services/colorImageUpload')
+    peluchService.getCategories.mockResolvedValue([
+      { id: 1, name: 'Ositos', slug: 'ositos', description: '', display_order: 1, is_active: true, is_featured: false, image_url: null },
+    ])
+    peluchService.getSizes.mockResolvedValue([])
+    peluchService.getColors.mockResolvedValue([
+      { id: 1, name: 'Coral', slug: 'coral', hex_code: '#FF6B6B', sort_order: 1 },
+    ])
+    // Back the create with a manually-controlled promise so both uploads race
+    // before the draft slug is available.
+    let resolveCreate!: (v: { slug: string; available_colors: never[] }) => void
+    peluchAdminService.create.mockImplementation(
+      () => new Promise((res) => { resolveCreate = res }),
+    )
+    peluchAdminService.update.mockResolvedValue({})
+    uploadColorImageWithRetry.mockResolvedValue({ id: 1, color_id: 1, url: '/srv.jpg' })
+
+    render(<PeluchForm />)
+
+    // Fill minimum fields
+    await userEvent.type(await screen.findByPlaceholderText('Osito Suave Premium'), 'Osito Coral')
+    await userEvent.selectOptions(screen.getAllByRole('combobox')[0], '1')
+    // Select the color so the gallery section renders
+    await userEvent.click(screen.getByRole('button', { name: /Coral/ }))
+    // Open the file input via the "+Foto" button
+    await userEvent.click(await screen.findByRole('button', { name: /Foto/i }))
+    // Upload TWO files in a single change event (input has `multiple`).
+    // Both files feed into the same uploadFiles() call which runs uploadOne()
+    // concurrently via Promise.all — each uploadOne calls resolveUploadSlug.
+    const fileInput = document.querySelector('input[type="file"][accept="image/*"]') as HTMLInputElement
+    await userEvent.upload(fileInput, [
+      new File(['a'], 'photo1.jpg', { type: 'image/jpeg' }),
+      new File(['b'], 'photo2.jpg', { type: 'image/jpeg' }),
+    ])
+
+    // Resolve the deferred create — only one call should have been made
+    await act(async () => {
+      resolveCreate({ slug: 'osito-coral', available_colors: [] })
+    })
+
+    await waitFor(() => expect(peluchAdminService.create).toHaveBeenCalledTimes(1))
   })
 
   it('creates a draft peluche on the first color image upload', async () => {
