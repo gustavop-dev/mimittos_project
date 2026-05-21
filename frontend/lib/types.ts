@@ -26,6 +26,17 @@ export type PeluchColor = GlobalColor & {
   images?: ColorImageItem[]
 }
 
+export type ColorUsage = {
+  products: number
+  photos: number
+  orders: number
+}
+
+export type SizeUsage = {
+  products: number
+  orders: number
+}
+
 export type Category = {
   id: number
   name: string
