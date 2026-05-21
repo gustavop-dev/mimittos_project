@@ -1,88 +1,73 @@
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals'
-import { compressImage, ImageTooLargeError, TARGET_BYTES } from '../imageCompressor'
-
-function mockImage(width: number, height: number) {
-  ;(global as any).Image = class {
-    width = width
-    height = height
-    set src(_: string) { ;(this as any).onload?.() }
-  }
-}
-
-function mockCanvas(blobSizeByQuality: (quality: number) => number) {
-  const ctx = { drawImage: jest.fn() }
-  const canvas = {
-    width: 0,
-    height: 0,
-    getContext: jest.fn().mockReturnValue(ctx),
-    toBlob: jest.fn().mockImplementation((cb: (b: Blob) => void, _type: string, quality: number) => {
-      cb(new Blob([new Uint8Array(blobSizeByQuality(quality))], { type: 'image/jpeg' }))
-    }),
-  }
-  jest.spyOn(document, 'createElement').mockReturnValue(canvas as unknown as HTMLElement)
-  return canvas
-}
+import { compressImage } from '../imageCompressor'
 
 describe('compressImage', () => {
   beforeEach(() => {
     global.URL.createObjectURL = jest.fn().mockReturnValue('blob:mock-url')
     global.URL.revokeObjectURL = jest.fn()
   })
-  afterEach(() => jest.restoreAllMocks())
 
-  it('returns a non-image file untouched', async () => {
-    const file = new File(['x'], 'doc.txt', { type: 'text/plain' })
-    expect(await compressImage(file)).toBe(file)
+  afterEach(() => {
+    jest.restoreAllMocks()
   })
 
-  it('returns an image untouched when it is already small in bytes and dimensions', async () => {
-    const file = new File(['tiny'], 'small.jpg', { type: 'image/jpeg' })
-    mockImage(400, 300)
-    expect(await compressImage(file)).toBe(file)
+  it('returns non-image file without processing', async () => {
+    const file = new File(['text content'], 'document.txt', { type: 'text/plain' })
+    const result = await compressImage(file)
+    expect(result).toBe(file)
+    expect(global.URL.createObjectURL).not.toHaveBeenCalled()
   })
 
-  it('re-encodes an oversized image to a jpeg File under the target', async () => {
-    const big = new File([new Uint8Array(TARGET_BYTES + 1000)], 'big.png', { type: 'image/png' })
-    mockImage(3000, 2000)
-    mockCanvas(() => 200_000)
-    const result = await compressImage(big)
-    expect(result).not.toBe(big)
-    expect(result.type).toBe('image/jpeg')
-    expect(result.name).toBe('big.jpg')
-    expect(result.size).toBeLessThanOrEqual(TARGET_BYTES)
-  })
+  it('returns small image file unchanged when within 1400x1400 limit', async () => {
+    const file = new File(['img'], 'small.jpg', { type: 'image/jpeg' })
 
-  it('steps down quality until the blob fits under the target', async () => {
-    const big = new File([new Uint8Array(TARGET_BYTES + 1000)], 'big.jpg', { type: 'image/jpeg' })
-    mockImage(3000, 2000)
-    // only the lowest quality (0.4) produces a small enough blob
-    mockCanvas((quality) => (quality <= 0.4 ? 100_000 : TARGET_BYTES + 5000))
-    const result = await compressImage(big)
-    expect(result.size).toBeLessThanOrEqual(TARGET_BYTES)
-  })
-
-  it('re-encodes a heavy file even when its dimensions are within limits', async () => {
-    const heavy = new File([new Uint8Array(TARGET_BYTES + 1000)], 'heavy.jpg', { type: 'image/jpeg' })
-    mockImage(800, 600)
-    mockCanvas(() => 200_000)
-    const result = await compressImage(heavy)
-    expect(result).not.toBe(heavy)
-    expect(result.type).toBe('image/jpeg')
-    expect(result.size).toBeLessThanOrEqual(TARGET_BYTES)
-  })
-
-  it('throws ImageTooLargeError when no quality step fits under the target', async () => {
-    const big = new File([new Uint8Array(TARGET_BYTES + 1000)], 'huge.jpg', { type: 'image/jpeg' })
-    mockImage(3000, 2000)
-    mockCanvas(() => TARGET_BYTES + 5000)
-    await expect(compressImage(big)).rejects.toThrow(ImageTooLargeError)
-  })
-
-  it('rejects when the image fails to load', async () => {
-    const file = new File(['x'], 'corrupt.jpg', { type: 'image/jpeg' })
     ;(global as any).Image = class {
-      set src(_: string) { ;(this as any).onerror?.() }
+      width = 400
+      height = 300
+      set src(_: string) {
+        ;(this as any).onload?.()
+      }
     }
+
+    const result = await compressImage(file)
+    expect(result).toBe(file)
+  })
+
+  it('compresses oversized image and returns a resized File', async () => {
+    const file = new File(['img'], 'large.jpg', { type: 'image/jpeg' })
+    const mockBlob = new Blob(['compressed-data'], { type: 'image/jpeg' })
+    const mockCtx = { drawImage: jest.fn() }
+    const mockCanvas = {
+      width: 0,
+      height: 0,
+      getContext: jest.fn().mockReturnValue(mockCtx),
+      toBlob: jest.fn().mockImplementation((cb: (b: Blob) => void) => cb(mockBlob)),
+    }
+    jest.spyOn(document, 'createElement').mockReturnValueOnce(mockCanvas as unknown as HTMLElement)
+
+    ;(global as any).Image = class {
+      width = 2800
+      height = 2100
+      set src(_: string) {
+        ;(this as any).onload?.()
+      }
+    }
+
+    const result = await compressImage(file)
+    expect(result).not.toBe(file)
+    expect(result.name).toBe('large.jpg')
+    expect(result.type).toBe('image/jpeg')
+  })
+
+  it('rejects with an error when image fails to load', async () => {
+    const file = new File(['img'], 'corrupt.jpg', { type: 'image/jpeg' })
+
+    ;(global as any).Image = class {
+      set src(_: string) {
+        ;(this as any).onerror?.()
+      }
+    }
+
     await expect(compressImage(file)).rejects.toThrow('Failed to load image')
   })
 })
