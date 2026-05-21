@@ -33,7 +33,6 @@ function makePeluch(overrides: Partial<{
     discounted_min_price: null,
     available_colors: [],
     gallery_urls: [],
-    color_images_meta: [],
     average_rating: 4.5,
     review_count: 10,
     has_huella: false,

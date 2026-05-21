@@ -11,7 +11,6 @@ jest.mock('../../../../lib/services/peluchService', () => ({
   peluchService: {
     getPeluchBySlug: jest.fn(),
     getReviews: jest.fn(),
-    getColorImages: jest.fn().mockResolvedValue([]),
   },
 }))
 
@@ -45,9 +44,8 @@ const mockPeluchDetail = {
   display_order: 100,
   min_price: 85000,
   discounted_min_price: 85000,
-  available_colors: [{ id: 1, name: 'Rosa Coral', slug: 'rosa-coral', hex_code: '#D4848A', sort_order: 1 }],
+  available_colors: [{ id: 1, name: 'Rosa Coral', slug: 'rosa-coral', hex_code: '#D4848A', sort_order: 1, preview_url: null, image_count: 0, images: [] }],
   gallery_urls: ['http://example.com/img1.jpg', 'http://example.com/img2.jpg'],
-  color_images_meta: [],
   average_rating: 4.9, review_count: 184,
   has_huella: true, has_corazon: true, has_audio: false,
   size_prices: [
@@ -196,5 +194,38 @@ describe('PeluchDetailPage', () => {
     const breakdown = await screen.findByTestId('personalization-breakdown')
     expect(breakdown).toHaveTextContent('Audio personalizado')
     expect(breakdown).toHaveTextContent('+$20.000')
+  })
+
+  it('uses the generic gallery for a color with no images', async () => {
+    const peluch = {
+      ...mockPeluchDetail,
+      gallery_urls: ['http://example.com/generic.jpg'],
+      available_colors: [
+        { id: 1, name: 'Algodón', slug: 'algodon', hex_code: '#EEEEEE', sort_order: 0, preview_url: null, image_count: 0, images: [] },
+      ],
+    }
+    mockPeluchService.getPeluchBySlug.mockResolvedValue(peluch)
+    render(<PeluchDetailPage />)
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Osito Coral' })).toBeInTheDocument())
+
+    expect(screen.getByAltText('Osito Coral')).toHaveAttribute('src', 'http://example.com/generic.jpg')
+  })
+
+  it('shows a color\'s own images after selecting that color', async () => {
+    const peluch = {
+      ...mockPeluchDetail,
+      gallery_urls: ['http://example.com/generic.jpg'],
+      available_colors: [
+        { id: 1, name: 'Algodón', slug: 'algodon', hex_code: '#EEEEEE', sort_order: 0, preview_url: null, image_count: 0, images: [] },
+        { id: 2, name: 'Rubí rojo', slug: 'rubi-rojo', hex_code: '#C0182B', sort_order: 1, preview_url: 'http://example.com/rojo.jpg', image_count: 1, images: [{ id: 9, url: 'http://example.com/rojo.jpg' }] },
+      ],
+    }
+    mockPeluchService.getPeluchBySlug.mockResolvedValue(peluch)
+    render(<PeluchDetailPage />)
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Osito Coral' })).toBeInTheDocument())
+
+    await userEvent.click(screen.getByText('Rubí rojo'))
+
+    expect(screen.getByAltText('Osito Coral')).toHaveAttribute('src', 'http://example.com/rojo.jpg')
   })
 })

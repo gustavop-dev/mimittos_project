@@ -8,7 +8,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from base_feature_app.models import Peluch, Category, GlobalSize, GlobalColor, PeluchColorImage
+from base_feature_app.models import (
+    Peluch, Category, GlobalSize, GlobalColor, PeluchColorImage, PeluchSizePrice, OrderItem,
+)
 from base_feature_app.serializers.catalog import (
     PeluchListSerializer, PeluchDetailSerializer, PeluchCreateUpdateSerializer,
     CategorySerializer, GlobalSizeSerializer, GlobalColorSerializer,
@@ -101,13 +103,48 @@ def color_detail(request, color_id: int):
     except GlobalColor.DoesNotExist:
         return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
     if request.method == 'DELETE':
+        attachment_ids = list(
+            PeluchColorImage.objects.filter(color=color).values_list('attachment_id', flat=True)
+        )
         color.delete()
+        Attachment.objects.filter(id__in=attachment_ids).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     serializer = GlobalColorSerializer(color, data=request.data, partial=True)
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def color_usage(request, color_id: int):
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        color = GlobalColor.objects.get(pk=color_id)
+    except GlobalColor.DoesNotExist:
+        return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+    return Response({
+        'products': Peluch.objects.filter(available_colors=color).count(),
+        'photos': PeluchColorImage.objects.filter(color=color).count(),
+        'orders': OrderItem.objects.filter(color=color).count(),
+    })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def size_usage(request, size_id: int):
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+    try:
+        size = GlobalSize.objects.get(pk=size_id)
+    except GlobalSize.DoesNotExist:
+        return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+    return Response({
+        'products': PeluchSizePrice.objects.filter(size=size).count(),
+        'orders': OrderItem.objects.filter(size=size).count(),
+    })
 
 
 @api_view(['GET', 'POST'])

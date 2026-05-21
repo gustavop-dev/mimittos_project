@@ -78,16 +78,6 @@ describe('peluchAdminService', () => {
     })
   })
 
-  describe('getColorImages', () => {
-    it('fetches color images by peluch and color slug', async () => {
-      const mockImages = [{ id: 1, image_url: 'http://example.com/img.jpg' }]
-      mockGet.mockResolvedValue({ data: mockImages })
-      const result = await peluchAdminService.getColorImages('osito-coral', 'rosa-coral')
-      expect(mockGet).toHaveBeenCalledWith('/peluches/osito-coral/color-image/rosa-coral/')
-      expect(result).toEqual(mockImages)
-    })
-  })
-
   describe('uploadColorImage', () => {
     it('posts color image as FormData', async () => {
       const mockResponse = { id: 1, color_id: 1, url: 'http://example.com/img.jpg' }

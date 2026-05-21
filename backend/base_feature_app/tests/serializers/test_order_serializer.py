@@ -363,3 +363,31 @@ def test_order_item_read_returns_relative_url_without_request_context(read_order
     )
     data = OrderItemReadSerializer(item).data
     assert data['audio_media_url'] == '/media/personalizations/2026/01/test.mp3'
+
+
+@pytest.mark.django_db
+def test_order_item_read_returns_null_for_deleted_size(read_order, peluch_with_price, size, color):
+    item = OrderItem.objects.create(
+        order=read_order, peluch=peluch_with_price, size=size, color=color,
+        quantity=1, unit_price=90000,
+    )
+    item.size = None
+    item.save()
+
+    data = OrderItemReadSerializer(item).data
+
+    assert data['size'] is None
+
+
+@pytest.mark.django_db
+def test_order_item_read_returns_null_for_deleted_color(read_order, peluch_with_price, size, color):
+    item = OrderItem.objects.create(
+        order=read_order, peluch=peluch_with_price, size=size, color=color,
+        quantity=1, unit_price=90000,
+    )
+    item.color = None
+    item.save()
+
+    data = OrderItemReadSerializer(item).data
+
+    assert data['color'] is None

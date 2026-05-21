@@ -96,8 +96,6 @@ export default function PeluchDetailPage() {
   const [activeTab, setActiveTab] = useState(0)
   const [activeImg, setActiveImg] = useState(0)
   const [addedToast, setAddedToast] = useState(false)
-  const [colorGalleryCache, setColorGalleryCache] = useState<Record<string, string[]>>({})
-  const [galleryLoading, setGalleryLoading] = useState(false)
 
   // Huella
   const [huellaType, setHuellaType] = useState<'name' | 'date' | 'letter' | 'image'>('name')
@@ -127,34 +125,10 @@ export default function PeluchDetailPage() {
       .then(([p, r]) => {
         setPeluch(p)
         setReviews(r)
-        // Pre-load first color gallery
-        const firstMeta = p.color_images_meta?.[0]
-        if (firstMeta && firstMeta.count > 0) {
-          peluchService.getColorImages(p.slug, firstMeta.color_slug)
-            .then((items) => setColorGalleryCache({ [firstMeta.color_slug]: items.map((i) => i.url) }))
-            .catch(() => {})
-        }
       })
       .catch(() => setError('No encontramos este peluche.'))
       .finally(() => setLoading(false))
   }, [slug])
-
-  useEffect(() => {
-    if (!peluch) return
-    const meta = peluch.color_images_meta?.[activeColorIdx]
-    if (!meta) return
-    setActiveImg(0)
-    if (meta.count === 0) return
-    if (colorGalleryCache[meta.color_slug]) return
-    setGalleryLoading(true)
-    peluchService.getColorImages(peluch.slug, meta.color_slug)
-      .then((items) => {
-        setColorGalleryCache((prev) => ({ ...prev, [meta.color_slug]: items.map((i) => i.url) }))
-      })
-      .catch(() => {})
-      .finally(() => setGalleryLoading(false))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeColorIdx, peluch])
 
   if (loading) {
     return (
@@ -180,12 +154,10 @@ export default function PeluchDetailPage() {
 
   const activeSizePrice: PeluchSizePrice | undefined = peluch.size_prices[activeSizeIdx]
   const activeColor = peluch.available_colors[activeColorIdx]
-  const activeColorMeta = peluch.color_images_meta?.[activeColorIdx] ?? null
-  const gallery = (activeColorMeta && colorGalleryCache[activeColorMeta.color_slug]?.length)
-    ? colorGalleryCache[activeColorMeta.color_slug]
-    : activeColorMeta?.preview_url
-      ? [activeColorMeta.preview_url]
-      : peluch.gallery_urls.length > 0 ? peluch.gallery_urls : ['/mimittos/prod-01.svg']
+  const colorImages = activeColor?.images?.map((img) => img.url) ?? []
+  const gallery = colorImages.length > 0
+    ? colorImages
+    : peluch.gallery_urls.length > 0 ? peluch.gallery_urls : ['/mimittos/prod-01.svg']
 
   const userHasHuella = peluch.has_huella && (
     huellaType !== 'image' ? huellaText.trim() !== '' : huellaMediaId !== null
@@ -436,7 +408,7 @@ export default function PeluchDetailPage() {
               </div>
               <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                 {peluch.available_colors.map((c, i) => (
-                  <div key={c.id} onClick={() => setActiveColorIdx(i)} style={{ cursor: 'pointer', transition: 'transform .2s', transform: i === activeColorIdx ? 'translateY(-2px)' : 'none' }}>
+                  <div key={c.id} onClick={() => { setActiveColorIdx(i); setActiveImg(0) }} style={{ cursor: 'pointer', transition: 'transform .2s', transform: i === activeColorIdx ? 'translateY(-2px)' : 'none' }}>
                     <div style={{ width: 44, height: 44, borderRadius: '50%', background: c.hex_code, border: '3px solid #fff', boxShadow: i === activeColorIdx ? '0 0 0 2.5px var(--coral)' : '0 0 0 1.5px rgba(27,42,74,.1)', transition: 'box-shadow .2s' }} />
                     <span style={{ display: 'block', textAlign: 'center', fontSize: 11, color: i === activeColorIdx ? 'var(--terracotta)' : 'var(--gray-warm)', fontWeight: 600, marginTop: 6 }}>{c.name}</span>
                   </div>

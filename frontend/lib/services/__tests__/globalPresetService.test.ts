@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from '@jest/globals'
 
 jest.mock('../http', () => ({
   api: {
+    get: jest.fn(),
     post: jest.fn(),
     patch: jest.fn(),
     delete: jest.fn(),
@@ -11,6 +12,7 @@ jest.mock('../http', () => ({
 import { api } from '../http'
 import { globalPresetService } from '../globalPresetService'
 
+const mockGet = api.get as jest.Mock
 const mockPost = api.post as jest.Mock
 const mockPatch = api.patch as jest.Mock
 const mockDelete = api.delete as jest.Mock
@@ -73,6 +75,26 @@ describe('globalPresetService', () => {
       mockDelete.mockResolvedValue({})
       await globalPresetService.deleteGalleryImage('osito-coral', 5)
       expect(mockDelete).toHaveBeenCalledWith('/peluches/osito-coral/gallery/5/')
+    })
+  })
+
+  describe('getColorUsage', () => {
+    it('fetches color usage from the colors usage endpoint', async () => {
+      const usage = { products: 5, photos: 12, orders: 3 }
+      mockGet.mockResolvedValue({ data: usage })
+      const result = await globalPresetService.getColorUsage(7)
+      expect(mockGet).toHaveBeenCalledWith('/colors/7/usage/')
+      expect(result).toEqual(usage)
+    })
+  })
+
+  describe('getSizeUsage', () => {
+    it('fetches size usage from the sizes usage endpoint', async () => {
+      const usage = { products: 4, orders: 2 }
+      mockGet.mockResolvedValue({ data: usage })
+      const result = await globalPresetService.getSizeUsage(9)
+      expect(mockGet).toHaveBeenCalledWith('/sizes/9/usage/')
+      expect(result).toEqual(usage)
     })
   })
 })

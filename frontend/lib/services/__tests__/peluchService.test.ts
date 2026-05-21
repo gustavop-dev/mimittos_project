@@ -98,14 +98,4 @@ describe('peluchService', () => {
       expect(result).toEqual(newReview)
     })
   })
-
-  describe('getColorImages', () => {
-    it('fetches color images for a peluch and color slug', async () => {
-      const mockImages = [{ id: 1, image_url: 'http://example.com/img.jpg' }]
-      mockGet.mockResolvedValue({ data: mockImages })
-      const result = await peluchService.getColorImages('osito-coral', 'rosa-coral')
-      expect(mockGet).toHaveBeenCalledWith('/peluches/osito-coral/color-image/rosa-coral/')
-      expect(result).toEqual(mockImages)
-    })
-  })
 })

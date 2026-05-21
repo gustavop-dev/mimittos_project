@@ -121,12 +121,18 @@ class PeluchColorImageFactory(factory.django.DjangoModelFactory):
 
     @classmethod
     def _create(cls, model_class, *args, **kwargs):
-        from django_attachments.models import Attachment, Library
-        library = kwargs['peluch'].gallery
+        import io
+
+        from django.core.files.base import ContentFile
+        from django_attachments.models import Attachment
+        from PIL import Image
+
+        buf = io.BytesIO()
+        Image.new('RGB', (10, 10), color=(200, 100, 50)).save(buf, format='JPEG')
         attachment = Attachment.objects.create(
-            library=library,
-            original_filename='test.jpg',
-            file='personalizations/test/test.jpg',
+            library=kwargs['peluch'].gallery,
+            original_name='test.jpg',
+            file=ContentFile(buf.getvalue(), name='test.jpg'),
         )
         kwargs['attachment'] = attachment
         return super()._create(model_class, *args, **kwargs)
