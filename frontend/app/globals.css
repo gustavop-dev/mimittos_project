@@ -120,3 +120,37 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   background: #D4848A !important;
   opacity: 1 !important;
 }
+
+/* ── SweetAlert2 — MIMITTOS branding ──────────────────────── */
+.swal-mimittos {
+  border-radius: var(--radius-md);
+  font-family: 'Nunito', ui-sans-serif, system-ui, sans-serif;
+  background: var(--cream-warm);
+}
+.swal-mimittos .swal2-title {
+  font-family: 'Quicksand', sans-serif;
+  font-weight: 700;
+  color: var(--navy);
+}
+.swal-mimittos .swal2-html-container {
+  color: var(--gray-warm);
+}
+.swal-mimittos-input {
+  border-radius: var(--radius-sm) !important;
+  border: 1.5px solid rgba(27, 42, 74, .15) !important;
+  box-shadow: none !important;
+}
+.swal-mimittos-confirm {
+  background: var(--terracotta) !important;
+  border-radius: 999px !important;
+  font-family: 'Quicksand', sans-serif !important;
+  font-weight: 700 !important;
+}
+.swal-mimittos-cancel {
+  background: #fff !important;
+  color: var(--navy) !important;
+  border: 1.5px solid rgba(27, 42, 74, .15) !important;
+  border-radius: 999px !important;
+  font-family: 'Quicksand', sans-serif !important;
+  font-weight: 700 !important;
+}
