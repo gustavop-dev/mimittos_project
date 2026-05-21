@@ -1,5 +1,5 @@
 import { api } from './http'
-import type { GlobalColor, GlobalSize } from '../types'
+import type { ColorUsage, GlobalColor, GlobalSize, SizeUsage } from '../types'
 
 export const globalPresetService = {
   // Sizes
@@ -15,6 +15,10 @@ export const globalPresetService = {
   updateColor: (id: number, data: Partial<{ name: string; hex_code: string; sort_order: number; is_active: boolean }>) =>
     api.patch<GlobalColor>(`/colors/${id}/`, data).then((r) => r.data),
   deleteColor: (id: number) => api.delete(`/colors/${id}/`),
+  getColorUsage: (id: number) =>
+    api.get<ColorUsage>(`/colors/${id}/usage/`).then((r) => r.data),
+  getSizeUsage: (id: number) =>
+    api.get<SizeUsage>(`/sizes/${id}/usage/`).then((r) => r.data),
 
   // Gallery
   uploadGalleryImage: (slug: string, file: File) => {
