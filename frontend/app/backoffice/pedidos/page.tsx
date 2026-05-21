@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 
 import { orderService } from '@/lib/services/orderService'
+import { itemSizeLabel, itemSizeCm, itemColorName, itemColorHex } from '@/lib/utils/orderItemDisplay'
 import type { OrderDetail, OrderItemRead, OrderListItem, OrderStatus } from '@/lib/types'
 
 const STATUS_OPTIONS: OrderStatus[] = [
@@ -307,9 +308,9 @@ function OrderItemCard({ item }: { item: OrderItemRead }) {
         <div>
           <div style={{ fontWeight: 700, color: 'var(--navy)', fontSize: 14 }}>{item.peluch_title}</div>
           <div style={{ fontSize: 12, color: 'var(--gray-warm)', display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
-            <span>Talla: {item.size.label} · {item.size.cm}</span>
+            <span>Talla: {itemSizeLabel(item)} · {itemSizeCm(item)}</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              Color: <span style={{ width: 12, height: 12, borderRadius: '50%', background: item.color.hex_code, border: '1px solid rgba(27,42,74,.15)', display: 'inline-block' }} /> {item.color.name}
+              Color: <span style={{ width: 12, height: 12, borderRadius: '50%', background: itemColorHex(item), border: '1px solid rgba(27,42,74,.15)', display: 'inline-block' }} /> {itemColorName(item)}
             </span>
             <span>Cantidad: {item.quantity}</span>
           </div>

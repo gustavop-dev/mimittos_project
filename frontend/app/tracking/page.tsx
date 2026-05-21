@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 
 import { orderService } from '@/lib/services/orderService'
+import { itemSizeLabel, itemSizeCm, itemColorName } from '@/lib/utils/orderItemDisplay'
 import type { OrderItemRead, OrderStatus, OrderTrackingInfo } from '@/lib/types'
 
 const STATUS_LABELS: Record<string, string> = {
@@ -56,7 +57,7 @@ function ItemCard({ item }: { item: OrderItemRead }) {
             {item.peluch_title}
           </p>
           <p style={{ fontSize: 13, color: 'var(--gray-warm)', margin: '0 0 2px' }}>
-            Talla: <strong>{item.size.label}</strong> ({item.size.cm}) · Color: <strong>{item.color.name}</strong>
+            Talla: <strong>{itemSizeLabel(item)}</strong> ({itemSizeCm(item)}) · Color: <strong>{itemColorName(item)}</strong>
           </p>
           <p style={{ fontSize: 13, color: 'var(--gray-warm)', margin: 0 }}>
             Cantidad: <strong>{item.quantity}</strong>

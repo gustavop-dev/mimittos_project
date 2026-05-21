@@ -158,8 +158,8 @@ export type OrderItemRead = {
   id: number
   peluch_title: string
   peluch_slug: string
-  size: GlobalSize
-  color: GlobalColor
+  size: GlobalSize | null
+  color: GlobalColor | null
   quantity: number
   unit_price: number
   personalization_cost: number
