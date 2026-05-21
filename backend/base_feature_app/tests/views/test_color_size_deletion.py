@@ -1,10 +1,12 @@
 import pytest
+from django_attachments.models import Attachment
 
-from base_feature_app.models import OrderItem, PeluchSizePrice
+from base_feature_app.models import OrderItem, PeluchColorImage, PeluchSizePrice
 from base_feature_app.tests.factories import (
     GlobalColorFactory,
     GlobalSizeFactory,
     OrderItemFactory,
+    PeluchColorImageFactory,
     PeluchFactory,
     PeluchSizePriceFactory,
 )
@@ -56,3 +58,16 @@ def test_deleting_color_removes_it_from_products(admin_client):
 
     assert response.status_code == 204
     assert not peluch.available_colors.filter(pk=color.pk).exists()
+
+
+@pytest.mark.django_db
+def test_deleting_color_removes_its_color_image_attachments(admin_client):
+    color_image = PeluchColorImageFactory()
+    color = color_image.color
+    attachment_id = color_image.attachment_id
+
+    response = admin_client.delete(f'/api/colors/{color.id}/')
+
+    assert response.status_code == 204
+    assert not PeluchColorImage.objects.filter(pk=color_image.pk).exists()
+    assert not Attachment.objects.filter(pk=attachment_id).exists()

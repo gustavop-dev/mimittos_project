@@ -101,7 +101,11 @@ def color_detail(request, color_id: int):
     except GlobalColor.DoesNotExist:
         return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
     if request.method == 'DELETE':
+        attachment_ids = list(
+            PeluchColorImage.objects.filter(color=color).values_list('attachment_id', flat=True)
+        )
         color.delete()
+        Attachment.objects.filter(id__in=attachment_ids).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     serializer = GlobalColorSerializer(color, data=request.data, partial=True)
     if serializer.is_valid():
