@@ -16,8 +16,12 @@ class OrderItem(models.Model):
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     peluch = models.ForeignKey(Peluch, on_delete=models.PROTECT, related_name='order_items')
-    size = models.ForeignKey(GlobalSize, on_delete=models.PROTECT, related_name='order_items')
-    color = models.ForeignKey(GlobalColor, on_delete=models.PROTECT, related_name='order_items')
+    size = models.ForeignKey(
+        GlobalSize, null=True, blank=True, on_delete=models.SET_NULL, related_name='order_items'
+    )
+    color = models.ForeignKey(
+        GlobalColor, null=True, blank=True, on_delete=models.SET_NULL, related_name='order_items'
+    )
     quantity = models.PositiveSmallIntegerField()
     unit_price = models.PositiveIntegerField()
 
