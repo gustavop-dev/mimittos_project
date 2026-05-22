@@ -1,5 +1,7 @@
 import io
+import uuid
 
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from PIL import Image as PILImage
@@ -68,16 +70,24 @@ def hero_image_upload(request):
     except Exception:
         return Response({'detail': 'Imagen inválida o corrupta.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    path_name = 'site/hero.jpg'
-    try:
-        if default_storage.exists(path_name):
-            default_storage.delete(path_name)
-    except Exception:
-        pass
+    content_obj, _ = SiteContent.objects.get_or_create(key='hero_image', defaults={'content_json': {}})
+
+    # Borrar la imagen anterior si vivía en el storage local (evita acumular archivos huérfanos).
+    old_url = (content_obj.content_json or {}).get('image_url', '')
+    if isinstance(old_url, str) and old_url.startswith(settings.MEDIA_URL):
+        old_path = old_url[len(settings.MEDIA_URL):].split('?')[0]
+        try:
+            if default_storage.exists(old_path):
+                default_storage.delete(old_path)
+        except Exception:
+            pass
+
+    # Nombre único por subida: la URL cambia siempre, así ninguna caché
+    # (navegador, nginx, CDN) sigue sirviendo una versión obsoleta del hero.
+    path_name = f'site/hero-{uuid.uuid4().hex}.jpg'
     saved_path = default_storage.save(path_name, ContentFile(buf.read()))
     image_url = default_storage.url(saved_path)
 
-    content_obj, _ = SiteContent.objects.get_or_create(key='hero_image', defaults={'content_json': {}})
     content_obj.content_json = {'image_url': image_url}
     content_obj.updated_by = request.user
     content_obj.save()

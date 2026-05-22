@@ -30,6 +30,13 @@ _No errors documented yet. This file will be updated as issues are discovered an
 
 ## Resolved Issues
 
+### [ERROR-002] Hero image stale in production after re-upload
+- **Date**: 2026-05-22
+- **Context**: Tras subir una imagen de hero desde el backoffice, distintos usuarios veían versiones distintas en el home de la tienda (unos la nueva, otros una vieja o la default). Solo ocurría en producción, no en dev.
+- **Root Cause**: `hero_image_upload` guardaba el archivo siempre con el nombre fijo `site/hero.jpg`, por lo que la URL `/media/site/hero.jpg` nunca cambiaba entre subidas. En producción (`DEBUG=False`) `/media/` lo sirve nginx con caché agresiva, así que navegadores/CDN seguían entregando los bytes viejos de esa URL invariable. En dev (`DEBUG=True`) Django sirve `/media/` sin caché, por eso no se reproducía.
+- **Resolution**: Cada subida genera un nombre único `site/hero-<uuid>.jpg`, de modo que la URL cambia siempre y ninguna capa de caché tiene esa ruta previamente. Además se borra el archivo anterior si vivía en el storage local. Nota de despliegue: el código solo aplica en la próxima subida — hay que re-subir la imagen una vez tras el deploy.
+- **Files Affected**: `backend/base_feature_app/views/content_views.py`, `backend/base_feature_app/tests/views/test_media_and_content_views.py`
+
 ### [ERROR-001] Product detail showed another color's photos
 - **Date**: 2026-05-21
 - **Context**: Product detail page — selecting a color displayed images uploaded to a different color (e.g. selecting "Algodón", which had no photos, showed "Rubí rojo" photos).
