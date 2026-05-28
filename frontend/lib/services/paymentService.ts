@@ -127,19 +127,15 @@ export const paymentService = {
 
   processBancolombia: (
     orderNumber: string,
-    userType: 'PERSON' | 'COMPANY',
-    userLegalIdType: string,
-    userLegalId: string,
     acceptanceToken: string,
     personalAuthToken: string,
   ) =>
+    // Wompi sólo soporta user_type="PERSON" para BANCOLOMBIA_TRANSFER en cobros únicos
+    // y no acepta campos user_legal_id* en este método — los recoge en el banco.
     api
       .post<PaymentResult>('/payment/process/', {
         order_number: orderNumber,
         method: 'BANCOLOMBIA_TRANSFER',
-        user_type: userType,
-        user_legal_id_type: userLegalIdType,
-        user_legal_id: userLegalId,
         acceptance_token: acceptanceToken,
         acceptance_personal_auth_token: personalAuthToken,
       })

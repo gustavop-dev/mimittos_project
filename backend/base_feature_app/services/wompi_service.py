@@ -10,6 +10,20 @@ from base_feature_app.models import WompiTransaction, Order
 logger = logging.getLogger(__name__)
 
 
+def _normalize_phone_e164_co(raw: str) -> str:
+    """Normaliza un teléfono colombiano al formato 57XXXXXXXXXX que Wompi espera
+    en customer_data.phone_number. Si no se reconoce el formato, devuelve los
+    dígitos tal cual para no romper datos legacy."""
+    if not raw:
+        return ''
+    digits = ''.join(c for c in raw if c.isdigit())
+    if len(digits) == 12 and digits.startswith('57'):
+        return digits
+    if len(digits) == 10 and digits.startswith('3'):
+        return '57' + digits
+    return digits
+
+
 class WompiService:
     @staticmethod
     def _api_url() -> str:
@@ -54,11 +68,19 @@ class WompiService:
             'accept_personal_auth': personal_auth_token,
             'redirect_url': f'{frontend_url}/order-confirmed?order={order.order_number}',
             'customer_data': {
-                'phone_number': order.customer_phone or '',
+                'phone_number': _normalize_phone_e164_co(order.customer_phone or ''),
                 'full_name': order.customer_name,
             },
             'payment_method': method_data,
         }
+
+        # ecommerce_url: para BANCOLOMBIA_TRANSFER permite saltarse la pantalla
+        # resumen de Wompi y va directo a la app/portal del banco.
+        if method_data.get('type') == 'BANCOLOMBIA_TRANSFER':
+            method_data.setdefault(
+                'ecommerce_url',
+                f'{frontend_url}/order-confirmed?order={order.order_number}',
+            )
 
         method_type = method_data.get('type', '')
         api_url = WompiService._api_url()
@@ -126,8 +148,9 @@ class WompiService:
 
         if should_poll:
             import time
-            for attempt in range(10):
-                time.sleep(0.5)
+            max_attempts = 15
+            for attempt in range(max_attempts):
+                time.sleep(1.0)
                 fresh = WompiService.fetch_transaction(tx.wompi_id)
                 if not fresh:
                     continue
@@ -163,8 +186,8 @@ class WompiService:
             else:
                 if needs_async_url and not redirect_url:
                     logger.warning(
-                        'Wompi async_payment_url still missing ref=%s after 10 polls',
-                        tx.reference,
+                        'Wompi async_payment_url still missing ref=%s after %s polls',
+                        tx.reference, max_attempts,
                     )
 
         if needs_async_url and not redirect_url and wompi_status_raw != 'APPROVED':
@@ -271,8 +294,14 @@ class WompiService:
         """Verify Wompi webhook signature using SHA256.
 
         Wompi embeds the checksum inside the body (not in an HTTP header).
-        Algorithm: sha256(prop1 + prop2 + ... + unix_timestamp + events_secret)
+        Algorithm: sha256(prop1 + prop2 + ... + timestamp + events_secret)
         Properties and their order come from event_data['signature']['properties'].
+
+        Para el timestamp Wompi tiene dos variantes en sus distintos productos:
+          - `timestamp` numérico (formato actual de Pagos a Terceros y Checkout)
+          - `sent_at` ISO 8601 (variante histórica del Checkout)
+        Aceptamos ambas: preferimos `timestamp` tal cual viene en el body, y como
+        fallback parseamos `sent_at` a segundos unix.
         """
         secret = WompiService._events_secret()
         if not secret:
@@ -283,7 +312,6 @@ class WompiService:
             sig = event_data['signature']
             expected_checksum = sig['checksum']
             properties = sig['properties']
-            sent_at = event_data['sent_at']
             data = event_data.get('data', {})
 
             concat = ''
@@ -293,9 +321,15 @@ class WompiService:
                     value = value[part]
                 concat += str(value)
 
-            from datetime import datetime
-            dt = datetime.fromisoformat(sent_at.replace('Z', '+00:00'))
-            concat += str(int(dt.timestamp()))
+            if 'timestamp' in event_data:
+                concat += str(event_data['timestamp'])
+            elif 'sent_at' in event_data:
+                from datetime import datetime
+                dt = datetime.fromisoformat(str(event_data['sent_at']).replace('Z', '+00:00'))
+                concat += str(int(dt.timestamp()))
+            else:
+                raise KeyError('timestamp/sent_at missing')
+
             concat += secret
 
             computed = hashlib.sha256(concat.encode()).hexdigest()

@@ -136,28 +136,21 @@ def process_payment(request):
             'financial_institution_code': bank_code,
             'payment_description': f'Pedido {tx.order.order_number}',
         }
+        # reference_one (IP del cliente) — recomendado por Wompi para antifraude PSE.
+        client_ip = (
+            request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
+            or request.META.get('REMOTE_ADDR', '')
+        )
+        if client_ip:
+            method_data['reference_one'] = client_ip
 
     elif method == 'BANCOLOMBIA_TRANSFER':
-        user_legal_id = request.data.get('user_legal_id', '').strip()
-        if not user_legal_id:
-            return Response({'detail': 'user_legal_id requerido.'}, status=status.HTTP_400_BAD_REQUEST)
-        legal_id_type = request.data.get('user_legal_id_type', 'CC')
-        if legal_id_type not in ('CC', 'CE', 'NIT'):
-            return Response(
-                {'detail': f'user_legal_id_type debe ser CC, CE o NIT (recibido: {legal_id_type}).'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        user_type_raw = str(request.data.get('user_type', 'PERSON')).upper()
-        if user_type_raw not in ('PERSON', 'COMPANY'):
-            return Response(
-                {'detail': 'user_type debe ser PERSON o COMPANY.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # Wompi sólo acepta user_type="PERSON" para BANCOLOMBIA_TRANSFER en cobro único.
+        # Los campos user_legal_id* NO forman parte del spec de este método — Wompi
+        # los recoge en la autenticación del banco. Enviarlos puede causar 400.
         method_data = {
             'type': 'BANCOLOMBIA_TRANSFER',
-            'user_type': user_type_raw,
-            'user_legal_id_type': legal_id_type,
-            'user_legal_id': user_legal_id,
+            'user_type': 'PERSON',
             'payment_description': f'Pedido {tx.order.order_number}',
         }
 
