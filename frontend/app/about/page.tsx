@@ -123,7 +123,7 @@ export default function AboutPage() {
         </div>
         <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 32 }}>
           {[
-            { year: '2016', title: 'Los primeros peluches', desc: 'Todo comenzó en la mesa del comedor de Medellín, con tela, aguja e hilo. Los primeros 10 peluches fueron regalos para amigos y familia.' },
+            { year: '2016', title: 'Los primeros peluches', desc: 'Todo comenzó en la mesa del comedor de Bogotá, con tela, aguja e hilo. Los primeros 10 peluches fueron regalos para amigos y familia.' },
             { year: '2018', title: 'Las primeras ventas', desc: 'La voz a voz hizo magia. Empezamos a vender por Instagram con pedidos personalizados hechos uno a uno.' },
             { year: '2020', title: 'El taller propio', desc: 'Abrimos nuestro primer taller con 3 artesanas locales. Creamos el configurador visual para facilitar los pedidos.' },
             { year: '2022', title: 'Envíos a toda Colombia', desc: 'Llegamos a cada rincón del país. Más de 1.000 peluches entregados con el sistema de abono y contraentrega.' },

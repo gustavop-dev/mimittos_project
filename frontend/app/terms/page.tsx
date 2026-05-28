@@ -3,7 +3,7 @@ import Link from 'next/link'
 const SECTIONS = [
   {
     title: '1. Quiénes somos',
-    content: 'MIMITTOS es una empresa artesanal colombiana dedicada a la creación de peluches personalizados hechos a mano. Con sede en Medellín, Antioquia, operamos principalmente a través de nuestro sitio web y atendemos pedidos en todo el territorio nacional.',
+    content: 'MIMITTOS es una empresa artesanal colombiana dedicada a la creación de peluches personalizados hechos a mano. Con sede en Bogotá D.C., operamos principalmente a través de nuestro sitio web y atendemos pedidos en todo el territorio nacional.',
   },
   {
     title: '2. Proceso de compra y pago',
