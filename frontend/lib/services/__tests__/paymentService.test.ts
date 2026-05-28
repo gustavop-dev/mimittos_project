@@ -168,15 +168,12 @@ describe('paymentService', () => {
   })
 
   describe('processBancolombia', () => {
-    it('posts Bancolombia transfer payment', async () => {
+    it('posts Bancolombia transfer payment with minimal payload (Wompi captures user_type/id at the bank)', async () => {
       mockPost.mockResolvedValue({ data: mockPaymentResult })
-      await paymentService.processBancolombia('ORD-001', 'PERSON', 'CC', '12345678', 'acc-tok', 'personal-tok')
+      await paymentService.processBancolombia('ORD-001', 'acc-tok', 'personal-tok')
       expect(mockPost).toHaveBeenCalledWith('/payment/process/', {
         order_number: 'ORD-001',
         method: 'BANCOLOMBIA_TRANSFER',
-        user_type: 'PERSON',
-        user_legal_id_type: 'CC',
-        user_legal_id: '12345678',
         acceptance_token: 'acc-tok',
         acceptance_personal_auth_token: 'personal-tok',
       })

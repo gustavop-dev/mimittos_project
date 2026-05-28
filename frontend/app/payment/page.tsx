@@ -136,7 +136,7 @@ function PaymentContent() {
   }, [orderNumber, router])
 
   useEffect(() => {
-    if (selected === 'PSE' || selected === 'BANCOLOMBIA_TRANSFER') {
+    if (selected === 'PSE') {
       if (banks.length === 0) {
         paymentService.getPseBanks().then(setBanks).catch(() => {})
       }
@@ -187,9 +187,9 @@ function PaymentContent() {
         result = await paymentService.processPse(orderNumber, bankCode, userType, idType, idNumber.trim(), accToken, authToken)
 
       } else {
-        if (!idNumber.trim()) { setError('Ingresa tu número de documento.'); setLoading(false); return }
-        const bancolombiaUserType = userType === 1 ? 'COMPANY' : 'PERSON'
-        result = await paymentService.processBancolombia(orderNumber, bancolombiaUserType, idType, idNumber.trim(), accToken, authToken)
+        // BANCOLOMBIA_TRANSFER — Wompi sólo soporta cobro a persona natural en
+        // pago único y no necesita documento aquí (lo pide el banco al autenticar).
+        result = await paymentService.processBancolombia(orderNumber, accToken, authToken)
       }
 
       const confirmedParam = result.status === 'APPROVED' ? '&confirmed=1' : ''
@@ -366,28 +366,24 @@ function PaymentContent() {
           </div>
         )}
 
-        {(selected === 'PSE' || selected === 'BANCOLOMBIA_TRANSFER') && (
+        {selected === 'PSE' && (
           <div style={formCard}>
-            <div style={formTitle}>{selected === 'PSE' ? 'Débito PSE' : 'Botón Bancolombia'}</div>
+            <div style={formTitle}>Débito PSE</div>
             <p style={{ color: 'var(--gray-warm)', fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
-              {selected === 'PSE'
-                ? 'Serás redirigido al portal PSE de tu banco para autenticar el débito.'
-                : 'Serás redirigido a la app Bancolombia para confirmar el pago.'}
+              Serás redirigido al portal PSE de tu banco para autenticar el débito.
             </p>
 
-            {selected === 'PSE' && (
-              <div style={field}>
-                <label style={lbl}>Banco</label>
-                <select value={bankCode} onChange={(e) => setBankCode(e.target.value)} style={inp}>
-                  <option value="">— Selecciona tu banco —</option>
-                  {banks.map((b) => (
-                    <option key={b.financial_institution_code} value={b.financial_institution_code}>
-                      {b.financial_institution_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div style={field}>
+              <label style={lbl}>Banco</label>
+              <select value={bankCode} onChange={(e) => setBankCode(e.target.value)} style={inp}>
+                <option value="">— Selecciona tu banco —</option>
+                {banks.map((b) => (
+                  <option key={b.financial_institution_code} value={b.financial_institution_code}>
+                    {b.financial_institution_name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <div style={field}>
               <label style={lbl}>Tipo de persona</label>
@@ -413,6 +409,15 @@ function PaymentContent() {
                 <input value={idNumber} onChange={(e) => setIdNumber(e.target.value.replace(/\D/g, ''))} placeholder="1234567890" style={inp} />
               </div>
             </div>
+          </div>
+        )}
+
+        {selected === 'BANCOLOMBIA_TRANSFER' && (
+          <div style={formCard}>
+            <div style={formTitle}>Botón Bancolombia</div>
+            <p style={{ color: 'var(--gray-warm)', fontSize: 13, marginBottom: 4, lineHeight: 1.5 }}>
+              Serás redirigido al portal Bancolombia para confirmar el pago de <strong>{fmt(deposit)}</strong> desde tu cuenta de ahorros o corriente. No necesitas ingresar datos adicionales aquí: el banco te pedirá tu documento al autenticarte.
+            </p>
           </div>
         )}
 

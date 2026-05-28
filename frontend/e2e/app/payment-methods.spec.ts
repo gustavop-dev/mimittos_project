@@ -209,14 +209,16 @@ test.describe('Payment method submissions', () => {
       await waitForPageLoad(page);
 
       await page.getByRole('button', { name: /Bancolombia/ }).first().click();
-      await page.locator('input[placeholder="1234567890"]').fill('900111222');
+      // Wompi sólo admite user_type="PERSON" para BANCOLOMBIA_TRANSFER en cobro único
+      // y el banco recoge el documento al autenticar, así que el form no pide más datos.
 
       await page.getByRole('button', { name: /Pagar/ }).click();
 
       const processed = await processRequest;
       const body = processed.postDataJSON() as Record<string, unknown>;
       expect(body.method).toBe('BANCOLOMBIA_TRANSFER');
-      expect(body.user_legal_id).toBe('900111222');
+      expect(body.user_legal_id).toBeUndefined();
+      expect(body.user_type).toBeUndefined();
 
       await page.waitForURL(/bancolombia\.example\.com/);
     },
