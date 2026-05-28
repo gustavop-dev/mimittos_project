@@ -37,7 +37,7 @@ export default function AboutPage() {
             Todo comenzó con una pregunta sencilla: ¿qué pasa si cada peluche lleva dentro el alma de un momento especial? Desde ese día, cada pieza que sale de nuestro taller carga con esa intención.
           </p>
           <p style={{ fontSize: 16, lineHeight: 1.75, color: 'var(--gray-warm)', marginBottom: 16 }}>
-            Trabajamos con artesanas locales en Medellín, usando telas premium y técnicas de bordado tradicionales. Cada punto, cada costura, cada detalle es una decisión tomada con cariño.
+            Trabajamos con artesanas locales en Bogotá, usando telas premium y técnicas de bordado tradicionales. Cada punto, cada costura, cada detalle es una decisión tomada con cariño.
           </p>
           <p style={{ fontSize: 16, lineHeight: 1.75, color: 'var(--gray-warm)' }}>
             No fabricamos peluches en serie. Creamos guardianes de recuerdos, uno por uno, para personas que merecen lo mejor.
