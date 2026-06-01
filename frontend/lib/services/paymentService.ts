@@ -3,10 +3,10 @@ import { api } from './http'
 const WOMPI_API_URL = process.env.NEXT_PUBLIC_WOMPI_API_URL ?? ''
 const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY ?? ''
 
-// Falla ruidoso si la config Wompi falta, en vez de caer silenciosamente a un
-// entorno por defecto (era la causa raíz del fallo en prod: frontend en sandbox
-// con key vacía mientras el backend usaba producción). NEXT_PUBLIC_* se hornea
-// en build time → tras setearlas hay que reconstruir el frontend.
+// Fail loud if the Wompi config is missing instead of silently falling back to a
+// default environment (this was the root cause of the prod failure: frontend on
+// sandbox with an empty key while the backend used production). NEXT_PUBLIC_* is
+// baked at build time → after setting these you must rebuild the frontend.
 function assertWompiConfigured(): void {
   if (!WOMPI_API_URL || !WOMPI_PUBLIC_KEY) {
     throw new Error(
@@ -144,8 +144,8 @@ export const paymentService = {
     acceptanceToken: string,
     personalAuthToken: string,
   ) =>
-    // Wompi sólo soporta user_type="PERSON" para BANCOLOMBIA_TRANSFER en cobros únicos
-    // y no acepta campos user_legal_id* en este método — los recoge en el banco.
+    // Wompi only supports user_type="PERSON" for BANCOLOMBIA_TRANSFER in single payments
+    // and does not accept user_legal_id* fields in this method — the bank collects them.
     api
       .post<PaymentResult>('/payment/process/', {
         order_number: orderNumber,
