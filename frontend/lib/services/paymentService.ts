@@ -1,7 +1,20 @@
 import { api } from './http'
 
-const WOMPI_API_URL = process.env.NEXT_PUBLIC_WOMPI_API_URL ?? 'https://sandbox.wompi.co/v1'
+const WOMPI_API_URL = process.env.NEXT_PUBLIC_WOMPI_API_URL ?? ''
 const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY ?? ''
+
+// Falla ruidoso si la config Wompi falta, en vez de caer silenciosamente a un
+// entorno por defecto (era la causa raíz del fallo en prod: frontend en sandbox
+// con key vacía mientras el backend usaba producción). NEXT_PUBLIC_* se hornea
+// en build time → tras setearlas hay que reconstruir el frontend.
+function assertWompiConfigured(): void {
+  if (!WOMPI_API_URL || !WOMPI_PUBLIC_KEY) {
+    throw new Error(
+      'Wompi no está configurado: definí NEXT_PUBLIC_WOMPI_API_URL y NEXT_PUBLIC_WOMPI_PUBLIC_KEY ' +
+        'y reconstruí el frontend (npm run build) — estas variables se hornean en build time.',
+    )
+  }
+}
 
 export type PaymentInfo = {
   order_number: string
@@ -70,6 +83,7 @@ export const paymentService = {
       .then((r) => r.data),
 
   getAcceptanceTokens: async (): Promise<AcceptanceTokens> => {
+    assertWompiConfigured()
     const resp = await fetch(`${WOMPI_API_URL}/merchants/${WOMPI_PUBLIC_KEY}`)
     const json = await resp.json()
     const data = json.data ?? {}
@@ -142,6 +156,7 @@ export const paymentService = {
       .then((r) => r.data),
 
   tokenizeCard: async (data: CardTokenData): Promise<string> => {
+    assertWompiConfigured()
     const resp = await fetch(`${WOMPI_API_URL}/tokens/cards`, {
       method: 'POST',
       headers: {

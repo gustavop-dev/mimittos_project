@@ -128,9 +128,16 @@ def process_payment(request):
                 {'detail': f'user_legal_id_type debe ser CC, CE o NIT (recibido: {legal_id_type}).'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        user_type = int(request.data.get('user_type', 0))
+        # Una persona jurídica (user_type=1) en Colombia se identifica con NIT.
+        if user_type == 1 and legal_id_type != 'NIT':
+            return Response(
+                {'detail': 'Una persona jurídica debe identificarse con NIT.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         method_data = {
             'type': 'PSE',
-            'user_type': int(request.data.get('user_type', 0)),
+            'user_type': user_type,
             'user_legal_id_type': legal_id_type,
             'user_legal_id': user_legal_id,
             'financial_institution_code': bank_code,

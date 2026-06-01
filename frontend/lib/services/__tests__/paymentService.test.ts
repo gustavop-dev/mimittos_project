@@ -233,4 +233,20 @@ describe('paymentService', () => {
       ).rejects.toThrow('Datos de tarjeta inválidos.')
     })
   })
+
+  describe('Wompi configuration guard', () => {
+    it('throws a clear error when Wompi env vars are missing', async () => {
+      const prevUrl = process.env.NEXT_PUBLIC_WOMPI_API_URL
+      const prevKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY
+      delete process.env.NEXT_PUBLIC_WOMPI_API_URL
+      delete process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY
+      jest.resetModules()
+
+      const { paymentService: freshService } = await import('../paymentService')
+      await expect(freshService.getAcceptanceTokens()).rejects.toThrow(/Wompi no está configurado/)
+
+      process.env.NEXT_PUBLIC_WOMPI_API_URL = prevUrl
+      process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY = prevKey
+    })
+  })
 })

@@ -1,4 +1,8 @@
+import logging
+
 from django.apps import AppConfig
+
+logger = logging.getLogger(__name__)
 
 
 class BaseFeatureAppConfig(AppConfig):
@@ -10,3 +14,10 @@ class BaseFeatureAppConfig(AppConfig):
         # tasks.py lives at the config-package level (base_feature_project),
         # so force-load it here for the consumer to register periodic tasks.
         from base_feature_project import tasks  # noqa: F401
+
+        # Validación de config Wompi: avisa (no tumba el arranque) si hay llaves
+        # vacías o un mismatch de entorno frontend/backend — el fallo silencioso
+        # que rompió los pagos en producción.
+        from base_feature_app.services.wompi_service import WompiService
+        for issue in WompiService.validate_config():
+            logger.warning('Config Wompi: %s', issue)

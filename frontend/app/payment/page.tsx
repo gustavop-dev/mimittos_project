@@ -69,7 +69,11 @@ const METHODS: {
   },
 ]
 
-const ID_TYPES = ['CC', 'CE', 'NIT'] as const
+// Tipos de documento por tipo de persona (Wompi PSE): la persona jurídica en
+// Colombia se identifica con NIT; la natural con CC/CE.
+function docTypesFor(userType: number): readonly string[] {
+  return userType === 1 ? ['NIT'] : ['CC', 'CE']
+}
 
 function fmt(n: number) {
   return '$' + n.toLocaleString('es-CO')
@@ -184,6 +188,7 @@ function PaymentContent() {
 
       } else if (selected === 'PSE') {
         if (!bankCode || !idNumber.trim()) { setError('Completa todos los campos.'); setLoading(false); return }
+        if (userType === 1 && idType !== 'NIT') { setError('Una persona jurídica debe identificarse con NIT.'); setLoading(false); return }
         result = await paymentService.processPse(orderNumber, bankCode, userType, idType, idNumber.trim(), accToken, authToken)
 
       } else {
@@ -389,7 +394,7 @@ function PaymentContent() {
               <label style={lbl}>Tipo de persona</label>
               <div style={{ display: 'flex', gap: 12 }}>
                 {[{ val: 0, label: 'Natural' }, { val: 1, label: 'Jurídica' }].map((opt) => (
-                  <button key={opt.val} type="button" onClick={() => setUserType(opt.val)}
+                  <button key={opt.val} type="button" onClick={() => { setUserType(opt.val); setIdType(opt.val === 1 ? 'NIT' : 'CC') }}
                     style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: `2px solid ${userType === opt.val ? 'var(--coral)' : 'rgba(27,42,74,.1)'}`, background: userType === opt.val ? 'var(--cream-peach)' : '#fff', color: userType === opt.val ? 'var(--coral)' : 'var(--navy)', fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
                     {opt.label}
                   </button>
@@ -401,7 +406,7 @@ function PaymentContent() {
               <div style={field}>
                 <label style={lbl}>Tipo de ID</label>
                 <select value={idType} onChange={(e) => setIdType(e.target.value)} style={inp}>
-                  {ID_TYPES.map((t) => <option key={t}>{t}</option>)}
+                  {docTypesFor(userType).map((t) => <option key={t}>{t}</option>)}
                 </select>
               </div>
               <div style={field}>

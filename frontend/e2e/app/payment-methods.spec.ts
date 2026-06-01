@@ -4,6 +4,7 @@ import {
   PAYMENT_CARD_SUBMIT,
   PAYMENT_NEQUI_SUBMIT,
   PAYMENT_PSE_SUBMIT,
+  PAYMENT_PSE_LEGAL_ENTITY,
   PAYMENT_BANCOLOMBIA_SUBMIT,
 } from '../helpers/flow-tags';
 
@@ -174,6 +175,56 @@ test.describe('Payment method submissions', () => {
       expect(body.method).toBe('PSE');
       expect(body.bank_code).toBe('1007');
       expect(body.user_legal_id).toBe('1023456789');
+
+      await page.waitForURL(/pse-bank\.example\.com/);
+    },
+  );
+
+  test(
+    'should restrict PSE document type to NIT for a legal entity',
+    { tag: [...PAYMENT_PSE_LEGAL_ENTITY] },
+    async ({ page }) => {
+      await mockBaselinePaymentRoutes(page);
+
+      const processRequest = page.waitForRequest(
+        (req) => req.url().includes('/api/payment/process/') && req.method() === 'POST',
+      );
+
+      await page.route('**/api/payment/process/', (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            status: 'PENDING',
+            redirect_url: 'https://pse-bank.example.com/auth?ref=REF-9002',
+            wompi_id: 'wompi-pse-2',
+          }),
+        }),
+      );
+
+      await page.route('https://pse-bank.example.com/**', (route) =>
+        route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>Bank portal</body></html>' }),
+      );
+
+      await page.goto(`/payment?order=${ORDER_NUMBER}&deposit=64000`);
+      await waitForPageLoad(page);
+
+      await page.getByRole('button', { name: /^PSE/ }).first().click();
+      await page.getByRole('button', { name: 'Jurídica' }).click();
+
+      // El selector de tipo de documento solo debe ofrecer NIT para persona jurídica.
+      const idTypeSelect = page.getByRole('combobox').nth(1);
+      await expect(idTypeSelect.getByRole('option')).toHaveText(['NIT']);
+
+      await page.getByRole('combobox').first().selectOption('1007');
+      await page.locator('input[placeholder="1234567890"]').fill('9001234567');
+      await page.getByRole('button', { name: /Pagar/ }).click();
+
+      const processed = await processRequest;
+      const body = processed.postDataJSON() as Record<string, unknown>;
+      expect(body.method).toBe('PSE');
+      expect(body.user_type).toBe(1);
+      expect(body.user_legal_id_type).toBe('NIT');
 
       await page.waitForURL(/pse-bank\.example\.com/);
     },

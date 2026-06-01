@@ -136,6 +136,7 @@ export const AUTH_FORGOT_PASSWORD_RESEND = ['@flow:auth-forgot-password-resend',
 export const PAYMENT_CARD_SUBMIT = ['@flow:payment-card-submit', '@module:payment', '@priority:P1'];
 export const PAYMENT_NEQUI_SUBMIT = ['@flow:payment-nequi-submit', '@module:payment', '@priority:P1'];
 export const PAYMENT_PSE_SUBMIT = ['@flow:payment-pse-submit', '@module:payment', '@priority:P2'];
+export const PAYMENT_PSE_LEGAL_ENTITY = ['@flow:payment-pse-legal-entity-nit', '@module:payment', '@priority:P2'];
 export const PAYMENT_BANCOLOMBIA_SUBMIT = ['@flow:payment-bancolombia-submit', '@module:payment', '@priority:P2'];
 
 // ── Backoffice (analytics actions added in v1.4.0) ──
