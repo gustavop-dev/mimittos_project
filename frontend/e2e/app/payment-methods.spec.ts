@@ -4,6 +4,7 @@ import {
   PAYMENT_CARD_SUBMIT,
   PAYMENT_NEQUI_SUBMIT,
   PAYMENT_PSE_SUBMIT,
+  PAYMENT_PSE_LEGAL_ENTITY,
   PAYMENT_BANCOLOMBIA_SUBMIT,
 } from '../helpers/flow-tags';
 
@@ -181,7 +182,7 @@ test.describe('Payment method submissions', () => {
 
   test(
     'should restrict PSE document type to NIT for a legal entity',
-    { tag: [...PAYMENT_PSE_SUBMIT] },
+    { tag: [...PAYMENT_PSE_LEGAL_ENTITY] },
     async ({ page }) => {
       await mockBaselinePaymentRoutes(page);
 

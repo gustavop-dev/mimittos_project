@@ -602,6 +602,14 @@
       "description": "User selects PSE on /payment, picks bank, person type, ID type and ID number, then submits; paymentService.processPse returns redirect_url and the browser navigates to the bank portal",
       "expectedSpecs": 1
     },
+    "payment-pse-legal-entity-nit": {
+      "name": "PSE legal entity requires NIT",
+      "module": "payment",
+      "roles": ["shared"],
+      "priority": "P2",
+      "description": "On PSE, when the user picks 'Jurídica' (legal entity), the document type selector is restricted to NIT only (natural person keeps CC/CE); the submitted request carries user_type=1 and user_legal_id_type=NIT",
+      "expectedSpecs": 1
+    },
     "payment-bancolombia-submit": {
       "name": "Pay with Bancolombia transfer",
       "module": "payment",

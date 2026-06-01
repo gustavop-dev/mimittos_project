@@ -78,6 +78,7 @@ Use this document to understand each flow's steps, branching conditions, role re
 | `payment-card-submit` | Pay with Card | payment | P1 | shared | `/payment` |
 | `payment-nequi-submit` | Pay with Nequi | payment | P1 | shared | `/payment` |
 | `payment-pse-submit` | Pay with PSE | payment | P2 | shared | `/payment` |
+| `payment-pse-legal-entity-nit` | PSE legal entity requires NIT | payment | P2 | shared | `/payment` |
 | `payment-bancolombia-submit` | Pay with Bancolombia | payment | P2 | shared | `/payment` |
 | `backoffice-analytics-date-filter` | Filter Analytics by Date Range | backoffice | P3 | staff | `/backoffice` |
 | `backoffice-analytics-export-csv` | Export Orders CSV | backoffice | P3 | staff | `/backoffice` |
@@ -1382,7 +1383,18 @@ User selects the **Nequi** tab on `/payment`, enters the 10-digit Colombian phon
 | **Frontend route** | `/payment` |
 | **API endpoints** | `GET /api/payment/pse-banks/`, `POST /api/payment/process/` (via `paymentService.processPse`) |
 
-User selects the **PSE** tab on `/payment`. The bank dropdown is populated from `GET /api/payment/pse-banks/`. User picks bank, person type (Natural/Jurídica), ID type (CC/CE/NIT/Pasaporte/TI), and ID number, then submits. `paymentService.processPse` returns a `redirect_url`; the browser navigates to the bank portal where the customer authenticates and authorizes the payment.
+User selects the **PSE** tab on `/payment`. The bank dropdown is populated from `GET /api/payment/pse-banks/`. User picks bank, person type (Natural/Jurídica), ID type and ID number, then submits. The ID type options depend on the person type: **Natural → CC/CE**, **Jurídica → NIT only** (see `payment-pse-legal-entity-nit`). `paymentService.processPse` returns a `redirect_url`; the browser navigates to the bank portal where the customer authenticates and authorizes the payment.
+
+### payment-pse-legal-entity-nit
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P2 |
+| **Roles** | shared |
+| **Frontend route** | `/payment` |
+| **API endpoints** | `POST /api/payment/process/` (via `paymentService.processPse`) |
+
+On the **PSE** tab, when the user selects **Jurídica** (legal entity) as person type, the document-type selector is restricted to **NIT** only; selecting **Natural** offers **CC/CE**. The backend (`process_payment`, PSE branch) defensively rejects `user_type=1` with a document type other than `NIT` (HTTP 400). A legal entity in Colombia is identified by its NIT.
 
 ### payment-bancolombia-submit
 
