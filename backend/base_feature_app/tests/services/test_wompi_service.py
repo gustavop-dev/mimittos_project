@@ -291,3 +291,35 @@ def test_create_checkout_raises_on_request_failure(mock_post, wompi_tx):
         WompiService.create_checkout(wompi_tx)
     wompi_tx.refresh_from_db()
     assert wompi_tx.checkout_url == ''
+
+
+# ---------------------------------------------------------------------------
+# validate_config
+# ---------------------------------------------------------------------------
+
+@override_settings(
+    WOMPI_API_URL='https://production.wompi.co/v1',
+    WOMPI_PUBLIC_KEY='pub_prod_x', WOMPI_PRIVATE_KEY='prv_prod_x',
+    WOMPI_INTEGRITY_SECRET='prod_integrity_x', WOMPI_EVENTS_SECRET='prod_events_x',
+)
+def test_validate_config_returns_no_issues_when_aligned_to_production():
+    assert WompiService.validate_config() == []
+
+
+@override_settings(
+    WOMPI_API_URL='https://production.wompi.co/v1',
+    WOMPI_PUBLIC_KEY='pub_test_x', WOMPI_PRIVATE_KEY='prv_test_x',
+    WOMPI_INTEGRITY_SECRET='test_integrity_x', WOMPI_EVENTS_SECRET='test_events_x',
+)
+def test_validate_config_flags_environment_mismatch():
+    issues = WompiService.validate_config()
+    assert any('WOMPI_PUBLIC_KEY' in i and 'sandbox' in i and 'production' in i for i in issues)
+
+
+@override_settings(
+    WOMPI_API_URL='https://production.wompi.co/v1',
+    WOMPI_PUBLIC_KEY='', WOMPI_PRIVATE_KEY='prv_prod_x',
+    WOMPI_INTEGRITY_SECRET='prod_integrity_x', WOMPI_EVENTS_SECRET='prod_events_x',
+)
+def test_validate_config_flags_empty_key():
+    assert 'WOMPI_PUBLIC_KEY está vacío' in WompiService.validate_config()

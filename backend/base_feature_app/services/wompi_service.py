@@ -46,6 +46,47 @@ class WompiService:
         return getattr(settings, 'WOMPI_INTEGRITY_SECRET', '')
 
     @staticmethod
+    def validate_config() -> list:
+        """Devuelve problemas de configuración de Wompi (lista vacía si todo OK).
+
+        Detecta las dos clases de error que producen fallos silenciosos en prod:
+          - llaves/secretos vacíos
+          - mismatch de entorno entre WOMPI_API_URL y el prefijo de las llaves
+            (p.ej. llaves de test con URL de producción, o al revés). Era,
+            justamente, la causa raíz del incidente que originó este check.
+        """
+        issues = []
+        api_url = WompiService._api_url()
+        keys = (
+            ('WOMPI_PUBLIC_KEY', WompiService._public_key()),
+            ('WOMPI_PRIVATE_KEY', WompiService._private_key()),
+            ('WOMPI_INTEGRITY_SECRET', WompiService._integrity_secret()),
+            ('WOMPI_EVENTS_SECRET', WompiService._events_secret()),
+        )
+
+        for name, value in keys:
+            if not value:
+                issues.append(f'{name} está vacío')
+
+        url_env = 'sandbox' if 'sandbox' in api_url else 'production'
+
+        def _key_env(value: str) -> str:
+            if value.startswith(('pub_test_', 'prv_test_', 'test_')):
+                return 'sandbox'
+            if value.startswith(('pub_prod_', 'prv_prod_', 'prod_')):
+                return 'production'
+            return ''
+
+        for name, value in keys:
+            key_env = _key_env(value)
+            if value and key_env and key_env != url_env:
+                issues.append(
+                    f'{name} parece del entorno "{key_env}" pero WOMPI_API_URL es "{url_env}" ({api_url})'
+                )
+
+        return issues
+
+    @staticmethod
     def _integrity_signature(reference: str, amount_in_cents: int, currency: str = 'COP') -> str:
         secret = WompiService._integrity_secret()
         raw = f'{reference}{amount_in_cents}{currency}{secret}'
