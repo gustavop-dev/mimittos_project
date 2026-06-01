@@ -80,7 +80,7 @@ def process_payment(request):
     method = request.data.get('method', '').upper()
 
     received_keys = sorted(list(request.data.keys()))
-    logger.info(
+    logger.debug(
         'process_payment called order=%s method=%s keys=%s acceptance_token_present=%s personal_auth_present=%s',
         order_number, method, received_keys,
         bool(request.data.get('acceptance_token')),
@@ -129,7 +129,7 @@ def process_payment(request):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         user_type = int(request.data.get('user_type', 0))
-        # Una persona jurídica (user_type=1) en Colombia se identifica con NIT.
+        # A legal entity (user_type=1) in Colombia is identified by its NIT.
         if user_type == 1 and legal_id_type != 'NIT':
             return Response(
                 {'detail': 'Una persona jurídica debe identificarse con NIT.'},
@@ -143,7 +143,7 @@ def process_payment(request):
             'financial_institution_code': bank_code,
             'payment_description': f'Pedido {tx.order.order_number}',
         }
-        # reference_one (IP del cliente) — recomendado por Wompi para antifraude PSE.
+        # reference_one (client IP) — recommended by Wompi for PSE anti-fraud.
         client_ip = (
             request.META.get('HTTP_X_FORWARDED_FOR', '').split(',')[0].strip()
             or request.META.get('REMOTE_ADDR', '')
@@ -152,9 +152,9 @@ def process_payment(request):
             method_data['reference_one'] = client_ip
 
     elif method == 'BANCOLOMBIA_TRANSFER':
-        # Wompi sólo acepta user_type="PERSON" para BANCOLOMBIA_TRANSFER en cobro único.
-        # Los campos user_legal_id* NO forman parte del spec de este método — Wompi
-        # los recoge en la autenticación del banco. Enviarlos puede causar 400.
+        # Wompi only accepts user_type="PERSON" for BANCOLOMBIA_TRANSFER in single payments.
+        # The user_legal_id* fields are NOT part of this method's spec — Wompi
+        # collects them during bank authentication. Sending them can cause a 400.
         method_data = {
             'type': 'BANCOLOMBIA_TRANSFER',
             'user_type': 'PERSON',

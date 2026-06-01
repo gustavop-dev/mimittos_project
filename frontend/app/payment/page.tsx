@@ -69,8 +69,8 @@ const METHODS: {
   },
 ]
 
-// Tipos de documento por tipo de persona (Wompi PSE): la persona jurídica en
-// Colombia se identifica con NIT; la natural con CC/CE.
+// Document types by person type (Wompi PSE): a legal entity in Colombia is
+// identified by its NIT; a natural person by CC/CE.
 function docTypesFor(userType: number): readonly string[] {
   return userType === 1 ? ['NIT'] : ['CC', 'CE']
 }
@@ -192,8 +192,8 @@ function PaymentContent() {
         result = await paymentService.processPse(orderNumber, bankCode, userType, idType, idNumber.trim(), accToken, authToken)
 
       } else {
-        // BANCOLOMBIA_TRANSFER — Wompi sólo soporta cobro a persona natural en
-        // pago único y no necesita documento aquí (lo pide el banco al autenticar).
+        // BANCOLOMBIA_TRANSFER — Wompi only supports natural-person charges in
+        // single payments and needs no document here (the bank asks for it on auth).
         result = await paymentService.processBancolombia(orderNumber, accToken, authToken)
       }
 

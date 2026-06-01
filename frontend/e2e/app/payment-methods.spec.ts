@@ -212,7 +212,7 @@ test.describe('Payment method submissions', () => {
       await page.getByRole('button', { name: /^PSE/ }).first().click();
       await page.getByRole('button', { name: 'Jurídica' }).click();
 
-      // El selector de tipo de documento solo debe ofrecer NIT para persona jurídica.
+      // The document-type selector must offer only NIT for a legal entity.
       const idTypeSelect = page.getByRole('combobox').nth(1);
       await expect(idTypeSelect.getByRole('option')).toHaveText(['NIT']);
 
@@ -260,8 +260,8 @@ test.describe('Payment method submissions', () => {
       await waitForPageLoad(page);
 
       await page.getByRole('button', { name: /Bancolombia/ }).first().click();
-      // Wompi sólo admite user_type="PERSON" para BANCOLOMBIA_TRANSFER en cobro único
-      // y el banco recoge el documento al autenticar, así que el form no pide más datos.
+      // Wompi only allows user_type="PERSON" for BANCOLOMBIA_TRANSFER in single payments
+      // and the bank collects the document on auth, so the form asks for no more data.
 
       await page.getByRole('button', { name: /Pagar/ }).click();
 

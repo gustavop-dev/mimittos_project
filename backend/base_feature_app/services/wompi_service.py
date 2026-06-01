@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 
 def _normalize_phone_e164_co(raw: str) -> str:
-    """Normaliza un teléfono colombiano al formato 57XXXXXXXXXX que Wompi espera
-    en customer_data.phone_number. Si no se reconoce el formato, devuelve los
-    dígitos tal cual para no romper datos legacy."""
+    """Normalize a Colombian phone number to the 57XXXXXXXXXX format Wompi expects
+    in customer_data.phone_number. If the format is not recognized, return the
+    digits as-is so legacy data is not broken."""
     if not raw:
         return ''
     digits = ''.join(c for c in raw if c.isdigit())
@@ -47,13 +47,13 @@ class WompiService:
 
     @staticmethod
     def validate_config() -> list:
-        """Devuelve problemas de configuración de Wompi (lista vacía si todo OK).
+        """Return Wompi configuration problems (empty list if everything is OK).
 
-        Detecta las dos clases de error que producen fallos silenciosos en prod:
-          - llaves/secretos vacíos
-          - mismatch de entorno entre WOMPI_API_URL y el prefijo de las llaves
-            (p.ej. llaves de test con URL de producción, o al revés). Era,
-            justamente, la causa raíz del incidente que originó este check.
+        Detects the two classes of error that cause silent failures in prod:
+          - empty keys/secrets
+          - environment mismatch between WOMPI_API_URL and the key prefixes
+            (e.g. test keys with a production URL, or vice versa). This was
+            precisely the root cause of the incident that motivated this check.
         """
         issues = []
         api_url = WompiService._api_url()
@@ -66,7 +66,7 @@ class WompiService:
 
         for name, value in keys:
             if not value:
-                issues.append(f'{name} está vacío')
+                issues.append(f'{name} is empty')
 
         url_env = 'sandbox' if 'sandbox' in api_url else 'production'
 
@@ -81,7 +81,7 @@ class WompiService:
             key_env = _key_env(value)
             if value and key_env and key_env != url_env:
                 issues.append(
-                    f'{name} parece del entorno "{key_env}" pero WOMPI_API_URL es "{url_env}" ({api_url})'
+                    f'{name} looks like the "{key_env}" environment but WOMPI_API_URL is "{url_env}" ({api_url})'
                 )
 
         return issues
@@ -115,8 +115,8 @@ class WompiService:
             'payment_method': method_data,
         }
 
-        # ecommerce_url: para BANCOLOMBIA_TRANSFER permite saltarse la pantalla
-        # resumen de Wompi y va directo a la app/portal del banco.
+        # ecommerce_url: for BANCOLOMBIA_TRANSFER it lets the user skip Wompi's
+        # summary screen and go straight to the bank app/portal.
         if method_data.get('type') == 'BANCOLOMBIA_TRANSFER':
             method_data.setdefault(
                 'ecommerce_url',
@@ -125,7 +125,7 @@ class WompiService:
 
         method_type = method_data.get('type', '')
         api_url = WompiService._api_url()
-        logger.info(
+        logger.debug(
             'Wompi process_transaction → POST %s/transactions ref=%s method=%s amount_in_cents=%s acceptance_token_len=%s personal_auth_len=%s',
             api_url, tx.reference, method_type, tx.amount_in_cents,
             len(acceptance_token or ''), len(personal_auth_token or ''),
@@ -213,13 +213,13 @@ class WompiService:
                     tx.raw_response = fresh
                     tx.save(update_fields=['status', 'raw_response', 'updated_at'])
                 if wompi_status_raw in ('APPROVED', 'DECLINED', 'VOIDED', 'ERROR'):
-                    logger.info(
+                    logger.debug(
                         'Wompi terminal status during poll ref=%s status=%s after %s polls',
                         tx.reference, wompi_status_raw, attempt + 1,
                     )
                     break
                 if redirect_url:
-                    logger.info(
+                    logger.debug(
                         'Wompi async_payment_url ready ref=%s after %s polls',
                         tx.reference, attempt + 1,
                     )
@@ -338,11 +338,11 @@ class WompiService:
         Algorithm: sha256(prop1 + prop2 + ... + timestamp + events_secret)
         Properties and their order come from event_data['signature']['properties'].
 
-        Para el timestamp Wompi tiene dos variantes en sus distintos productos:
-          - `timestamp` numérico (formato actual de Pagos a Terceros y Checkout)
-          - `sent_at` ISO 8601 (variante histórica del Checkout)
-        Aceptamos ambas: preferimos `timestamp` tal cual viene en el body, y como
-        fallback parseamos `sent_at` a segundos unix.
+        For the timestamp Wompi has two variants across its products:
+          - `timestamp` numeric (current format of Pagos a Terceros and Checkout)
+          - `sent_at` ISO 8601 (historical Checkout variant)
+        We accept both: we prefer `timestamp` as it comes in the body, and fall
+        back to parsing `sent_at` into unix seconds.
         """
         secret = WompiService._events_secret()
         if not secret:

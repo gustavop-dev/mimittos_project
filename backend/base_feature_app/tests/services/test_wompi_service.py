@@ -322,4 +322,4 @@ def test_validate_config_flags_environment_mismatch():
     WOMPI_INTEGRITY_SECRET='prod_integrity_x', WOMPI_EVENTS_SECRET='prod_events_x',
 )
 def test_validate_config_flags_empty_key():
-    assert 'WOMPI_PUBLIC_KEY está vacío' in WompiService.validate_config()
+    assert 'WOMPI_PUBLIC_KEY is empty' in WompiService.validate_config()

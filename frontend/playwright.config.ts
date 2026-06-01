@@ -33,9 +33,9 @@ export default defineConfig({
       url: 'http://localhost:3001',
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,
-      // Fija el entorno Wompi del E2E a sandbox (lo que mockea payment-methods.spec.ts),
-      // independiente del .env de la máquina. En CI el bundle se hornea con estas vars
-      // en el step de build de ci.yml.
+      // Pin the E2E Wompi environment to sandbox (what payment-methods.spec.ts mocks),
+      // independent of the machine .env. In CI the bundle is baked with these vars
+      // in the ci.yml build step.
       env: {
         NEXT_PUBLIC_WOMPI_API_URL: 'https://sandbox.wompi.co/v1',
         NEXT_PUBLIC_WOMPI_PUBLIC_KEY: 'pub_test_e2e',
