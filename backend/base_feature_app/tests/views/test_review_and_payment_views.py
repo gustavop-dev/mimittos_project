@@ -1,5 +1,6 @@
 import hashlib
 import json
+from unittest.mock import patch
 
 import pytest
 from django.test import override_settings
@@ -355,3 +356,41 @@ def test_payment_status_returns_200_for_valid_reference(api_client, wompi_tx):
 def test_payment_status_returns_404_for_nonexistent_reference(api_client):
     response = api_client.get('/api/payment/status/REF-NO-EXISTE/')
     assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# POST /api/payment/process/ — PSE persona jurídica requiere NIT
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db
+def test_process_payment_pse_rejects_legal_entity_without_nit(api_client, wompi_tx):
+    response = api_client.post('/api/payment/process/', {
+        'order_number': wompi_tx.order.order_number,
+        'method': 'PSE',
+        'bank_code': '1007',
+        'user_type': 1,
+        'user_legal_id_type': 'CC',
+        'user_legal_id': '900123456',
+        'acceptance_token': 'acc',
+        'acceptance_personal_auth_token': 'per',
+    }, format='json')
+    assert response.status_code == 400
+    assert 'NIT' in response.data['detail']
+
+
+@pytest.mark.django_db
+@patch('base_feature_app.views.payment_views.WompiService.process_transaction')
+def test_process_payment_pse_accepts_legal_entity_with_nit(mock_process, api_client, wompi_tx):
+    mock_process.return_value = {'status': 'PENDING', 'redirect_url': '', 'wompi_id': 'x', 'status_message': ''}
+    response = api_client.post('/api/payment/process/', {
+        'order_number': wompi_tx.order.order_number,
+        'method': 'PSE',
+        'bank_code': '1007',
+        'user_type': 1,
+        'user_legal_id_type': 'NIT',
+        'user_legal_id': '900123456',
+        'acceptance_token': 'acc',
+        'acceptance_personal_auth_token': 'per',
+    }, format='json')
+    assert response.status_code == 200
+    mock_process.assert_called_once()

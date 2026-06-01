@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from '@jest/globals'
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Suspense } from 'react'
 
 jest.mock('next/navigation', () => ({
@@ -68,5 +69,30 @@ describe('PaymentPage', () => {
   it('renders Wompi security text', () => {
     render(<Suspense fallback={null}><PaymentPage /></Suspense>)
     expect(screen.getByText(/Pago seguro · Wompi/i)).toBeInTheDocument()
+  })
+
+  it('offers only NIT as document type for a legal entity in PSE', async () => {
+    const user = userEvent.setup()
+    render(<Suspense fallback={null}><PaymentPage /></Suspense>)
+    await waitFor(() => expect(screen.getByText('ORD-001')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /PSE/i }))
+    await user.click(screen.getByRole('button', { name: 'Jurídica' }))
+
+    expect(screen.getByRole('option', { name: 'NIT' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'CC' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'CE' })).not.toBeInTheDocument()
+  })
+
+  it('offers CC and CE as document types for a natural person in PSE', async () => {
+    const user = userEvent.setup()
+    render(<Suspense fallback={null}><PaymentPage /></Suspense>)
+    await waitFor(() => expect(screen.getByText('ORD-001')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /PSE/i }))
+
+    expect(screen.getByRole('option', { name: 'CC' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'CE' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: 'NIT' })).not.toBeInTheDocument()
   })
 })
