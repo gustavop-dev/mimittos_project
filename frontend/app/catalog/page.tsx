@@ -24,6 +24,10 @@ const SORT_OPTIONS = [
 
 type SortValue = (typeof SORT_OPTIONS)[number]['value']
 
+const PAGE_SIZE_DESKTOP = 16
+const PAGE_SIZE_MOBILE = 12
+const DESKTOP_MEDIA_QUERY = '(min-width: 1024px)'
+
 function fmt(n: number | null) {
   if (n == null) return '—'
   return '$' + n.toLocaleString('es-CO')
@@ -44,6 +48,23 @@ function CatalogContent() {
   const [maxPrice, setMaxPrice] = useState(250000)
   const [filterHuella, setFilterHuella] = useState(false)
   const [sortBy, setSortBy] = useState<SortValue>('popular')
+  const [page, setPage] = useState(1)
+  const [isDesktop, setIsDesktop] = useState(false)
+
+  const pageSize = isDesktop ? PAGE_SIZE_DESKTOP : PAGE_SIZE_MOBILE
+  const totalPages = Math.max(1, Math.ceil(peluches.length / pageSize))
+  const currentPage = Math.min(page, totalPages)
+  const visiblePeluches = peluches.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  useEffect(() => {
+    // jsdom (tests) has no matchMedia — default stays mobile
+    if (typeof window.matchMedia !== 'function') return
+    const mq = window.matchMedia(DESKTOP_MEDIA_QUERY)
+    const update = () => setIsDesktop(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
 
   useEffect(() => {
     Promise.all([peluchService.getCategories(), peluchService.getSizes()]).then(([cats, szs]) => {
@@ -54,6 +75,7 @@ function CatalogContent() {
 
   useEffect(() => {
     setLoading(true)
+    setPage(1)
     peluchService
       .listPeluches({
         category: activeCategory || undefined,
@@ -65,6 +87,11 @@ function CatalogContent() {
       .then(setPeluches)
       .finally(() => setLoading(false))
   }, [activeCategory, activeSize, maxPrice, filterHuella, sortBy])
+
+  function goToPage(nextPage: number) {
+    setPage(nextPage)
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const filterPanel = (
     <div style={{ background: '#fff', borderRadius: 'var(--radius-lg)', padding: 26, boxShadow: 'var(--shadow-sm)' }}>
@@ -208,7 +235,7 @@ function CatalogContent() {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
-                {peluches.map((p) => {
+                {visiblePeluches.map((p) => {
                   const cover = p.available_colors?.[0]?.preview_url ?? p.gallery_urls[0]
                   return (
                     <Link key={p.id} href={`/peluches/${p.slug}`} style={{ background: '#fff', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', cursor: 'pointer', textDecoration: 'none' }}>
@@ -265,6 +292,38 @@ function CatalogContent() {
                 })}
               </div>
             )}
+
+            {!loading && totalPages > 1 && (
+              <nav aria-label="Paginación del catálogo" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 36, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  aria-label="Página anterior"
+                  style={pageNavButtonStyle(currentPage === 1)}
+                >
+                  ← Anterior
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => goToPage(n)}
+                    aria-label={`Página ${n}`}
+                    aria-current={n === currentPage ? 'page' : undefined}
+                    style={pageNumberButtonStyle(n === currentPage)}
+                  >
+                    {n}
+                  </button>
+                ))}
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  aria-label="Página siguiente"
+                  style={pageNavButtonStyle(currentPage === totalPages)}
+                >
+                  Siguiente →
+                </button>
+              </nav>
+            )}
           </section>
         </div>
       </div>
@@ -296,6 +355,26 @@ function filterLabelStyle(active: boolean): React.CSSProperties {
     cursor: 'pointer', fontSize: 14,
     color: active ? 'var(--coral)' : 'var(--navy)',
     fontWeight: active ? 700 : 400,
+  }
+}
+
+function pageNavButtonStyle(disabled: boolean): React.CSSProperties {
+  return {
+    padding: '10px 16px', borderRadius: 12,
+    background: '#fff', border: '1.5px solid rgba(212,132,138,.3)',
+    fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13,
+    color: 'var(--navy)', cursor: disabled ? 'default' : 'pointer',
+    opacity: disabled ? 0.4 : 1,
+  }
+}
+
+function pageNumberButtonStyle(active: boolean): React.CSSProperties {
+  return {
+    width: 40, height: 40, borderRadius: 12,
+    background: active ? 'var(--coral)' : '#fff',
+    border: active ? 'none' : '1.5px solid rgba(27,42,74,.08)',
+    fontFamily: "'Quicksand', sans-serif", fontWeight: 700, fontSize: 13,
+    color: active ? '#fff' : 'var(--navy)', cursor: active ? 'default' : 'pointer',
   }
 }
 
