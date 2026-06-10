@@ -71,6 +71,7 @@ Use this document to understand each flow's steps, branching conditions, role re
 | `catalog-filter-by-size` | Filter Catalog by Size | catalog | P2 | shared | `/catalog` |
 | `catalog-filter-by-price` | Filter Catalog by Max Price | catalog | P3 | shared | `/catalog` |
 | `catalog-filter-personalization` | Filter Catalog by Huella | catalog | P3 | shared | `/catalog` |
+| `catalog-pagination` | Paginate Catalog Grid | catalog | P3 | shared | `/catalog` |
 | `orders-filter-by-status` | Filter My Orders by Status | orders | P2 | user | `/orders` |
 | `orders-search-by-number` | Search My Orders by Number | orders | P3 | user | `/orders` |
 | `auth-resend-verification-code` | Resend Sign-up Verification Code | auth | P3 | guest | `/sign-up` |
@@ -1300,6 +1301,17 @@ User drags the max-price slider on `/catalog` (range 60k–250k COP). When the v
 | **API endpoints** | `GET /api/peluches/?has_huella=true` |
 
 User toggles the "con huella" checkbox in the catalog filter sidebar. When active, the product list re-fetches with `?has_huella=true` and only peluches whose `has_huella` flag is true are shown.
+
+### catalog-pagination
+
+| Field | Value |
+|-------|-------|
+| **Priority** | P3 |
+| **Roles** | shared |
+| **Frontend route** | `/catalog` |
+| **API endpoints** | None (client-side slicing of the already-fetched list) |
+
+When the catalog returns more products than the responsive page size (16 on desktop ≥1024px, 12 on mobile), a pagination nav appears below the grid with Anterior/Siguiente buttons and numbered pages. Clicking a page swaps the visible cards and scrolls back to the top. Changing any filter or the sort order resets to page 1. With results that fit on one page, no pagination controls are rendered.
 
 ### orders-filter-by-status
 
