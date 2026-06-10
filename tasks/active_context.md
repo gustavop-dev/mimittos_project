@@ -5,7 +5,23 @@ description: Current work focus, recent changes, active decisions, and next step
 
 # Active Context — Mimittos
 
-Last updated: 2026-05-21
+Last updated: 2026-06-10
+
+---
+
+## GTM global + catalog pagination (2026-06-10)
+
+Branch `feat/10062026-gtm-catalog-pagination`. Two changes: (1) Google Tag Manager
+(`GTM-K88JC5VS`) added globally in `frontend/app/layout.tsx` — inline script via
+`next/script` (`strategy="afterInteractive"`) plus the `<noscript>` iframe right after
+`<body>`, so it loads on every route. (2) Client-side pagination on `/catalog`: page
+size is responsive via `matchMedia('(min-width: 1024px)')` — 16 products per page on
+desktop, 12 on mobile — with Anterior/Siguiente + numbered page controls below the
+grid. Changing any filter or sort resets to page 1; page changes scroll back to top.
+Flow `catalog-pagination` registered in `docs/USER_FLOW_MAP.md` and
+`frontend/e2e/flow-definitions.json` (E2E spec pending — needs seed data with >12
+products to be deterministic). Unit tests added in
+`frontend/app/catalog/__tests__/page.test.tsx` (10 passing).
 
 ---
 

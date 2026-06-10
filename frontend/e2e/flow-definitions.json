@@ -546,6 +546,14 @@
       "description": "User toggles the 'con huella' filter on /catalog; product list re-fetches with ?has_huella=true and shows only peluches that support huella",
       "expectedSpecs": 1
     },
+    "catalog-pagination": {
+      "name": "Paginate catalog product grid",
+      "module": "catalog",
+      "roles": ["shared"],
+      "priority": "P3",
+      "description": "When /catalog returns more products than the page size (16 desktop / 12 mobile), pagination controls appear; user clicks page numbers or Siguiente/Anterior and the grid swaps to that page's products",
+      "expectedSpecs": 1
+    },
     "orders-filter-by-status": {
       "name": "Filter my orders by status",
       "module": "orders",
