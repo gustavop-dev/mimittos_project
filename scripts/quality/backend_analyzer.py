@@ -546,12 +546,13 @@ class PythonAnalyzer:
         return file_result
     
     def _analyze_test_function(
-        self, 
-        node: ast.FunctionDef, 
-        file: str, 
+        self,
+        node: ast.FunctionDef,
+        file: str,
         result: FileResult,
         class_name: str | None = None,
         source: str | None = None,
+        class_frozen: bool = False,
     ) -> TestInfo:
         """Analyze a single test function for quality issues."""
         full_name = f"{class_name}.{node.name}" if class_name else node.name
@@ -761,7 +762,7 @@ class PythonAnalyzer:
 
         # 16. Non-deterministic sources without explicit control
         nondeterministic_signals = ASTAnalyzer.get_nondeterministic_signals(node)
-        if nondeterministic_signals and not ASTAnalyzer.has_determinism_control(node):
+        if nondeterministic_signals and not ASTAnalyzer.has_determinism_control(node) and not class_frozen:
             detected = ", ".join(sorted(nondeterministic_signals))
             result.issues.append(Issue(
                 file=file,
@@ -855,13 +856,21 @@ class PythonAnalyzer:
                 identifier=cls.name,
             ))
         
+        # Detect class-level @freeze_time so methods inside don't get flagged
+        class_frozen = any(
+            (isinstance(d, ast.Call) and ASTAnalyzer._call_name(d) in {"freeze_time", "freezegun.freeze_time"})
+            or (isinstance(d, ast.Name) and d.id in {"freeze_time"})
+            or (isinstance(d, ast.Attribute) and d.attr in {"freeze_time"})
+            for d in cls.decorator_list
+        )
+
         # Track method names for duplicates
         method_names: dict[str, list[int]] = {}
-        
+
         for node in cls.body:
             if isinstance(node, ast.FunctionDef) and node.name.startswith("test_"):
                 method_names.setdefault(node.name, []).append(node.lineno)
-                test_info = self._analyze_test_function(node, file, result, cls.name, source)
+                test_info = self._analyze_test_function(node, file, result, cls.name, source, class_frozen=class_frozen)
                 result.tests.append(test_info)
         
         # Check for duplicates within class
