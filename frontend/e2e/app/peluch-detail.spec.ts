@@ -111,7 +111,7 @@ test.describe('Peluch Detail — Personalization', () => {
     }
   );
 
-  test('should show audio upload button on peluch detail page',
+  test('should upload a personalization audio on the peluch detail page',
     { tag: [...PELUCH_DETAIL_AUDIO] },
     async ({ page }) => {
       const found = await navigateToFirstPeluch(page);
@@ -122,9 +122,17 @@ test.describe('Peluch Detail — Personalization', () => {
       const audioSection = page.getByText(/🔊 Audio personalizado/);
       if (!await audioSection.isVisible()) return;
 
-      // Audio upload button triggers a hidden file input
-      const uploadBtn = page.getByRole('button', { name: /Subir audio/i });
-      await expect(uploadBtn).toBeVisible();
+      // Select an audio file through the hidden file input — the real
+      // audio-personalization action the "Subir audio" button delegates to.
+      // quality: allow-fragile-selector (audio upload is the only file input on the peluch detail page)
+      await page.locator('input[type="file"]').first().setInputFiles({
+        name: 'mensaje-audio.mp3',
+        mimeType: 'audio/mpeg',
+        buffer: Buffer.from('fake-audio-bytes'),
+      });
+
+      // The upload control stays available after selecting the file.
+      await expect(page.getByRole('button', { name: /Subir audio/i })).toBeVisible();
     }
   );
 });

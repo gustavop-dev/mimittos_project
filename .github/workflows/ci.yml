@@ -175,6 +175,10 @@ jobs:
         working-directory: backend
         run: venv/bin/python manage.py migrate --no-input
 
+      - name: Seed E2E test data (offline, deterministic)
+        working-directory: backend
+        run: venv/bin/python manage.py create_fake_data --peluches 12 --blogs 6 --orders 5 --users 3
+
       - name: Build Next.js app
         run: npm run build
         env:

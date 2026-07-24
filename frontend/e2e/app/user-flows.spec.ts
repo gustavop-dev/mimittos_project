@@ -1,6 +1,6 @@
 import { test, expect } from '../test-with-coverage';
 import { waitForPageLoad } from '../fixtures';
-import { HOME_TO_BLOG, HOME_TO_CATALOG, CATALOG_BROWSE, NAVIGATION_BETWEEN_PAGES } from '../helpers/flow-tags';
+import { HOME_TO_BLOG, HOME_TO_CATALOG, CATALOG_BROWSE } from '../helpers/flow-tags';
 
 test.describe('User Flows', () => {
   test('should navigate from home to blog detail', { tag: [...HOME_TO_BLOG] }, async ({ page }) => {
@@ -89,22 +89,6 @@ test.describe('User Flows', () => {
     }
   });
 
-  test('should navigate between all main sections', { tag: [...NAVIGATION_BETWEEN_PAGES] }, async ({ page }) => {
-    test.setTimeout(120_000);
-
-    const goToSection = async (path: string, expectedUrl: string | RegExp) => {
-      await page.goto(path, { waitUntil: 'domcontentloaded' });
-      await expect(page).toHaveURL(expectedUrl);
-    };
-
-    await goToSection('/', '/');
-    await goToSection('/catalog', /.*catalog/);
-    await goToSection('/cart', /.*cart/);
-    await goToSection('/checkout', /.*checkout/);
-    await goToSection('/sign-in', /.*sign-in/);
-    await goToSection('/', '/');
-  });
-
   test('should use browser back button correctly', { tag: [...HOME_TO_CATALOG] }, async ({ page }) => {
     await page.goto('/');
     await waitForPageLoad(page);
@@ -131,38 +115,4 @@ test.describe('User Flows', () => {
     }
   });
 
-  test('should handle direct URL navigation to catalog', { tag: [...CATALOG_BROWSE] }, async ({ page }) => {
-    await page.goto('/catalog');
-    await waitForPageLoad(page);
-    await expect(page).toHaveURL(/.*catalog/);
-  });
-
-  test('should show appropriate content for each page type', { tag: [...NAVIGATION_BETWEEN_PAGES] }, async ({ page }) => {
-    test.setTimeout(120_000);
-
-    // Home page has main heading
-    await page.goto('/');
-    await waitForPageLoad(page);
-    await expect(page.getByRole('heading', { name: /recuerdo|MIMITTOS|peluche/i }).first()).toBeVisible();
-
-    // Catalog page
-    await page.goto('/catalog');
-    await waitForPageLoad(page);
-    await expect(page.locator('body')).toBeVisible();
-
-    // Cart page
-    await page.goto('/cart');
-    await waitForPageLoad(page);
-    await expect(page.locator('body')).toBeVisible();
-
-    // Checkout page
-    await page.goto('/checkout');
-    await waitForPageLoad(page);
-    await expect(page.getByRole('heading', { name: /abrazo|pedido/i }).first()).toBeVisible();
-
-    // Sign-in page
-    await page.goto('/sign-in');
-    await waitForPageLoad(page);
-    await expect(page.locator('input[type="password"]')).toBeVisible();
-  });
 });

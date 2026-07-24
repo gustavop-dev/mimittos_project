@@ -69,7 +69,7 @@ test.describe('Backoffice — Catalog Management', () => {
       await page.goto('/backoffice/peluches');
       await waitForPageLoad(page);
 
-      await expect(page.locator('body')).toBeVisible();
+      // quality: allow-no-interaction (admin table display-class flow: an authenticated admin reaches the peluches list, not the sign-in redirect)
       await expect(page).not.toHaveURL(/sign-in/);
     }
   );
@@ -127,7 +127,8 @@ test.describe('Backoffice — Catalog Management', () => {
       await page.goto('/backoffice/peluches/osito-clasico');
       await waitForPageLoad(page);
 
-      await expect(page.locator('body')).toBeVisible();
+      // quality: allow-no-interaction (edit-form display-class flow: an authenticated admin reaches the edit form, not the sign-in redirect)
+      await expect(page).not.toHaveURL(/sign-in/);
     }
   );
 });

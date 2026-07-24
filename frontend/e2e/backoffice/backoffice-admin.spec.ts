@@ -44,8 +44,9 @@ test.describe('Backoffice — Admin Management', () => {
       await page.goto('/backoffice/categorias');
       await waitForPageLoad(page);
 
-      await expect(page.locator('body')).toBeVisible();
+      // quality: allow-no-interaction (admin table display-class flow: the mocked categories render in the list)
       await expect(page).not.toHaveURL(/sign-in/);
+      await expect(page.getByText('Clásicos').first()).toBeVisible();
     }
   );
 
@@ -61,8 +62,9 @@ test.describe('Backoffice — Admin Management', () => {
       await page.goto('/backoffice/usuarios');
       await waitForPageLoad(page);
 
-      await expect(page.locator('body')).toBeVisible();
+      // quality: allow-no-interaction (admin table display-class flow: the mocked user renders in the list)
       await expect(page).not.toHaveURL(/sign-in/);
+      await expect(page.getByText(/ana@mimittos\.co/).first()).toBeVisible();
     }
   );
 });

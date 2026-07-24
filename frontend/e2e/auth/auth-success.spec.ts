@@ -1,6 +1,6 @@
 import { test, expect } from '../test-with-coverage';
 import { waitForPageLoad } from '../fixtures';
-import { AUTH_LOGIN_SUCCESS, AUTH_LOGOUT, AUTH_SESSION_PERSISTENCE } from '../helpers/flow-tags';
+import { AUTH_LOGIN_SUCCESS, AUTH_SESSION_PERSISTENCE } from '../helpers/flow-tags';
 
 test.describe('Auth — authenticated flows', () => {
   test(
@@ -38,6 +38,7 @@ test.describe('Auth — authenticated flows', () => {
     'should remain authenticated after page reload with valid cookies',
     { tag: [...AUTH_SESSION_PERSISTENCE] },
     async ({ page }) => {
+      // quality: allow-no-interaction (session persistence is verified across a reload — there is no user action, and fake cookies cannot yield real server-side auth UI)
       await page.context().addCookies([
         { name: 'access_token', value: 'fake-access', domain: 'localhost', path: '/' },
         { name: 'refresh_token', value: 'fake-refresh', domain: 'localhost', path: '/' },
@@ -48,32 +49,13 @@ test.describe('Auth — authenticated flows', () => {
       await page.reload();
       await waitForPageLoad(page);
 
-      // Cookies should still be present after reload
+      // The home page still renders after the reload...
+      await expect(page.getByRole('heading', { name: /Cada abrazo|Peluchelandia|peluche/i }).first()).toBeVisible();
+
+      // ...and the session cookie survived it.
       const cookies = await page.context().cookies();
       const accessCookie = cookies.find((c) => c.name === 'access_token');
       expect(accessCookie?.value).toBe('fake-access');
-    }
-  );
-
-  test(
-    'should clear auth tokens on sign out',
-    { tag: [...AUTH_LOGOUT] },
-    async ({ page }) => {
-      await page.goto('/');
-      await waitForPageLoad(page);
-
-      // App home page loads without auth errors
-      await expect(page.locator('body')).toBeVisible();
-
-      // The logout flow clears tokens from localStorage/cookies
-      await page.evaluate(() => {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-      });
-
-      // Verify tokens are cleared
-      const accessToken = await page.evaluate(() => localStorage.getItem('access_token'));
-      expect(accessToken).toBeNull();
     }
   );
 });

@@ -7,6 +7,7 @@ test.describe('Payment & Order Confirmation', () => {
     'should display payment page with mocked payment info',
     { tag: [...PAYMENT_PAGE_DISPLAY] },
     async ({ page }) => {
+      // quality: allow-no-interaction (payment-page display: the mocked order info is asserted below; no user action drives the initial render)
       await page.route('**/api/payment/info/**', (route) =>
         route.fulfill({
           status: 200,
@@ -43,7 +44,8 @@ test.describe('Payment & Order Confirmation', () => {
       await page.goto('/payment?order=ORD-001');
       await waitForPageLoad(page);
 
-      await expect(page.locator('body')).toBeVisible();
+      // The mocked order info renders on the payment page.
+      await expect(page.getByText(/ORD-001/).first()).toBeVisible({ timeout: 10_000 });
     }
   );
 
@@ -51,6 +53,7 @@ test.describe('Payment & Order Confirmation', () => {
     'should display order confirmed page with mocked tracking data',
     { tag: [...ORDER_CONFIRMED_DISPLAY] },
     async ({ page }) => {
+      // quality: allow-no-interaction (order-confirmed display: the mocked order number is asserted below; the page renders from the URL params)
       await page.route('**/api/payment/check/**', (route) =>
         route.fulfill({
           status: 200,
@@ -74,7 +77,8 @@ test.describe('Payment & Order Confirmation', () => {
       await page.goto('/order-confirmed?order=ORD-001&id=wompi-123');
       await waitForPageLoad(page);
 
-      await expect(page.locator('body')).toBeVisible();
+      // The mocked order number renders on the confirmation page.
+      await expect(page.getByText(/ORD-001/).first()).toBeVisible({ timeout: 10_000 });
     }
   );
 });

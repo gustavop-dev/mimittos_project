@@ -54,8 +54,15 @@ describe('usePageView', () => {
     mockUsePathname.mockReturnValue('/catalog')
     renderHook(() => usePageView())
     await waitFor(() => {
-      expect(localStorage.getItem('mmts_sid')).toBeTruthy()
+      expect(mockRecordPageView).toHaveBeenCalled()
     })
+    // A base-36 session id was generated and persisted...
+    const sid = localStorage.getItem('mmts_sid')
+    expect(sid).toMatch(/^[a-z0-9]+$/)
+    // ...and the recorded page view carried that exact session id.
+    expect(mockRecordPageView).toHaveBeenCalledWith(
+      expect.objectContaining({ session_id: sid })
+    )
   })
 
   it('reuses an existing session id from localStorage', async () => {
