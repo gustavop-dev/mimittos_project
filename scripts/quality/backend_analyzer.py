@@ -61,7 +61,16 @@ class ASTAnalyzer:
         "assertContains", "assertNotContains", "assertRedirects",
         "assertTemplateUsed", "assertTemplateNotUsed",
     }
-    
+
+    # Assertions expressed as context managers. `with pytest.raises(X):` states
+    # that the call must raise — the assertion is the construct itself, with no
+    # `assert` statement anywhere. Omitting these made the gate report correct
+    # tests as having no assertions.
+    CONTEXT_ASSERTION_PATTERNS = {
+        "raises", "warns", "deprecated_call",
+    }
+
+
     # Mock assertion methods
     MOCK_ASSERTIONS = {
         "assert_called", "assert_called_once", "assert_called_with",
@@ -119,18 +128,32 @@ class ASTAnalyzer:
             Tuple of (count, list of assertion source representations).
         """
         assertions = []
-        
+
         for child in ast.walk(node):
             # pytest assert
             if isinstance(child, ast.Assert):
                 assertions.append(ast.unparse(child) if hasattr(ast, 'unparse') else "assert ...")
-            
+
             # unittest self.assert*
             elif isinstance(child, ast.Call):
                 if isinstance(child.func, ast.Attribute):
                     if child.func.attr in cls.ASSERTION_PATTERNS:
                         assertions.append(child.func.attr)
-        
+                    # `with pytest.raises(X):` is the assertion — the test states
+                    # that the call must raise. Counting only `assert` statements
+                    # reported 72 such tests in one repo as having no assertions,
+                    # which is a rule slandering correct tests.
+                    elif child.func.attr in cls.CONTEXT_ASSERTION_PATTERNS:
+                        assertions.append(f"{child.func.attr}()")
+                    # `m.assert_called_once_with(...)` is an assertion too. The
+                    # gate already knows this — `mock_call_contract_only` exists
+                    # precisely to flag tests that assert ONLY mock calls — so
+                    # reporting them as having none was self-contradictory.
+                    # Structural emptiness and weak-but-present are different
+                    # findings and each has its own rule.
+                    elif child.func.attr in cls.MOCK_ASSERTIONS:
+                        assertions.append(child.func.attr)
+
         return len(assertions), assertions
     
     @classmethod
