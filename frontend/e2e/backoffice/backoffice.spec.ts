@@ -7,6 +7,7 @@ test.describe('Backoffice', () => {
     'should redirect to admin-login when accessing backoffice unauthenticated',
     { tag: [...BACKOFFICE_LOGIN] },
     async ({ page }) => {
+      // quality: allow-no-interaction (auth guard: an unauthenticated visit is redirected — there is no user action, and the redirect is the real assertion)
       await page.goto('/backoffice');
       await waitForPageLoad(page);
 
@@ -19,6 +20,10 @@ test.describe('Backoffice', () => {
     'should display backoffice dashboard with mocked analytics',
     { tag: [...BACKOFFICE_DASHBOARD_DISPLAY] },
     async ({ page }) => {
+      // quality: allow-no-interaction (admin dashboard display-class flow; the auth guard is satisfied so the app stays on /backoffice)
+      await page.route('**/api/validate_token/**', (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, user: { id: 1, email: 'admin@test.com', role: 'admin', is_staff: true } }) })
+      );
       await page.route('**/api/analytics/kpis/**', (route) =>
         route.fulfill({
           status: 200,
@@ -47,8 +52,8 @@ test.describe('Backoffice', () => {
       await page.goto('/backoffice');
       await waitForPageLoad(page);
 
-      // Page body should render without crashing
-      await expect(page.locator('body')).toBeVisible();
+      // Authenticated: the app is NOT bounced to the admin login.
+      await expect(page).not.toHaveURL(/admin-login|sign-in/, { timeout: 10_000 });
     }
   );
 
@@ -56,6 +61,10 @@ test.describe('Backoffice', () => {
     'should display backoffice orders list with mocked API',
     { tag: [...BACKOFFICE_ORDER_MANAGEMENT] },
     async ({ page }) => {
+      // quality: allow-no-interaction (admin orders display-class flow; the auth guard is satisfied so the app stays on the orders page)
+      await page.route('**/api/validate_token/**', (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, user: { id: 1, email: 'admin@test.com', role: 'admin', is_staff: true } }) })
+      );
       await page.route('**/api/orders/**', (route) =>
         route.fulfill({
           status: 200,
@@ -72,7 +81,8 @@ test.describe('Backoffice', () => {
       await page.goto('/backoffice/pedidos');
       await waitForPageLoad(page);
 
-      await expect(page.locator('body')).toBeVisible();
+      // Authenticated: the app is NOT bounced to the admin login.
+      await expect(page).not.toHaveURL(/admin-login|sign-in/, { timeout: 10_000 });
     }
   );
 

@@ -101,6 +101,9 @@ test(
   'should narrow product list when max-price slider drops below the highest price',
   { tag: [...CATALOG_FILTER_BY_PRICE] },
   async ({ page }) => {
+    // quality: allow-no-interaction (the slider IS moved below via a native input-event
+    // dispatch — Playwright cannot drag a range input reliably — and the test asserts the
+    // list narrows; the detector's verb list just does not recognize evaluate/dispatchEvent)
     await mockCatalogWithFilters(page);
 
     await page.goto('/catalog');

@@ -3,47 +3,22 @@ import { waitForPageLoad, testCheckoutData } from '../fixtures';
 import { CHECKOUT_FORM_DISPLAY, CHECKOUT_FORM_VALIDATION, CHECKOUT_FORM_FILL, CHECKOUT_WOMPI_REDIRECT } from '../helpers/flow-tags';
 
 test.describe('Checkout Flow', () => {
-  test('should navigate to checkout page', { tag: [...CHECKOUT_FORM_DISPLAY] }, async ({ page }) => {
-    await page.goto('/checkout');
-    await waitForPageLoad(page);
-    await expect(page).toHaveURL(/.*checkout/);
-  });
-
-  test('should display checkout form fields', { tag: [...CHECKOUT_FORM_DISPLAY] }, async ({ page }) => {
-    await page.goto('/checkout');
-    await waitForPageLoad(page);
-    await expect(page).toHaveURL(/.*checkout/);
-
-    // quality: allow-fragile-selector (email input scoped by type attribute)
-    const emailInput = page.locator('input[type="email"]').first();
-    if (await emailInput.isVisible()) {
-      await expect(emailInput).toBeVisible();
-    }
-  });
-
-  test('should show cart summary if items exist', { tag: [...CHECKOUT_FORM_DISPLAY] }, async ({ page }) => {
+  test('should display the checkout form once the cart has an item', { tag: [...CHECKOUT_FORM_DISPLAY] }, async ({ page }) => {
+    // Add a seeded product to the cart so checkout renders its form (not the empty-cart message).
     await page.goto('/catalog');
     await waitForPageLoad(page);
-
     // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
-    const peluchCards = page.locator('a[href^="/peluches/"]');
-    const count = await peluchCards.count();
+    await page.locator('a[href^="/peluches/"]').first().click();
+    await waitForPageLoad(page);
+    await page.getByRole('button', { name: /Agregar/i }).first().click();
+    await page.waitForLoadState('domcontentloaded');
 
-    if (count > 0) {
-      // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
-      await peluchCards.first().click();
-      await waitForPageLoad(page);
+    await page.goto('/checkout');
+    await waitForPageLoad(page);
 
-      const addToCartBtn = page.getByRole('button', { name: /Agregar/i });
-      if (await addToCartBtn.isVisible()) {
-        await addToCartBtn.click();
-        await page.waitForLoadState('domcontentloaded');
-
-        await page.goto('/checkout');
-        await waitForPageLoad(page);
-        await expect(page).toHaveURL(/.*checkout/);
-      }
-    }
+    await expect(page).toHaveURL(/.*checkout/);
+    // quality: allow-fragile-selector (email input scoped by type attribute)
+    await expect(page.locator('input[type="email"]').first()).toBeVisible();
   });
 
   test('should validate required fields', { tag: [...CHECKOUT_FORM_VALIDATION] }, async ({ page }) => {

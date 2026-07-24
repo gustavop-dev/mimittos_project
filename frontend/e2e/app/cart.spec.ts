@@ -44,6 +44,7 @@ test.describe('Shopping Cart', () => {
   });
 
   test('should show empty cart message', { tag: [...CART_EMPTY] }, async ({ page }) => {
+    // quality: allow-no-interaction (empty-cart is a display-class state; a fresh visit asserts the real empty message)
     await page.goto('/cart');
     await waitForPageLoad(page);
     await expect(page.getByText(/Tu carrito está vacío/)).toBeVisible();

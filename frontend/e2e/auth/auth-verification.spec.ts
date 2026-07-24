@@ -67,6 +67,7 @@ test('should complete email verification after sign-up',
 test('should render Google sign-in entry point on sign-in page',
   { tag: [...AUTH_GOOGLE_LOGIN] },
   async ({ page }) => {
+    // quality: allow-no-interaction (Google OAuth cannot be exercised in e2e; this verifies the sign-in page renders its form + Google entry point)
     // Disable captcha so page loads without blocking
     await page.route('**/api/google-captcha/site-key/', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ site_key: null }) })
