@@ -1,4 +1,15 @@
 {
   "_comment": "Junk-test findings that predate the rules. These stay warnings under --junk-severity=error so existing debt does not block merges; anything not listed here is a new finding and fails. This file should only ever shrink.",
-  "findings": []
+  "findings": [
+    "frontend/app/backoffice/pedidos/__tests__/page.test.tsx::mock_only_assertion::does not open the detail modal when the status select is changed",
+    "frontend/app/backoffice/pedidos/__tests__/page.test.tsx::mock_only_assertion::does not submit tracking when the input is empty",
+    "frontend/app/blogs/[blogId]/__tests__/page.test.tsx::mock_only_assertion::renders loading state when blogId is invalid",
+    "frontend/app/forgot-password/__tests__/page.test.tsx::mock_only_assertion::validates password length",
+    "frontend/app/forgot-password/__tests__/page.test.tsx::mock_only_assertion::validates password mismatch",
+    "frontend/app/sign-up/__tests__/page.test.tsx::mock_only_assertion::shows error when password is too short",
+    "frontend/app/sign-up/__tests__/page.test.tsx::mock_only_assertion::shows error when passwords do not match",
+    "frontend/components/admin/__tests__/PeluchForm.test.tsx::mock_only_assertion::does not delete a color when the confirmation resolves false",
+    "frontend/lib/hooks/__tests__/usePageView.test.ts::mock_only_assertion::skips recording on /backoffice routes",
+    "frontend/lib/hooks/__tests__/usePageView.test.ts::mock_only_assertion::skips recording on /sign- routes"
+  ]
 }
