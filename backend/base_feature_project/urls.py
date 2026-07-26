@@ -1,3 +1,5 @@
+import os
+
 from django.http import JsonResponse
 from django.urls import path, include
 from django.conf import settings
@@ -8,7 +10,15 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 
 def health_check(request):
-    return JsonResponse({'status': 'ok'})
+    # 'project'/'environment' let external probes verify WHO answered: a shared
+    # codebase means the project name alone cannot tell prod from staging
+    # (measured: /qa pilot #3). DJANGO_ENV is read through settings because
+    # python-decouple resolves it from backend/.env, which os.getenv cannot see.
+    return JsonResponse({
+        'status': 'ok',
+        'project': settings.BASE_DIR.parent.name,
+        'environment': getattr(settings, 'DJANGO_ENV', os.getenv('DJANGO_ENV', 'development')),
+    })
 
 
 urlpatterns = [
