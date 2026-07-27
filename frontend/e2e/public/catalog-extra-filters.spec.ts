@@ -73,7 +73,7 @@ async function mockCatalogWithFilters(page: import('@playwright/test').Page) {
 
 test(
   'should narrow product list when a size pill is selected',
-  { tag: [...CATALOG_FILTER_BY_SIZE] },
+  { tag: [...CATALOG_FILTER_BY_SIZE, '@outcome:display'] },
   async ({ page }) => {
     await mockCatalogWithFilters(page);
 
@@ -99,7 +99,7 @@ test(
 
 test(
   'should narrow product list when max-price slider drops below the highest price',
-  { tag: [...CATALOG_FILTER_BY_PRICE] },
+  { tag: [...CATALOG_FILTER_BY_PRICE, '@outcome:display'] },
   async ({ page }) => {
     // quality: allow-no-interaction (the slider IS moved below via a native input-event
     // dispatch — Playwright cannot drag a range input reliably — and the test asserts the
@@ -133,7 +133,7 @@ test(
 
 test(
   'should narrow product list to peluches with huella when filter is enabled',
-  { tag: [...CATALOG_FILTER_PERSONALIZATION] },
+  { tag: [...CATALOG_FILTER_PERSONALIZATION, '@outcome:display'] },
   async ({ page }) => {
     await mockCatalogWithFilters(page);
 

@@ -5,7 +5,7 @@ import { HOME_LOADS, NAVIGATION_BETWEEN_PAGES, NAVIGATION_HEADER, NAVIGATION_FOO
 // The header nav (Inicio / Catálogo / Historia / Contacto) and the footer expose
 // /catalog, /about and /contact links — there is no /blogs entry in either.
 test.describe('Navigation', () => {
-  test('should navigate to home page', { tag: [...HOME_LOADS] }, async ({ page }) => {
+  test('should navigate to home page', { tag: [...HOME_LOADS, '@outcome:display'] }, async ({ page }) => {
     // quality: allow-no-interaction (home is the app entry point; the hero heading assertion is a real content check)
     await page.goto('/');
     await waitForPageLoad(page);
@@ -14,7 +14,7 @@ test.describe('Navigation', () => {
     await expect(page.getByRole('heading', { name: /Cada abrazo|Peluchelandia|peluche/i }).first()).toBeVisible();
   });
 
-  test('should have working header navigation', { tag: [...NAVIGATION_HEADER] }, async ({ page }) => {
+  test('should have working header navigation', { tag: [...NAVIGATION_HEADER, '@outcome:success'] }, async ({ page }) => {
     await page.goto('/');
     await waitForPageLoad(page);
 
@@ -27,7 +27,7 @@ test.describe('Navigation', () => {
     await expect(page.getByRole('heading').first()).toBeVisible();
   });
 
-  test('should have working footer', { tag: [...NAVIGATION_FOOTER] }, async ({ page }) => {
+  test('should have working footer', { tag: [...NAVIGATION_FOOTER, '@outcome:success'] }, async ({ page }) => {
     await page.goto('/');
     await waitForPageLoad(page);
 
@@ -38,7 +38,7 @@ test.describe('Navigation', () => {
     await expect(page).toHaveURL(/.*contact/);
   });
 
-  test('should navigate between pages via the header nav', { tag: [...NAVIGATION_BETWEEN_PAGES] }, async ({ page }) => {
+  test('should navigate between pages via the header nav', { tag: [...NAVIGATION_BETWEEN_PAGES, '@outcome:success'] }, async ({ page }) => {
     await page.goto('/');
     await waitForPageLoad(page);
 

@@ -10,7 +10,7 @@ test.describe('Blog Pages', () => {
     await waitForPageLoad(page);
   });
 
-  test('should display blogs list page', { tag: [...BLOG_LIST_VIEW] }, async ({ page }) => {
+  test('should display blogs list page', { tag: [...BLOG_LIST_VIEW, '@outcome:display'] }, async ({ page }) => {
     // quality: allow-no-interaction (list-view is a display-class flow; it asserts the seeded blog cards render)
     await expect(page).toHaveURL(/.*blogs/);
 
@@ -18,7 +18,7 @@ test.describe('Blog Pages', () => {
     await expect(page.locator('a[href^="/blogs/"]').first()).toBeVisible();
   });
 
-  test('should navigate to a blog detail and show its content', { tag: [...BLOG_DETAIL_VIEW] }, async ({ page }) => {
+  test('should navigate to a blog detail and show its content', { tag: [...BLOG_DETAIL_VIEW, '@outcome:display'] }, async ({ page }) => {
     // quality: allow-fragile-selector (blog list links uniquely scoped by href pattern)
     await page.locator('a[href^="/blogs/"]').first().click();
     await waitForPageLoad(page);
@@ -27,7 +27,7 @@ test.describe('Blog Pages', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   });
 
-  test('should navigate back to blogs list from detail', { tag: [...BLOG_DETAIL_BACK] }, async ({ page }) => {
+  test('should navigate back to blogs list from detail', { tag: [...BLOG_DETAIL_BACK, '@outcome:success'] }, async ({ page }) => {
     // quality: allow-fragile-selector (blog list links uniquely scoped by href pattern)
     await page.locator('a[href^="/blogs/"]').first().click();
     await waitForPageLoad(page);

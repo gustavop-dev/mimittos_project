@@ -11,6 +11,10 @@
     "frontend/components/admin/__tests__/PeluchForm.test.tsx::mock_only_assertion::does not delete a color when the confirmation resolves false",
     "frontend/e2e/auth/auth.spec.ts::tautological_url::should navigate to backoffice page",
     "frontend/e2e/auth/auth.spec.ts::tautological_url::should navigate to dashboard page",
+    "frontend/e2e/backoffice/backoffice-admin.spec.ts::deep_link_entry::should display category management page in backoffice",
+    "frontend/e2e/backoffice/backoffice-admin.spec.ts::deep_link_entry::should display user management page in backoffice",
+    "frontend/e2e/backoffice/backoffice-catalog.spec.ts::deep_link_entry::should display peluches list in backoffice",
+    "frontend/e2e/backoffice/backoffice.spec.ts::deep_link_entry::should display backoffice orders list with mocked API",
     "frontend/lib/hooks/__tests__/usePageView.test.ts::mock_only_assertion::skips recording on /backoffice routes",
     "frontend/lib/hooks/__tests__/usePageView.test.ts::mock_only_assertion::skips recording on /sign- routes"
   ]

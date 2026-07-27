@@ -22,7 +22,7 @@ async function navigateToFirstPeluch(page: Page) {
 
 test.describe('Peluch Detail — Personalization', () => {
   test('should select size and color on peluch detail page',
-    { tag: [...PELUCH_DETAIL_SIZE_COLOR] },
+    { tag: [...PELUCH_DETAIL_SIZE_COLOR, '@outcome:display'] },
     async ({ page }) => {
       const found = await navigateToFirstPeluch(page);
       if (!found) return;
@@ -69,7 +69,7 @@ test.describe('Peluch Detail — Personalization', () => {
   );
 
   test('should fill huella text personalization on peluch detail page',
-    { tag: [...PELUCH_DETAIL_HUELLA] },
+    { tag: [...PELUCH_DETAIL_HUELLA, '@outcome:display'] },
     async ({ page }) => {
       const found = await navigateToFirstPeluch(page);
       if (!found) return;
@@ -89,7 +89,7 @@ test.describe('Peluch Detail — Personalization', () => {
   );
 
   test('should fill corazón phrase personalization on peluch detail page',
-    { tag: [...PELUCH_DETAIL_CORAZON] },
+    { tag: [...PELUCH_DETAIL_CORAZON, '@outcome:display'] },
     async ({ page }) => {
       const found = await navigateToFirstPeluch(page);
       if (!found) return;

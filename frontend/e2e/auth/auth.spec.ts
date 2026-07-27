@@ -3,7 +3,7 @@ import { waitForPageLoad } from '../fixtures';
 import { AUTH_SIGN_IN_FORM, AUTH_SIGN_UP_FORM, AUTH_LOGIN_INVALID, AUTH_PROTECTED_REDIRECT, AUTH_FORGOT_PASSWORD_FORM } from '../helpers/flow-tags';
 
 test.describe('Authentication', () => {
-  test('should show validation on empty form submission', { tag: [...AUTH_SIGN_IN_FORM] }, async ({ page }) => {
+  test('should show validation on empty form submission', { tag: [...AUTH_SIGN_IN_FORM, '@outcome:display'] }, async ({ page }) => {
     await page.goto('/sign-in');
     await waitForPageLoad(page);
 
@@ -15,7 +15,7 @@ test.describe('Authentication', () => {
     await expect(page).toHaveURL(/.*sign-in/);
   });
 
-  test('should accept input in form fields', { tag: [...AUTH_SIGN_IN_FORM] }, async ({ page }) => {
+  test('should accept input in form fields', { tag: [...AUTH_SIGN_IN_FORM, '@outcome:display'] }, async ({ page }) => {
     await page.goto('/sign-in');
     await waitForPageLoad(page);
 
@@ -28,7 +28,7 @@ test.describe('Authentication', () => {
     await expect(passwordInput).toHaveValue('password123');
   });
 
-  test('should handle invalid credentials gracefully', { tag: [...AUTH_LOGIN_INVALID] }, async ({ page }) => {
+  test('should handle invalid credentials gracefully', { tag: [...AUTH_LOGIN_INVALID, '@outcome:error'] }, async ({ page }) => {
     // Force a deterministic 401 from the auth endpoint, independent of CI seed data.
     // This isolates the test to the FRONTEND error-handling path: signIn rejects,
     // catch block runs, setError fires, page does NOT navigate.
@@ -71,7 +71,7 @@ test.describe('Authentication', () => {
     await expect(page).toHaveURL(/backoffice|sign-in/);
   });
 
-  test('should validate password mismatch on sign-up', { tag: [...AUTH_SIGN_UP_FORM] }, async ({ page }) => {
+  test('should validate password mismatch on sign-up', { tag: [...AUTH_SIGN_UP_FORM, '@outcome:error'] }, async ({ page }) => {
     await page.goto('/sign-up');
     await waitForPageLoad(page);
 
@@ -87,7 +87,7 @@ test.describe('Authentication', () => {
     await expect(page).toHaveURL(/.*sign-up/);
   });
 
-  test('should navigate from sign-in to forgot password', { tag: [...AUTH_FORGOT_PASSWORD_FORM] }, async ({ page }) => {
+  test('should navigate from sign-in to forgot password', { tag: [...AUTH_FORGOT_PASSWORD_FORM, '@outcome:display'] }, async ({ page }) => {
     await page.goto('/sign-in');
     await waitForPageLoad(page);
 
@@ -100,7 +100,7 @@ test.describe('Authentication', () => {
     await expect(page.getByRole('heading', { name: /Olvidaste tu contraseña/i })).toBeVisible();
   });
 
-  test('should show verification step after successful registration', { tag: [...AUTH_SIGN_UP_FORM] }, async ({ page }) => {
+  test('should show verification step after successful registration', { tag: [...AUTH_SIGN_UP_FORM, '@outcome:display'] }, async ({ page }) => {
     await page.route('**/api/sign_up/', (route) =>
       route.fulfill({
         status: 201,

@@ -29,7 +29,7 @@ test.describe('User Flows', () => {
     }
   });
 
-  test('should navigate from home to product detail', { tag: [...HOME_TO_CATALOG] }, async ({ page }) => {
+  test('should navigate from home to product detail', { tag: [...HOME_TO_CATALOG, '@outcome:success'] }, async ({ page }) => {
     await page.goto('/');
     await waitForPageLoad(page);
 
@@ -57,7 +57,7 @@ test.describe('User Flows', () => {
     }
   });
 
-  test('should browse multiple peluches in catalog', { tag: [...CATALOG_BROWSE] }, async ({ page }) => {
+  test('should browse multiple peluches in catalog', { tag: [...CATALOG_BROWSE, '@outcome:display'] }, async ({ page }) => {
     await page.goto('/catalog');
     await waitForPageLoad(page);
 
@@ -89,7 +89,7 @@ test.describe('User Flows', () => {
     }
   });
 
-  test('should use browser back button correctly', { tag: [...HOME_TO_CATALOG] }, async ({ page }) => {
+  test('should use browser back button correctly', { tag: [...HOME_TO_CATALOG, '@outcome:success'] }, async ({ page }) => {
     await page.goto('/');
     await waitForPageLoad(page);
 

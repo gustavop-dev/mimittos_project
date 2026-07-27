@@ -3,7 +3,7 @@ import { waitForPageLoad, testCheckoutData } from '../fixtures';
 import { CHECKOUT_FORM_DISPLAY, CHECKOUT_FORM_VALIDATION, CHECKOUT_FORM_FILL, CHECKOUT_WOMPI_REDIRECT } from '../helpers/flow-tags';
 
 test.describe('Checkout Flow', () => {
-  test('should display the checkout form once the cart has an item', { tag: [...CHECKOUT_FORM_DISPLAY] }, async ({ page }) => {
+  test('should display the checkout form once the cart has an item', { tag: [...CHECKOUT_FORM_DISPLAY, '@outcome:display'] }, async ({ page }) => {
     // Add a seeded product to the cart so checkout renders its form (not the empty-cart message).
     await page.goto('/catalog');
     await waitForPageLoad(page);
@@ -21,7 +21,7 @@ test.describe('Checkout Flow', () => {
     await expect(page.locator('input[type="email"]').first()).toBeVisible();
   });
 
-  test('should validate required fields', { tag: [...CHECKOUT_FORM_VALIDATION] }, async ({ page }) => {
+  test('should validate required fields', { tag: [...CHECKOUT_FORM_VALIDATION, '@outcome:display'] }, async ({ page }) => {
     await page.goto('/checkout');
     await page.evaluate(() => localStorage.clear());
     await page.reload();

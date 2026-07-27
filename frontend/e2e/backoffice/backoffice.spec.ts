@@ -18,7 +18,7 @@ test.describe('Backoffice', () => {
 
   test(
     'should display backoffice dashboard with mocked analytics',
-    { tag: [...BACKOFFICE_DASHBOARD_DISPLAY] },
+    { tag: [...BACKOFFICE_DASHBOARD_DISPLAY, '@outcome:display'] },
     async ({ page }) => {
       // quality: allow-no-interaction (admin dashboard display-class flow; the auth guard is satisfied so the app stays on /backoffice)
       await page.route('**/api/validate_token/**', (route) =>
@@ -59,7 +59,7 @@ test.describe('Backoffice', () => {
 
   test(
     'should display backoffice orders list with mocked API',
-    { tag: [...BACKOFFICE_ORDER_MANAGEMENT] },
+    { tag: [...BACKOFFICE_ORDER_MANAGEMENT, '@outcome:display'] },
     async ({ page }) => {
       // quality: allow-no-interaction (admin orders display-class flow; the auth guard is satisfied so the app stays on the orders page)
       await page.route('**/api/validate_token/**', (route) =>

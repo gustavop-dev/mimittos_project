@@ -51,7 +51,7 @@ async function setupStaffAuth(page: Page) {
 
 test.describe('Backoffice — Catalog Management', () => {
   test('should display peluches list in backoffice',
-    { tag: [...BACKOFFICE_PELUCH_LIST] },
+    { tag: [...BACKOFFICE_PELUCH_LIST, '@outcome:display'] },
     async ({ page }) => {
       await setupStaffAuth(page);
 

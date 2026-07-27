@@ -3,7 +3,7 @@ import { waitForPageLoad } from '../fixtures';
 import { CONTACT_PAGE_DISPLAY, ABOUT_PAGE_DISPLAY, TERMS_PAGE_DISPLAY } from '../helpers/flow-tags';
 
 test('should display contact page with heading and form',
-  { tag: [...CONTACT_PAGE_DISPLAY] },
+  { tag: [...CONTACT_PAGE_DISPLAY, '@outcome:display'] },
   async ({ page }) => {
     // quality: allow-no-interaction (P4 static info page reached by its footer link; display-class flow)
     // quality: allow-render-only (asserts the page renders its level-1 heading)
@@ -16,7 +16,7 @@ test('should display contact page with heading and form',
 );
 
 test('should display about page with brand story content',
-  { tag: [...ABOUT_PAGE_DISPLAY] },
+  { tag: [...ABOUT_PAGE_DISPLAY, '@outcome:display'] },
   async ({ page }) => {
     // quality: allow-no-interaction (P4 static info page reached by its footer link; display-class flow)
     // quality: allow-render-only (asserts the page renders its level-1 heading)
@@ -29,7 +29,7 @@ test('should display about page with brand story content',
 );
 
 test('should display terms and conditions page with section headings',
-  { tag: [...TERMS_PAGE_DISPLAY] },
+  { tag: [...TERMS_PAGE_DISPLAY, '@outcome:display'] },
   async ({ page }) => {
     // quality: allow-no-interaction (P4 static legal page reached by its footer link; display-class flow)
     await page.goto('/terms');
