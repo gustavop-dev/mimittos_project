@@ -452,7 +452,11 @@ class QualityReport:
             ("frontend_unit", unit),
             ("frontend_e2e", e2e),
         ):
+            # Merge, never replace: analyzers stamp their own notes here first
+            # (e.g. disabled_by_config from an empty frontend_*_dir), and a
+            # plain assignment would silently drop them from the report.
             suite_result.suite_findings = {
+                **suite_result.suite_findings,
                 "semantic_issues_suppressed_by_mode": semantic_suppressed.get(suite_key, 0),
                 "active_exceptions_count": active_by_suite.get(suite_key, 0),
                 "error_count": suite_result.error_count,
@@ -872,6 +876,41 @@ class QualityReport:
             )
             backend_root = self.repo_root / "backend" / self.config.backend_app_name / "tests"
             backend = py_analyzer.analyze_suite(backend_root, file_matcher=path_matcher)
+            # F37: backend/ exists but the resolved app's tests dir does not →
+            # the suite silently scanned nothing and reported green. Measured
+            # failure mode: a repo adopting the core BEFORE running
+            # extract_project_config.py inherits the canonical default
+            # backend_app_name (one project's app) and every backend run is a
+            # silent no-op. WARNING, not error: it must surface in every report
+            # without turning adoption itself red.
+            if (self.repo_root / "backend").is_dir() and not backend_root.is_dir():
+                from quality.base import CONFIG_FILENAME, FileResult
+                _has_cfg = (self.repo_root / CONFIG_FILENAME).is_file()
+                backend.suite_findings["default_app_missing"] = True
+                _sentinel = FileResult(
+                    file=f"backend/{self.config.backend_app_name}/tests",
+                    area="backend",
+                    location_ok=True,
+                )
+                _sentinel.issues.append(Issue(
+                    file=f"backend/{self.config.backend_app_name}/tests",
+                    message=(
+                        f"backend suite scanned nothing: backend/ exists but "
+                        f"'{self.config.backend_app_name}' "
+                        + ("(from .testquality.yml)" if _has_cfg else
+                           f"(canonical default — no {CONFIG_FILENAME} in this repo)")
+                        + " has no tests dir — a green backend result here verifies nothing"
+                    ),
+                    severity=Severity.WARNING,
+                    category=IssueCategory.MISPLACED_FILE,
+                    rule_id="config_default_app_missing",
+                    line=0,
+                    suggestion=(
+                        f"Run extract_project_config.py to derive {CONFIG_FILENAME} "
+                        "with the repo's real backend_app_name"
+                    ),
+                ))
+                backend.add_file(_sentinel)
             timings["backend"] = time.perf_counter() - suite_started
         
         # Analyze frontend unit tests
@@ -880,20 +919,28 @@ class QualityReport:
                 print(f"\n{Colors.BLUE}[Frontend Unit Tests]{Colors.RESET}")
             
             suite_started = time.perf_counter()
-            try:
-                from quality.frontend_unit_analyzer import FrontendUnitAnalyzer
-                unit_analyzer = FrontendUnitAnalyzer(
-                    self.repo_root,
-                    self.config,
-                    self.patterns,
-                    self.verbose,
-                    self.semantic_rules,
-                )
-                unit_root = self.repo_root / "frontend" / self.config.frontend_unit_dir
-                unit = unit_analyzer.analyze_suite(unit_root, file_matcher=path_matcher)
-            except ImportError:
+            if self.config.frontend_unit_dir == "":
+                # "" = layer disabled by config, on purpose. `Path("frontend") / ""`
+                # is a no-op, so before this guard an empty dir de-scoped the scan
+                # to ALL of frontend/. frontend/ itself is spelled ".".
+                unit.suite_findings["disabled_by_config"] = True
                 if self.verbose:
-                    print(f"  {Colors.DIM}Frontend unit analyzer not available{Colors.RESET}")
+                    print(f"  {Colors.DIM}frontend_unit_dir is \"\" - suite disabled by config{Colors.RESET}")
+            else:
+                try:
+                    from quality.frontend_unit_analyzer import FrontendUnitAnalyzer
+                    unit_analyzer = FrontendUnitAnalyzer(
+                        self.repo_root,
+                        self.config,
+                        self.patterns,
+                        self.verbose,
+                        self.semantic_rules,
+                    )
+                    unit_root = self.repo_root / "frontend" / self.config.frontend_unit_dir
+                    unit = unit_analyzer.analyze_suite(unit_root, file_matcher=path_matcher)
+                except ImportError:
+                    if self.verbose:
+                        print(f"  {Colors.DIM}Frontend unit analyzer not available{Colors.RESET}")
             timings["frontend_unit"] = time.perf_counter() - suite_started
         
         # Analyze frontend E2E tests
@@ -902,20 +949,26 @@ class QualityReport:
                 print(f"\n{Colors.BLUE}[Frontend E2E Tests]{Colors.RESET}")
             
             suite_started = time.perf_counter()
-            try:
-                from quality.frontend_e2e_analyzer import FrontendE2EAnalyzer
-                e2e_analyzer = FrontendE2EAnalyzer(
-                    self.repo_root,
-                    self.config,
-                    self.patterns,
-                    self.verbose,
-                    self.semantic_rules,
-                )
-                e2e_root = self.repo_root / "frontend" / self.config.frontend_e2e_dir
-                e2e = e2e_analyzer.analyze_suite(e2e_root, file_matcher=path_matcher)
-            except ImportError:
+            if self.config.frontend_e2e_dir == "":
+                # Same contract as frontend_unit_dir above: "" disables the layer.
+                e2e.suite_findings["disabled_by_config"] = True
                 if self.verbose:
-                    print(f"  {Colors.DIM}Frontend E2E analyzer not available{Colors.RESET}")
+                    print(f"  {Colors.DIM}frontend_e2e_dir is \"\" - suite disabled by config{Colors.RESET}")
+            else:
+                try:
+                    from quality.frontend_e2e_analyzer import FrontendE2EAnalyzer
+                    e2e_analyzer = FrontendE2EAnalyzer(
+                        self.repo_root,
+                        self.config,
+                        self.patterns,
+                        self.verbose,
+                        self.semantic_rules,
+                    )
+                    e2e_root = self.repo_root / "frontend" / self.config.frontend_e2e_dir
+                    e2e = e2e_analyzer.analyze_suite(e2e_root, file_matcher=path_matcher)
+                except ImportError:
+                    if self.verbose:
+                        print(f"  {Colors.DIM}Frontend E2E analyzer not available{Colors.RESET}")
             timings["frontend_e2e"] = time.perf_counter() - suite_started
 
         # Optional include-file/include-glob filtering
