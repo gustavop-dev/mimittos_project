@@ -9,6 +9,8 @@
     "frontend/app/sign-up/__tests__/page.test.tsx::mock_only_assertion::shows error when password is too short",
     "frontend/app/sign-up/__tests__/page.test.tsx::mock_only_assertion::shows error when passwords do not match",
     "frontend/components/admin/__tests__/PeluchForm.test.tsx::mock_only_assertion::does not delete a color when the confirmation resolves false",
+    "frontend/e2e/auth/auth.spec.ts::tautological_url::should navigate to backoffice page",
+    "frontend/e2e/auth/auth.spec.ts::tautological_url::should navigate to dashboard page",
     "frontend/lib/hooks/__tests__/usePageView.test.ts::mock_only_assertion::skips recording on /backoffice routes",
     "frontend/lib/hooks/__tests__/usePageView.test.ts::mock_only_assertion::skips recording on /sign- routes"
   ]

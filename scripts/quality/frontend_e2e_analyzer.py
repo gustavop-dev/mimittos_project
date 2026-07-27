@@ -234,11 +234,23 @@ class FrontendE2EAnalyzer:
             return issues
         
         lines = content.split("\n")
-        
+
+        in_block_comment = False
         for line_num, line in enumerate(lines, start=1):
-            # Skip comments
+            # Skip comments — INCLUDING block-comment continuation lines (F43):
+            # a JSDoc ` * ...` line mentioning `.first()` used to raise a real
+            # fragile_locator finding because only `//` and `/*` prefixes were
+            # skipped, never the lines between `/*` and `*/`.
             stripped = line.strip()
-            if stripped.startswith("//") or stripped.startswith("/*"):
+            if in_block_comment:
+                if "*/" in stripped:
+                    in_block_comment = False
+                continue
+            if stripped.startswith("//"):
+                continue
+            if stripped.startswith("/*"):
+                if "*/" not in stripped:
+                    in_block_comment = True
                 continue
 
             allow_marker = self._has_allow_fragile_selector_with_reason(stripped)
@@ -400,6 +412,18 @@ class FrontendE2EAnalyzer:
     ) -> SuiteResult:
         """Analyze all E2E test files."""
         result = SuiteResult(suite_name="frontend_e2e")
+
+        # `frontend_e2e_dir: ""` disables the layer on purpose (same contract
+        # as frontend_unit_dir: see FrontendUnitAnalyzer.analyze_suite): zero
+        # files, zero errors, `disabled_by_config` in the report — instead of
+        # `Path("frontend") / ""` silently de-scoping the scan to all of
+        # frontend/. frontend/ itself is spelled ".", never "".
+        if self.config.frontend_e2e_dir == "":
+            result.suite_findings["disabled_by_config"] = True
+            if self.verbose:
+                print(f"  {Colors.DIM}frontend_e2e_dir is \"\" - suite disabled by config{Colors.RESET}")
+            return result
+
         bridge_ok = self.bridge.is_available()
 
         if not bridge_ok:
