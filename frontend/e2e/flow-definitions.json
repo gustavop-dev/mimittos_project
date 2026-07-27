@@ -1,774 +1,1322 @@
 {
   "version": "1.5.0",
-  "lastUpdated": "2026-05-21",
+  "lastUpdated": "2026-07-27",
   "flows": {
     "home-loads": {
       "name": "Home page loads",
       "module": "home",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P1",
       "description": "Home page renders with main heading visible",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "home-to-blog": {
       "name": "Navigate from home to blog detail",
       "module": "home",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User clicks 'Read blogs' on home page and navigates to a blog detail",
-      "expectedSpecs": 1
+      "expectedSpecs": 0,
+      "outcomes": [],
+      "knownGaps": [
+        "Dead nav path: no CTA/link from home page (or header/footer) to /blogs exists in the app since the v9038819 redesign. page.tsx (frontend/app/page.tsx) has zero blog references; BlogCarousel.tsx is unused (grep: only self-referenced + its own jest test); Header.tsx NAV_LINKS = Inicio/Catálogo/Historia/Contacto (no Blogs). Existing test ('should navigate from home to blog detail', frontend/e2e/app/user-flows.spec.ts:6-30) always falls into its 'else' branch (page.goto('/blogs')) since 'text=Read blogs' never matches, so it never actually exercises home-page navigation despite the flow name. The /blogs feature itself IS live and reachable by direct URL / already covered by blog-list-view + blog-detail-view."
+      ]
     },
     "home-to-catalog": {
       "name": "Navigate from home to catalog/product",
       "module": "home",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User clicks 'Shop now' on home page and navigates to catalog then product detail",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "home-product-carousel": {
       "name": "Navigate through product carousel",
       "module": "home",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P3",
       "description": "User clicks a product from the home page carousel and reaches the detail page",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "auth-sign-in-form": {
       "name": "Sign-in form display and interaction",
       "module": "auth",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User navigates to sign-in page, sees form fields and can type in them",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "auth-login-invalid": {
       "name": "Login with invalid credentials",
       "module": "auth",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P1",
       "description": "User submits invalid credentials and stays on sign-in page",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "error"
+      ]
     },
     "auth-protected-redirect": {
       "name": "Protected route redirect",
       "module": "auth",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P1",
       "description": "Unauthenticated user accessing /dashboard or /backoffice is redirected to sign-in",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ],
+      "knownGaps": [
+        "The /dashboard sub-case in this flow's test (frontend/e2e/auth/auth.spec.ts:56-63) targets a route that does not exist anywhere in frontend/app (no dashboard dir, no middleware.ts) — Next renders its default 404 in place, so the URL never changes. BOTH assertions in this flow (`toHaveURL(/dashboard|sign-in/)` and `toHaveURL(/backoffice|sign-in/)`) are tautological (F41 pattern): one alternative always matches the path just navigated to, so the assertion passes identically whether or not a redirect happened. The /backoffice guard itself IS real (frontend/lib/hooks/useRequireAuth.ts:20-22, frontend/app/backoffice/layout.tsx:8), so the flow is not exempt, but its current test provides zero real evidence either way."
+      ]
     },
     "blog-list-view": {
       "name": "View blog listing",
       "module": "blog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User views the /blogs page and sees blog cards",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "blog-detail-view": {
       "name": "View blog detail",
       "module": "blog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User clicks a blog card and views the detail page with matching title",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "blog-detail-back": {
       "name": "Navigate back from blog detail",
       "module": "blog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P3",
       "description": "User uses browser back from blog detail and returns to blogs list",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "navigation-between-pages": {
       "name": "Navigate between main sections",
       "module": "navigation",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User navigates across home, catalog, blogs, checkout, and sign-in pages",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "navigation-header": {
       "name": "Working header navigation",
       "module": "navigation",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P3",
       "description": "Header/nav element exists and contains navigation links",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "navigation-footer": {
       "name": "Working footer",
       "module": "navigation",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P4",
       "description": "Footer element is visible on the home page",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "catalog-browse": {
       "name": "Browse product catalog",
       "module": "catalog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P1",
       "description": "User visits /catalog and sees product cards",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "catalog-product-detail": {
       "name": "View product detail",
       "module": "catalog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P1",
       "description": "User navigates to a product detail page and sees title and price",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "catalog-product-gallery": {
       "name": "Product gallery images",
       "module": "catalog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P3",
       "description": "Product detail page displays at least one image",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "catalog-back-navigation": {
       "name": "Navigate back to catalog",
       "module": "catalog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P3",
       "description": "User uses browser back from product detail and returns to /catalog",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "cart-add": {
       "name": "Add product to cart",
       "module": "cart",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P1",
       "description": "User adds a product from detail page to cart; cart is not empty on checkout",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "cart-empty": {
       "name": "Empty cart state",
       "module": "cart",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "Cart page shows 'Tu carrito está vacío' when no items are in cart",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "cart-update-qty": {
       "name": "Update product quantity in cart",
       "module": "cart",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User updates the quantity input for a cart item",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ],
+      "knownGaps": [
+        "Both existing CART_UPDATE_QTY tests target markup that does not exist in frontend/app/cart/page.tsx: test 1 ('should update peluch quantity in cart', frontend/e2e/app/cart.spec.ts:53-82) looks for `input[type=\"number\"]` — the cart page has no such input, only a +/- button pair with a plain <span>{item.quantity}</span> (page.tsx:203-206) — so the guarded `if (isVisible())` block never runs and the test does nothing beyond navigation. Test 2 ('...decremented to zero', cart.spec.ts:169-204) looks for `[data-testid=\"cart-item\"]`, which was never present in this file in any commit (git log -S confirms). Neither test has ever exercised updateQuantity()."
+      ]
     },
     "cart-remove": {
       "name": "Remove product from cart",
       "module": "cart",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User removes a product from cart and sees empty cart message",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "cart-subtotal": {
       "name": "Cart subtotal calculation",
       "module": "cart",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "Checkout page shows a visible Subtotal label when cart has items",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "cart-persist": {
       "name": "Cart persists across page reloads",
       "module": "cart",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "Cart items survive a full page reload",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "cart-multiple-products": {
       "name": "Add multiple different products",
       "module": "cart",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User adds two different products; both appear in checkout cart",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ],
+      "knownGaps": [
+        "Existing test ('should add multiple different peluches', frontend/e2e/app/cart.spec.ts:206-237) ends on `expect(itemCount).toBeGreaterThanOrEqual(1)` where itemCount comes from `[data-testid=\"cart-item\"]`, a selector that does not exist anywhere in frontend/app/cart/page.tsx (confirmed via grep + git log -S, same as cart-update-qty) — itemCount is always 0, so this assertion should fail whenever the catalog has >=2 seeded peluches (which ci.yml's seed step provides)."
+      ]
     },
     "checkout-form-display": {
       "name": "Checkout form display",
       "module": "checkout",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "Checkout page renders with form fields visible",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "checkout-form-validation": {
       "name": "Checkout form required field validation",
       "module": "checkout",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P1",
       "description": "Submit button is disabled when checkout form is empty",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "checkout-form-fill": {
       "name": "Accept valid checkout data",
       "module": "checkout",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User fills all checkout form fields with valid data",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "purchase-complete-flow": {
       "name": "Complete full purchase flow",
       "module": "purchase",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P1",
       "description": "End-to-end: home → catalog → product detail → add to cart → checkout → fill form → submit enabled",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "purchase-multiple-items": {
       "name": "Checkout with multiple cart items",
       "module": "purchase",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User adds two products and both appear in checkout with subtotal visible",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "purchase-disabled-empty-cart": {
       "name": "Checkout disabled when cart is empty",
       "module": "purchase",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "Even with form filled, checkout button is disabled when cart is empty",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "purchase-loading-state": {
       "name": "Loading state during form submission",
       "module": "purchase",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P3",
       "description": "Submit button triggers loading/navigation state after click",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "failure",
+        "display"
+      ]
     },
     "auth-sign-up-form": {
       "name": "Sign-up form display and validation",
       "module": "auth",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P1",
       "description": "User navigates to /sign-up and sees registration form with client-side validation",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "error",
+        "display"
+      ]
     },
     "auth-forgot-password-form": {
       "name": "Forgot password form display",
       "module": "auth",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "User navigates to /forgot-password and sees email input and send code button",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "peluch-detail-size-color-selection": {
       "name": "Select size and color on peluch detail",
       "module": "catalog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User picks a size from size_prices and a color from available_colors; price updates accordingly",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "peluch-detail-personalization-huella": {
       "name": "Configure huella personalization",
       "module": "catalog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User opens huella section, selects type (name/date/letter/image), fills text or uploads image, extra cost shown",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "error"
+      ],
+      "knownGaps": [
+        "Only the text-type sub-path ('Nombre', no network) is tested (frontend/e2e/app/peluch-detail.spec.ts:71-89). The image-upload sub-path (huellaType==='image') calls a real POST (mediaService.uploadImage -> handleHuellaImageUpload, frontend/app/peluches/[slug]/page.tsx:193-205) with real success (huellaMediaId set, button becomes '✓ Imagen subida') and error (huellaError banner, frontend/app/peluches/[slug]/page.tsx:467-469, distinct copy from backend's `{'detail': str(exc)}` on a corrupt/invalid file, backend/base_feature_app/views/media_views.py:39-47) surfaces — neither is exercised by any test."
+      ]
     },
     "peluch-detail-personalization-corazon": {
       "name": "Configure corazón personalization",
       "module": "catalog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User opens corazón section, enters phrase (max 50 chars), extra cost added to total",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "peluch-detail-personalization-audio": {
       "name": "Upload audio personalization",
       "module": "catalog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P3",
       "description": "User opens audio section and uploads an audio file; media_id stored before adding to cart",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ],
+      "knownGaps": [
+        "Real POST (mediaService.uploadAudio) with real success (audioMediaId set, 'Audio listo' + player render, frontend/app/peluches/[slug]/page.tsx:510-524) and error paths: a client-side size-limit rejection before any network call (page.tsx:208-212, distinct copy 'El archivo es demasiado grande...') and a server-side reject surfaced via audioError with the backend's `detail` message (page.tsx:220-224, backend/base_feature_app/views/media_views.py:39-47). The one existing test (frontend/e2e/app/peluch-detail.spec.ts:114-137) uploads fake non-audio bytes against the REAL backend and only asserts the upload button's initial label stays visible — it neither asserts a specific error message nor a successful upload, so it is weak evidence at best for whichever path it happens to hit."
+      ]
     },
     "checkout-wompi-redirect": {
       "name": "Checkout redirects to Wompi",
       "module": "checkout",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P1",
       "description": "After POST /api/orders/ succeeds, frontend clears cart and redirects browser to checkout_url from response",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "orders-list-view": {
       "name": "View my orders list",
       "module": "orders",
-      "roles": ["user"],
+      "roles": [
+        "user"
+      ],
       "priority": "P2",
       "description": "Authenticated user navigates to /orders and sees their order cards with status badges",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "tracking-by-order-number": {
       "name": "Track order by number",
       "module": "orders",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User enters order number on /tracking, fetches GET /api/orders/track/:number/, timeline updates to current status",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "tracking-auto-from-wompi": {
       "name": "Auto-load tracking after Wompi redirect",
       "module": "orders",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P3",
       "description": "Wompi redirects to /tracking?order=PELUCH-XXXX; page auto-searches that order number and shows timeline",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "auth-login-success": {
       "name": "Successful sign-in and redirect",
       "module": "auth",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P1",
       "description": "User submits valid credentials, receives JWT tokens, and is redirected to home/dashboard",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "auth-logout": {
       "name": "Sign out",
       "module": "auth",
-      "roles": ["user"],
+      "roles": [
+        "user"
+      ],
       "priority": "P2",
       "description": "Authenticated user clicks Sign Out; tokens cleared from cookies; redirected to home or sign-in",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "auth-google-login": {
       "name": "Google OAuth login",
       "module": "auth",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "User clicks Google button on sign-in page, completes OAuth, receives JWT, redirected to dashboard",
-      "expectedSpecs": 1
+      "expectedSpecs": 0,
+      "outcomes": [],
+      "knownGaps": [
+        "Dead surface: Google OAuth sign-in was fully removed in commit e54a405 ('remove Google OAuth sign-in — not in client requirements'), backend AND frontend (views/auth.py google_login(), urls/auth.py path, sign-in/page.tsx GoogleLogin import/handler, settings GOOGLE_OAUTH_CLIENT_ID — all deleted). frontend/app/sign-in/page.tsx (read in full) has zero Google button/OAuth wiring; the only 'google' reference left is react-google-recaptcha (unrelated feature). The existing test (frontend/e2e/auth/auth-verification.spec.ts:67-95, 'should render Google sign-in entry point') is marked quality: allow-no-interaction and only optionally probes a selector that can never match, then asserts generic page structure — it is not evidence of anything Google-related."
+      ]
     },
     "auth-session-persistence": {
       "name": "Session persistence across reload",
       "module": "auth",
-      "roles": ["user"],
+      "roles": [
+        "user"
+      ],
       "priority": "P2",
       "description": "User with valid cookies navigates to a protected route and remains authenticated after reload",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "auth-registration-verify": {
       "name": "Email verification after sign-up",
       "module": "auth",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P2",
       "description": "After sign-up, user enters verification code sent to email and account is activated",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "app-dashboard-access": {
       "name": "Dashboard access (authenticated)",
       "module": "app",
-      "roles": ["user"],
+      "roles": [
+        "user"
+      ],
       "priority": "P2",
       "description": "Authenticated user navigates to /dashboard and sees dashboard content without redirect",
-      "expectedSpecs": 1
+      "expectedSpecs": 0,
+      "outcomes": [],
+      "knownGaps": [
+        "Dead surface: /dashboard does not exist anywhere in frontend/app (no such directory, no middleware.ts route). The app's real 'authenticated landing page' is /orders (sign-in redirects there for non-staff users, frontend/app/sign-in/page.tsx:45) guarded by useRequireAuth (frontend/app/orders/page.tsx:34). The one test tagged APP_DASHBOARD_ACCESS (frontend/e2e/app/dashboard.spec.ts:6-17) actually visits /orders and tests the UNAUTHENTICATED redirect case — the opposite of this flow's own description ('Authenticated user ... sees dashboard content without redirect') — duplicating auth-protected-redirect's territory while leaving the flow's real claim (authenticated user sees their real order data on /orders without redirect) completely untested. Recommend the Architect either retarget this flow at /orders (authenticated display) or fold it into the (separate-module) orders-list-view flow, which appears to own that exact territory."
+      ]
     },
     "payment-page-display": {
       "name": "Payment page display",
       "module": "payment",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P1",
       "description": "After order created, user lands on /payment and sees available payment methods (Wompi widget or method list)",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "failure"
+      ]
     },
     "order-confirmed-display": {
       "name": "Order confirmed page",
       "module": "payment",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P1",
       "description": "After successful Wompi payment, /order-confirmed renders order number and success message",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "review-submit": {
       "name": "Submit peluch review",
       "module": "reviews",
-      "roles": ["user"],
+      "roles": [
+        "user"
+      ],
       "priority": "P2",
       "description": "Authenticated user with a delivered order fills rating and comment on peluch detail and submits POST /api/peluches/{slug}/reviews/",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
     },
     "backoffice-login": {
       "name": "Admin login via /admin-login",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P2",
       "description": "Staff navigates to /admin-login, submits credentials, receives JWT, is redirected to /backoffice",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "backoffice-dashboard-display": {
       "name": "Backoffice dashboard display",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P2",
       "description": "Authenticated staff sees /backoffice dashboard with analytics widgets (orders, revenue, top peluches)",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "backoffice-order-management": {
       "name": "Backoffice order management",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P2",
       "description": "Staff on /backoffice/pedidos views order list and updates status via PATCH /api/orders/{number}/status/",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "failure"
+      ]
     },
     "backoffice-peluch-list": {
       "name": "Backoffice peluch list",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff views /backoffice/peluches with all peluches in a table; can navigate to detail or create new",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "backoffice-peluch-create": {
       "name": "Backoffice create peluch",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff on /backoffice/peluches/nuevo fills PeluchForm and submits POST /api/peluches/",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "backoffice-peluch-edit": {
       "name": "Backoffice edit peluch",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff on /backoffice/peluches/[slug] edits fields and submits PATCH /api/peluches/{slug}/",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "backoffice-category-management": {
       "name": "Backoffice category management",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff on /backoffice/categorias creates, edits, or deletes a category via categoryAdminService",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "backoffice-user-management": {
       "name": "Backoffice user management",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff on /backoffice/usuarios views user list and updates role/staff/active via userAdminService",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "contact-page-display": {
       "name": "Contact page display",
       "module": "public",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P4",
       "description": "User navigates to /contact and sees contact form or contact information",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "about-page-display": {
       "name": "About page display",
       "module": "public",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P4",
       "description": "User navigates to /about and sees the brand history/story content",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "terms-page-display": {
       "name": "Terms and conditions display",
       "module": "public",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P4",
       "description": "User navigates to /terms and sees the terms and conditions content",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "backoffice-site-configuration": {
       "name": "Backoffice site configuration",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff edits the promo banner and uploads a hero image from /backoffice/configuracion; changes persist via /api/content/ endpoints",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "catalog-filter-by-category": {
       "name": "Filter catalog by category",
       "module": "catalog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User clicks a category label on /catalog; product list reloads with peluches matching only that category",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "catalog-sort-products": {
       "name": "Sort catalog products",
       "module": "catalog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P3",
       "description": "User changes the sort dropdown on /catalog (e.g. price ascending); product list re-orders accordingly",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "auth-forgot-password-submit": {
       "name": "Forgot password full reset",
       "module": "auth",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User requests a passcode by email, submits the code with a new password, and the password is reset",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "catalog-filter-by-size": {
       "name": "Filter catalog by size",
       "module": "catalog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User toggles a size pill in the /catalog sidebar; product list re-fetches with ?size=<slug> and shows only matching peluches",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "catalog-filter-by-price": {
       "name": "Filter catalog by max price",
       "module": "catalog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P3",
       "description": "User adjusts the max-price slider on /catalog; product list re-fetches with ?max_price and excludes peluches above the threshold",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "catalog-filter-personalization": {
       "name": "Filter catalog by huella personalization",
       "module": "catalog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P3",
       "description": "User toggles the 'con huella' filter on /catalog; product list re-fetches with ?has_huella=true and shows only peluches that support huella",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "catalog-pagination": {
       "name": "Paginate catalog product grid",
       "module": "catalog",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P3",
       "description": "When /catalog returns more products than the page size (16 desktop / 12 mobile), pagination controls appear; user clicks page numbers or Siguiente/Anterior and the grid swaps to that page's products",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     },
     "orders-filter-by-status": {
       "name": "Filter my orders by status",
       "module": "orders",
-      "roles": ["user"],
+      "roles": [
+        "user"
+      ],
       "priority": "P2",
       "description": "Authenticated user clicks a status filter button on /orders (Pendiente pago / Pago confirmado / En producción / Despachado / Entregado / Cancelado); list narrows to orders in that status",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "orders-search-by-number": {
       "name": "Search my orders by number",
       "module": "orders",
-      "roles": ["user"],
+      "roles": [
+        "user"
+      ],
       "priority": "P3",
       "description": "Authenticated user types into the 'Buscar por # pedido…' input on /orders; list filters in-memory by order_number or customer_name substring",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "auth-resend-verification-code": {
       "name": "Resend sign-up verification code",
       "module": "auth",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P3",
       "description": "During /sign-up step 2 the user clicks 'Reenviar código' after the cooldown; POST /api/resend_verification/ sends a new 6-digit code and the cooldown timer restarts",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "auth-forgot-password-resend": {
       "name": "Resend forgot-password code",
       "module": "auth",
-      "roles": ["guest"],
+      "roles": [
+        "guest"
+      ],
       "priority": "P3",
       "description": "During /forgot-password step 2 the user clicks 'Reenviar código' after the cooldown; POST /api/send_passcode/ is called again and the cooldown restarts",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "payment-card-submit": {
       "name": "Pay with credit/debit card",
       "module": "payment",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P1",
       "description": "User selects Tarjeta on /payment, fills card number, holder, expiry, CVV, and submits; paymentService.processCard tokenizes and confirms — on success navigates to /order-confirmed",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "payment-nequi-submit": {
       "name": "Pay with Nequi",
       "module": "payment",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P1",
       "description": "User selects Nequi on /payment, enters phone number, and submits; paymentService.processNequi pushes notification — on success navigates to /order-confirmed",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "payment-pse-submit": {
       "name": "Pay with PSE",
       "module": "payment",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User selects PSE on /payment, picks bank, person type, ID type and ID number, then submits; paymentService.processPse returns redirect_url and the browser navigates to the bank portal",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "payment-pse-legal-entity-nit": {
       "name": "PSE legal entity requires NIT",
       "module": "payment",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "On PSE, when the user picks 'Jurídica' (legal entity), the document type selector is restricted to NIT only (natural person keeps CC/CE); the submitted request carries user_type=1 and user_legal_id_type=NIT",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "payment-bancolombia-submit": {
       "name": "Pay with Bancolombia transfer",
       "module": "payment",
-      "roles": ["shared"],
+      "roles": [
+        "shared"
+      ],
       "priority": "P2",
       "description": "User selects Bancolombia on /payment, picks person type, ID type and ID number, then submits; paymentService.processBancolombia returns redirect_url and the browser navigates to Bancolombia",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "backoffice-analytics-date-filter": {
       "name": "Filter analytics dashboard by date range",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff sets dateFrom/dateTo on /backoffice and clicks Aplicar; analyticsAdminService.getDashboard re-fetches and the KPI widgets and charts update for the new range",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "backoffice-analytics-export-csv": {
       "name": "Export orders CSV from analytics",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff clicks the '↓ CSV' button on /backoffice; analyticsAdminService.exportOrdersCSV downloads a CSV file scoped to the current date range",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "backoffice-peluch-toggle-featured": {
       "name": "Toggle peluch featured flag",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff clicks the ⭐ button on a peluch row in /backoffice/peluches; PATCH /api/peluches/{slug}/ flips is_featured (capped at 4 featured peluches)",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "backoffice-peluch-delete": {
       "name": "Delete peluch from backoffice",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff clicks Eliminar on a peluch row in /backoffice/peluches and confirms; DELETE /api/peluches/{slug}/ removes the peluch and the row disappears",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "backoffice-peluch-bulk-category": {
       "name": "Bulk assign category to peluches",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff selects multiple peluches via row checkboxes on /backoffice/peluches, picks a target category in the bulk action bar, and clicks Asignar; PATCH /api/peluches/bulk-category/ updates them all",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "backoffice-category-create": {
       "name": "Create category in backoffice",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff clicks '+ Nueva categoría' on /backoffice/categorias, fills name/description/order/active/featured/image in the modal, and submits; POST /api/categories/ creates the category and the table re-renders",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "backoffice-category-edit": {
       "name": "Edit category in backoffice",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff clicks Editar on a category row, modifies fields in the modal, and saves; PATCH /api/categories/{id}/ persists the changes and the row updates",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "failure"
+      ]
     },
     "backoffice-category-delete": {
       "name": "Delete category in backoffice",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff clicks Eliminar on a category row in /backoffice/categorias and confirms; DELETE /api/categories/{id}/ removes it and the row disappears",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "backoffice-user-toggle-role": {
       "name": "Toggle user role in backoffice",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff clicks 'Hacer admin' or 'Hacer cliente' on a user row in /backoffice/usuarios; PATCH /api/users/{id}/ updates role and is_staff, and the row label switches",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "backoffice-user-toggle-active": {
       "name": "Toggle user active state",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff clicks 'Activar' or 'Desactivar' on a user row in /backoffice/usuarios; PATCH /api/users/{id}/ flips is_active and the badge updates",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "backoffice-order-status-update": {
       "name": "Update order status in backoffice",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P2",
       "description": "Staff changes the per-row status select on /backoffice/pedidos; PATCH /api/orders/{number}/status/ persists the new state and a status-history entry is created",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "backoffice-order-tracking-update": {
       "name": "Set order tracking number in backoffice",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff types a tracking number on a row in /backoffice/pedidos and clicks ✓; PATCH /api/orders/{number}/tracking/ saves carrier+guide and the field shows the new value",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "backoffice-promo-banner-save": {
       "name": "Save promo banner from backoffice",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff toggles active, edits message and colors on /backoffice/configuracion, and clicks 'Guardar cinta'; PUT /api/content/promo_banner/ persists the JSON and button shows ✓ Guardado",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "backoffice-hero-image-upload": {
       "name": "Upload hero image from backoffice",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P3",
       "description": "Staff drops or selects a file on /backoffice/configuracion and clicks 'Subir imagen'; multipart POST /api/content/hero-image/upload/ returns the new URL and the preview updates",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
     },
     "backoffice-peluch-create-draft-on-color-upload": {
       "name": "Draft peluch auto-created on first color image upload",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P2",
       "description": "When staff uploads the first color image on /backoffice/peluches/nuevo, a DRAFT peluch (is_active=false) is POSTed to /api/peluches/ immediately; the form transitions to edit mode (PATCH thereafter). Before any color image is uploaded, no draft is created.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error",
+        "failure",
+        "display"
+      ]
     },
     "backoffice-peluch-color-upload-per-image-status": {
       "name": "Per-image upload status with retry",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P2",
       "description": "Each color image upload on /backoffice/peluches/nuevo shows an individual status: uploading spinner → done checkmark on success, or failed badge with a per-image retry button on network error. A 'retry all failed' button appears when at least one image has failed. The Guardar/Crear button is DISABLED while any upload is pending or failed, and re-enables once all uploads resolve successfully.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "failure",
+        "display"
+      ]
     },
     "backoffice-peluch-create-cancel-discards-draft": {
       "name": "Cancel discard draft peluch",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P2",
       "description": "After a draft peluch has been auto-created, staff clicks 'Cancelar'. A confirmation prompt asks whether to discard the draft. On confirmation, DELETE /api/peluches/{slug}/ is called and the user is returned to /backoffice/peluches. If staff dismisses the prompt, the form stays open.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
     },
     "backoffice-peluch-list-draft-badge": {
       "name": "Draft badge on backoffice peluche list",
       "module": "backoffice",
-      "roles": ["staff"],
+      "roles": [
+        "staff"
+      ],
       "priority": "P2",
       "description": "On /backoffice/peluches, any peluch with is_active=false is shown with a 'Borrador' badge next to its title. Active peluches (is_active=true) do not display the badge.",
-      "expectedSpecs": 1
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display"
+      ]
     }
   }
 }

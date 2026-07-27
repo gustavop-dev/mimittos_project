@@ -51,7 +51,7 @@ async function setupAuth(page: Page) {
 
 // quality: disable test_too_long (review flow requires auth setup, product navigation, rating and comment submission)
 test('should submit a peluch review with rating and comment',
-  { tag: [...REVIEW_SUBMIT] },
+  { tag: [...REVIEW_SUBMIT, '@outcome:success'] },
   async ({ page }) => {
     await setupAuth(page);
 

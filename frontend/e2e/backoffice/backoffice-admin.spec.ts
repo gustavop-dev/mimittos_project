@@ -33,7 +33,7 @@ async function setupStaffAuth(page: Page) {
 
 test.describe('Backoffice — Admin Management', () => {
   test('should display category management page in backoffice',
-    { tag: [...BACKOFFICE_CATEGORY_MANAGEMENT] },
+    { tag: [...BACKOFFICE_CATEGORY_MANAGEMENT, '@outcome:display'] },
     async ({ page }) => {
       await setupStaffAuth(page);
 
@@ -51,7 +51,7 @@ test.describe('Backoffice — Admin Management', () => {
   );
 
   test('should display user management page in backoffice',
-    { tag: [...BACKOFFICE_USER_MANAGEMENT] },
+    { tag: [...BACKOFFICE_USER_MANAGEMENT, '@outcome:display'] },
     async ({ page }) => {
       await setupStaffAuth(page);
 

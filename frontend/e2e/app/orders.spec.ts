@@ -61,7 +61,7 @@ async function setupAuthMocks(page: Page) {
 
 test.describe('Orders & Tracking', () => {
   test('should display authenticated user orders list',
-    { tag: [...ORDERS_LIST_VIEW] },
+    { tag: [...ORDERS_LIST_VIEW, '@outcome:display'] },
     async ({ page }) => {
       // quality: allow-no-interaction (list-view is a display-class flow; it asserts the mocked order renders in the list)
       await setupAuthMocks(page);
@@ -109,7 +109,7 @@ test.describe('Orders & Tracking', () => {
   );
 
   test('should auto-load tracking when order number is in URL',
-    { tag: [...TRACKING_AUTO_FROM_WOMPI] },
+    { tag: [...TRACKING_AUTO_FROM_WOMPI, '@outcome:display'] },
     async ({ page }) => {
       // quality: allow-no-interaction (auto-load-from-URL is non-interactive by design; the input value + timeline text are real content assertions)
       await page.route('**/api/orders/track/**', (route: Route) =>

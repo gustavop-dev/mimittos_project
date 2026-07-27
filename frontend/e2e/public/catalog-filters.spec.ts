@@ -64,7 +64,7 @@ async function mockCatalog(page: import('@playwright/test').Page) {
 }
 
 test('should narrow product list when a category filter is selected',
-  { tag: [...CATALOG_FILTER_CATEGORY] },
+  { tag: [...CATALOG_FILTER_CATEGORY, '@outcome:display'] },
   async ({ page }) => {
     await mockCatalog(page);
 
@@ -82,7 +82,7 @@ test('should narrow product list when a category filter is selected',
 );
 
 test('should re-order product list when sort dropdown changes to price ascending',
-  { tag: [...CATALOG_SORT_PRODUCTS] },
+  { tag: [...CATALOG_SORT_PRODUCTS, '@outcome:display'] },
   async ({ page }) => {
     await mockCatalog(page);
 

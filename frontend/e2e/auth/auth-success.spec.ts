@@ -5,7 +5,7 @@ import { AUTH_LOGIN_SUCCESS, AUTH_SESSION_PERSISTENCE } from '../helpers/flow-ta
 test.describe('Auth — authenticated flows', () => {
   test(
     'should redirect to home after successful sign in',
-    { tag: [...AUTH_LOGIN_SUCCESS] },
+    { tag: [...AUTH_LOGIN_SUCCESS, '@outcome:success'] },
     async ({ page }) => {
       // Disable captcha by returning no site key
       await page.route('**/api/google-captcha/site-key/', (route) =>
@@ -36,7 +36,7 @@ test.describe('Auth — authenticated flows', () => {
 
   test(
     'should remain authenticated after page reload with valid cookies',
-    { tag: [...AUTH_SESSION_PERSISTENCE] },
+    { tag: [...AUTH_SESSION_PERSISTENCE, '@outcome:display'] },
     async ({ page }) => {
       // quality: allow-no-interaction (session persistence is verified across a reload — there is no user action, and fake cookies cannot yield real server-side auth UI)
       await page.context().addCookies([

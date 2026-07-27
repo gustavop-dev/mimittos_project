@@ -5,7 +5,7 @@ import { PAYMENT_PAGE_DISPLAY, ORDER_CONFIRMED_DISPLAY } from '../helpers/flow-t
 test.describe('Payment & Order Confirmation', () => {
   test(
     'should display payment page with mocked payment info',
-    { tag: [...PAYMENT_PAGE_DISPLAY] },
+    { tag: [...PAYMENT_PAGE_DISPLAY, '@outcome:display'] },
     async ({ page }) => {
       // quality: allow-no-interaction (payment-page display: the mocked order info is asserted below; no user action drives the initial render)
       await page.route('**/api/payment/info/**', (route) =>
@@ -51,7 +51,7 @@ test.describe('Payment & Order Confirmation', () => {
 
   test(
     'should display order confirmed page with mocked tracking data',
-    { tag: [...ORDER_CONFIRMED_DISPLAY] },
+    { tag: [...ORDER_CONFIRMED_DISPLAY, '@outcome:display'] },
     async ({ page }) => {
       // quality: allow-no-interaction (order-confirmed display: the mocked order number is asserted below; the page renders from the URL params)
       await page.route('**/api/payment/check/**', (route) =>

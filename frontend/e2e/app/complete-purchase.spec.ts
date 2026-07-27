@@ -78,7 +78,7 @@ test.describe('Complete Purchase Flow', () => {
     }
   });
 
-  test('should navigate through product carousel on home page', { tag: [...HOME_PRODUCT_CAROUSEL] }, async ({ page }) => {
+  test('should navigate through product carousel on home page', { tag: [...HOME_PRODUCT_CAROUSEL, '@outcome:success'] }, async ({ page }) => {
     await page.goto('/');
     await waitForPageLoad(page);
 
@@ -134,7 +134,7 @@ test.describe('Complete Purchase Flow', () => {
     }
   });
 
-  test('should disable checkout button when cart is empty', { tag: [...PURCHASE_DISABLED_EMPTY_CART] }, async ({ page }) => {
+  test('should disable checkout button when cart is empty', { tag: [...PURCHASE_DISABLED_EMPTY_CART, '@outcome:display'] }, async ({ page }) => {
     await page.goto('/checkout');
     await page.evaluate(() => localStorage.clear());
     await page.reload();

@@ -10,7 +10,7 @@ import {
 
 // quality: disable test_too_long (sign-up + email verification is a multi-step flow spanning two pages)
 test('should complete email verification after sign-up',
-  { tag: [...AUTH_REGISTRATION_VERIFY] },
+  { tag: [...AUTH_REGISTRATION_VERIFY, '@outcome:success'] },
   async ({ page }) => {
     // Disable captcha so the form submits without a real token
     await page.route('**/api/google-captcha/site-key/', (route) =>
@@ -95,7 +95,7 @@ test('should render Google sign-in entry point on sign-in page',
 );
 
 test('should reset password after submitting passcode and new password',
-  { tag: [...AUTH_FORGOT_PASSWORD_SUBMIT] },
+  { tag: [...AUTH_FORGOT_PASSWORD_SUBMIT, '@outcome:success'] },
   async ({ page }) => {
     await page.route('**/api/send_passcode/', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) })
@@ -123,7 +123,7 @@ test('should reset password after submitting passcode and new password',
 
 test(
   'should resend verification code during sign-up step 2',
-  { tag: [...AUTH_RESEND_VERIFICATION_CODE] },
+  { tag: [...AUTH_RESEND_VERIFICATION_CODE, '@outcome:success'] },
   async ({ page }) => {
     // Shorten 1-second countdown ticks to 5ms so the 60-step cooldown clears quickly
     await page.addInitScript(() => {
@@ -173,7 +173,7 @@ test(
 
 test(
   'should resend passcode during forgot-password step 2',
-  { tag: [...AUTH_FORGOT_PASSWORD_RESEND] },
+  { tag: [...AUTH_FORGOT_PASSWORD_RESEND, '@outcome:success'] },
   async ({ page }) => {
     // Shorten 1-second countdown ticks to 5ms so the 60-step cooldown clears quickly
     await page.addInitScript(() => {
@@ -209,7 +209,7 @@ test(
 )
 
 test('should show error message on invalid passcode without leaving the reset step',
-  { tag: [...AUTH_FORGOT_PASSWORD_SUBMIT] },
+  { tag: [...AUTH_FORGOT_PASSWORD_SUBMIT, '@outcome:error'] },
   async ({ page }) => {
     await page.route('**/api/send_passcode/', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) })

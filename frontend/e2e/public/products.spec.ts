@@ -10,7 +10,7 @@ test.describe('Product Pages', () => {
     await waitForPageLoad(page);
   });
 
-  test('should display products catalog page', { tag: [...CATALOG_BROWSE] }, async ({ page }) => {
+  test('should display products catalog page', { tag: [...CATALOG_BROWSE, '@outcome:display'] }, async ({ page }) => {
     // quality: allow-no-interaction (browse is a display-class flow; it asserts the seeded product grid renders)
     await expect(page).toHaveURL(/.*catalog/);
 
@@ -20,7 +20,7 @@ test.describe('Product Pages', () => {
     expect(await productCards.count()).toBeGreaterThan(1);
   });
 
-  test('should show peluch details including price', { tag: [...CATALOG_PRODUCT_DETAIL] }, async ({ page }) => {
+  test('should show peluch details including price', { tag: [...CATALOG_PRODUCT_DETAIL, '@outcome:display'] }, async ({ page }) => {
     // quality: allow-fragile-selector (product list links uniquely scoped by href pattern)
     await page.locator('a[href^="/peluches/"]').first().click();
     await waitForPageLoad(page);
@@ -31,7 +31,7 @@ test.describe('Product Pages', () => {
     await expect(page.locator('text=/\\$\\d+/').first()).toBeVisible();
   });
 
-  test('should display peluch gallery images', { tag: [...CATALOG_PRODUCT_GALLERY] }, async ({ page }) => {
+  test('should display peluch gallery images', { tag: [...CATALOG_PRODUCT_GALLERY, '@outcome:display'] }, async ({ page }) => {
     // quality: allow-fragile-selector (product list links uniquely scoped by href pattern)
     await page.locator('a[href^="/peluches/"]').first().click();
     await waitForPageLoad(page);
@@ -42,7 +42,7 @@ test.describe('Product Pages', () => {
     expect(await page.getByRole('img').count()).toBeGreaterThan(1);
   });
 
-  test('should navigate back to catalog from detail', { tag: [...CATALOG_BACK_NAVIGATION] }, async ({ page }) => {
+  test('should navigate back to catalog from detail', { tag: [...CATALOG_BACK_NAVIGATION, '@outcome:success'] }, async ({ page }) => {
     // quality: allow-fragile-selector (product list links uniquely scoped by href pattern)
     await page.locator('a[href^="/peluches/"]').first().click();
     await waitForPageLoad(page);

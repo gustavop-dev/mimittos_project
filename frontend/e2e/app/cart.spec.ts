@@ -10,7 +10,7 @@ test.describe('Shopping Cart', () => {
     await waitForPageLoad(page);
   });
 
-  test('should add peluch to cart', { tag: [...CART_ADD] }, async ({ page }) => {
+  test('should add peluch to cart', { tag: [...CART_ADD, '@outcome:success'] }, async ({ page }) => {
     await page.goto('/catalog');
     await waitForPageLoad(page);
     await expect(page).toHaveURL(/.*catalog/);
@@ -43,7 +43,7 @@ test.describe('Shopping Cart', () => {
     }
   });
 
-  test('should show empty cart message', { tag: [...CART_EMPTY] }, async ({ page }) => {
+  test('should show empty cart message', { tag: [...CART_EMPTY, '@outcome:display'] }, async ({ page }) => {
     // quality: allow-no-interaction (empty-cart is a display-class state; a fresh visit asserts the real empty message)
     await page.goto('/cart');
     await waitForPageLoad(page);
@@ -81,7 +81,7 @@ test.describe('Shopping Cart', () => {
     }
   });
 
-  test('should remove peluch from cart', { tag: [...CART_REMOVE] }, async ({ page }) => {
+  test('should remove peluch from cart', { tag: [...CART_REMOVE, '@outcome:success'] }, async ({ page }) => {
     await page.goto('/catalog');
     await waitForPageLoad(page);
 
@@ -111,7 +111,7 @@ test.describe('Shopping Cart', () => {
     }
   });
 
-  test('should show subtotal in cart summary', { tag: [...CART_SUBTOTAL] }, async ({ page }) => {
+  test('should show subtotal in cart summary', { tag: [...CART_SUBTOTAL, '@outcome:display'] }, async ({ page }) => {
     await page.goto('/catalog');
     await waitForPageLoad(page);
 
@@ -137,7 +137,7 @@ test.describe('Shopping Cart', () => {
     }
   });
 
-  test('should persist cart across page reloads', { tag: [...CART_PERSIST] }, async ({ page }) => {
+  test('should persist cart across page reloads', { tag: [...CART_PERSIST, '@outcome:display'] }, async ({ page }) => {
     await page.goto('/catalog');
     await waitForPageLoad(page);
 
