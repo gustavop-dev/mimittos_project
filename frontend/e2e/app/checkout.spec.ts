@@ -22,6 +22,7 @@ test.describe('Checkout Flow', () => {
   });
 
   test('should validate required fields', { tag: [...CHECKOUT_FORM_VALIDATION, '@outcome:display'] }, async ({ page }) => {
+    // quality: allow-no-interaction (the empty cart is reached by clearing persisted storage, not by a user action; the empty-cart copy and the disabled submit are what this asserts)
     await page.goto('/checkout');
     await page.evaluate(() => localStorage.clear());
     await page.reload();
