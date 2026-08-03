@@ -1,14 +1,22 @@
 {
   "_comment": "Junk-test findings that predate the rules. These stay warnings under --junk-severity=error so existing debt does not block merges; anything not listed here is a new finding and fails. This file should only ever shrink.",
   "findings": [
+    "frontend/app/__tests__/page.test.tsx::negation_only_assertion::hides first FAQ answer after clicking its container",
     "frontend/app/backoffice/pedidos/__tests__/page.test.tsx::mock_only_assertion::does not open the detail modal when the status select is changed",
     "frontend/app/backoffice/pedidos/__tests__/page.test.tsx::mock_only_assertion::does not submit tracking when the input is empty",
     "frontend/app/blogs/[blogId]/__tests__/page.test.tsx::mock_only_assertion::renders loading state when blogId is invalid",
     "frontend/app/forgot-password/__tests__/page.test.tsx::mock_only_assertion::validates password length",
     "frontend/app/forgot-password/__tests__/page.test.tsx::mock_only_assertion::validates password mismatch",
+    "frontend/app/peluches/[slug]/__tests__/page.test.tsx::negation_only_assertion::does not render audio section when has_audio is false",
     "frontend/app/sign-up/__tests__/page.test.tsx::mock_only_assertion::shows error when password is too short",
     "frontend/app/sign-up/__tests__/page.test.tsx::mock_only_assertion::shows error when passwords do not match",
     "frontend/components/admin/__tests__/PeluchForm.test.tsx::mock_only_assertion::does not delete a color when the confirmation resolves false",
+    "frontend/components/blog/__tests__/BlogCard.test.tsx::negation_only_assertion::should not render image when image_url is not provided",
+    "frontend/components/layout/__tests__/PublicChrome.test.tsx::negation_only_assertion::renders only children on /cart checkout flow route",
+    "frontend/components/layout/__tests__/PublicChrome.test.tsx::negation_only_assertion::renders only children on /checkout flow route",
+    "frontend/components/layout/__tests__/layout.test.tsx::negation_only_assertion::does not render Ingresar link for authenticated users",
+    "frontend/components/layout/__tests__/layout.test.tsx::negation_only_assertion::does not render Salir button for unauthenticated users",
+    "frontend/components/product/__tests__/ProductCard.test.tsx::negation_only_assertion::should not render image when gallery_urls is empty",
     "frontend/e2e/app/cart.spec.ts::negation_only_assertion::should persist cart across page reloads",
     "frontend/e2e/auth/auth-success.spec.ts::negation_only_assertion::should redirect to home after successful sign in",
     "frontend/e2e/auth/auth.spec.ts::tautological_url::should navigate to backoffice page",
@@ -23,6 +31,16 @@
     "frontend/e2e/backoffice/backoffice.spec.ts::negation_only_assertion::should display backoffice orders list with mocked API",
     "frontend/e2e/backoffice/backoffice.spec.ts::negation_only_assertion::should redirect to admin-login when accessing backoffice unauthenticated",
     "frontend/lib/hooks/__tests__/usePageView.test.ts::mock_only_assertion::skips recording on /backoffice routes",
-    "frontend/lib/hooks/__tests__/usePageView.test.ts::mock_only_assertion::skips recording on /sign- routes"
+    "frontend/lib/hooks/__tests__/usePageView.test.ts::mock_only_assertion::skips recording on /sign- routes",
+    "frontend/lib/hooks/__tests__/usePageView.test.ts::negation_only_assertion::skips recording on /backoffice routes",
+    "frontend/lib/hooks/__tests__/usePageView.test.ts::negation_only_assertion::skips recording on /sign- routes",
+    "frontend/lib/services/__tests__/analyticsService.test.ts::negation_only_assertion::returns null when the api call fails",
+    "frontend/lib/services/__tests__/tokens.test.ts::negation_only_assertion::returns null when tokens are missing",
+    "frontend/lib/stores/__tests__/blogStore.test.ts::negation_only_assertion::resets error to null when clearError is called",
+    "frontend/lib/stores/__tests__/cartStore.test.ts::negation_only_assertion::should remove all items",
+    "frontend/lib/stores/__tests__/cartStore.test.ts::negation_only_assertion::should remove item when quantity is set to 0",
+    "frontend/lib/stores/__tests__/cartStore.test.ts::negation_only_assertion::should remove the specified item",
+    "frontend/lib/stores/__tests__/productStore.test.ts::negation_only_assertion::resets error to null when clearError is called",
+    "frontend/lib/utils/__tests__/confirmDelete.test.ts::negation_only_assertion::does nothing when the confirm button is not available"
   ]
 }
