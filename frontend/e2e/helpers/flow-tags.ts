@@ -123,6 +123,7 @@ export const AUTH_FORGOT_PASSWORD_SUBMIT = ['@flow:auth-forgot-password-submit',
 export const CATALOG_FILTER_BY_SIZE = ['@flow:catalog-filter-by-size', '@module:catalog', '@priority:P2'];
 export const CATALOG_FILTER_BY_PRICE = ['@flow:catalog-filter-by-price', '@module:catalog', '@priority:P3'];
 export const CATALOG_FILTER_PERSONALIZATION = ['@flow:catalog-filter-personalization', '@module:catalog', '@priority:P3'];
+export const CATALOG_PAGINATION = ['@flow:catalog-pagination', '@module:catalog', '@priority:P3'];
 
 // ── Orders (filter & search added in v1.4.0) ──
 export const ORDERS_FILTER_BY_STATUS = ['@flow:orders-filter-by-status', '@module:orders', '@priority:P2'];
