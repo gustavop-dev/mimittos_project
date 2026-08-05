@@ -99,6 +99,7 @@ export const REVIEW_SUBMIT = ['@flow:review-submit', '@module:reviews', '@priori
 export const BACKOFFICE_PELUCH_LIST = ['@flow:backoffice-peluch-list', '@module:backoffice', '@priority:P3'];
 export const BACKOFFICE_PELUCH_CREATE = ['@flow:backoffice-peluch-create', '@module:backoffice', '@priority:P3'];
 export const BACKOFFICE_PELUCH_EDIT = ['@flow:backoffice-peluch-edit', '@module:backoffice', '@priority:P3'];
+export const BACKOFFICE_PELUCH_LIST_DRAFT_BADGE = ['@flow:backoffice-peluch-list-draft-badge', '@module:backoffice', '@priority:P2'];
 
 // ── Backoffice (admin management) ──
 export const BACKOFFICE_CATEGORY_MANAGEMENT = ['@flow:backoffice-category-management', '@module:backoffice', '@priority:P3'];
