@@ -53,22 +53,31 @@ test.describe('Authentication', () => {
     await expect(page).toHaveURL(/.*sign-in/);
   });
 
-  test('should navigate to dashboard page', { tag: [...AUTH_PROTECTED_REDIRECT] }, async ({ page }) => {
-    // quality: allow-no-interaction (protected-route guard: visiting unauthenticated triggers a redirect — there is no user action to take)
-    await page.goto('/dashboard');
+  // Estos dos tests verifican el guard `useRequireAuth` de punta a punta: que la
+  // ruta protegida NO se sirva a un visitante sin sesión. La lógica del hook ya
+  // tiene su unit test (lib/hooks/__tests__/useRequireAuth.test.ts, que asserta
+  // replace('/sign-in')); acá se verifica el hecho observable en el browser.
+  //
+  // Antes apuntaban a /dashboard —una ruta que nunca existió en este proyecto—
+  // y aseveraban toHaveURL(/dashboard|sign-in/): como la alternación incluía el
+  // propio path navegado, pasaban redirigiera o no. La aserción de abajo es
+  // deterministica a propósito.
+  test('unauthenticated visit to /orders lands on sign-in', { tag: [...AUTH_PROTECTED_REDIRECT, '@outcome:display'] }, async ({ page }) => {
+    // quality: allow-no-interaction (guard de ruta protegida: entrar sin sesión ES el disparador, no hay acción de usuario que ejecutar)
+    // quality: allow-deep-link (el deep link es el comportamiento bajo prueba: se verifica que la URL protegida no se sirva directo)
+    await page.goto('/orders');
     await waitForPageLoad(page);
 
-    // Either redirected to sign-in or the dashboard is shown
-    await expect(page).toHaveURL(/dashboard|sign-in/);
+    await expect(page).toHaveURL(/\/sign-in/);
   });
 
-  test('should navigate to backoffice page', { tag: [...AUTH_PROTECTED_REDIRECT] }, async ({ page }) => {
-    // quality: allow-no-interaction (protected-route guard: visiting unauthenticated triggers a redirect — there is no user action to take)
+  test('unauthenticated visit to /backoffice lands on sign-in', { tag: [...AUTH_PROTECTED_REDIRECT, '@outcome:display'] }, async ({ page }) => {
+    // quality: allow-no-interaction (guard de ruta protegida: entrar sin sesión ES el disparador, no hay acción de usuario que ejecutar)
+    // quality: allow-deep-link (el deep link es el comportamiento bajo prueba: se verifica que la URL protegida no se sirva directo)
     await page.goto('/backoffice');
     await waitForPageLoad(page);
 
-    // Either redirected to sign-in or the backoffice is shown
-    await expect(page).toHaveURL(/backoffice|sign-in/);
+    await expect(page).toHaveURL(/\/sign-in/);
   });
 
   test('should validate password mismatch on sign-up', { tag: [...AUTH_SIGN_UP_FORM, '@outcome:error'] }, async ({ page }) => {
