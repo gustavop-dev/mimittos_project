@@ -75,15 +75,10 @@ async function setupForm(
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(COLORS) })
   );
 
-  // Image upload: POST /peluches/<slug>/color-image/<colorSlug>/
-  await page.route('**/api/peluches/*/color-image/**', (route: Route) => {
-    if (uploadStatus >= 400) return route.fulfill({ status: uploadStatus, contentType: 'application/json', body: '{}' });
-    return route.fulfill({
-      status: uploadStatus,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 501, url: 'https://cdn.example.com/rojo-1.png' }),
-    });
-  });
+  // ORDER MATTERS: Playwright resolves routes in reverse registration order, so
+  // the broad /peluches/ pattern is registered FIRST and the narrower
+  // color-image one LAST — otherwise the broad handler would swallow every image
+  // upload and record it as a draft creation.
 
   // Draft create (POST) / update (PATCH) / discard (DELETE) on /peluches/
   await page.route('**/api/peluches/**', (route: Route) => {
@@ -106,6 +101,17 @@ async function setupForm(
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 1, slug: DRAFT_SLUG, is_active: false }) });
     }
     return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+  });
+
+  // Registered AFTER the broad pattern above so it wins (reverse-order matching).
+  // Image upload: POST /peluches/<slug>/color-image/<colorSlug>/
+  await page.route('**/api/peluches/*/color-image/**', (route: Route) => {
+    if (uploadStatus >= 400) return route.fulfill({ status: uploadStatus, contentType: 'application/json', body: '{}' });
+    return route.fulfill({
+      status: uploadStatus,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 501, url: 'https://cdn.example.com/rojo-1.png' }),
+    });
   });
 
   await page.goto('/backoffice/peluches/nuevo');
