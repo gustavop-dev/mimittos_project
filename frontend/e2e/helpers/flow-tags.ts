@@ -100,6 +100,9 @@ export const BACKOFFICE_PELUCH_LIST = ['@flow:backoffice-peluch-list', '@module:
 export const BACKOFFICE_PELUCH_CREATE = ['@flow:backoffice-peluch-create', '@module:backoffice', '@priority:P3'];
 export const BACKOFFICE_PELUCH_EDIT = ['@flow:backoffice-peluch-edit', '@module:backoffice', '@priority:P3'];
 export const BACKOFFICE_PELUCH_LIST_DRAFT_BADGE = ['@flow:backoffice-peluch-list-draft-badge', '@module:backoffice', '@priority:P2'];
+export const BACKOFFICE_PELUCH_CREATE_DRAFT_ON_COLOR_UPLOAD = ['@flow:backoffice-peluch-create-draft-on-color-upload', '@module:backoffice', '@priority:P2'];
+export const BACKOFFICE_PELUCH_COLOR_UPLOAD_PER_IMAGE_STATUS = ['@flow:backoffice-peluch-color-upload-per-image-status', '@module:backoffice', '@priority:P2'];
+export const BACKOFFICE_PELUCH_CREATE_CANCEL_DISCARDS_DRAFT = ['@flow:backoffice-peluch-create-cancel-discards-draft', '@module:backoffice', '@priority:P2'];
 
 // ── Backoffice (admin management) ──
 export const BACKOFFICE_CATEGORY_MANAGEMENT = ['@flow:backoffice-category-management', '@module:backoffice', '@priority:P3'];
