@@ -99,6 +99,10 @@ export const REVIEW_SUBMIT = ['@flow:review-submit', '@module:reviews', '@priori
 export const BACKOFFICE_PELUCH_LIST = ['@flow:backoffice-peluch-list', '@module:backoffice', '@priority:P3'];
 export const BACKOFFICE_PELUCH_CREATE = ['@flow:backoffice-peluch-create', '@module:backoffice', '@priority:P3'];
 export const BACKOFFICE_PELUCH_EDIT = ['@flow:backoffice-peluch-edit', '@module:backoffice', '@priority:P3'];
+export const BACKOFFICE_PELUCH_LIST_DRAFT_BADGE = ['@flow:backoffice-peluch-list-draft-badge', '@module:backoffice', '@priority:P2'];
+export const BACKOFFICE_PELUCH_CREATE_DRAFT_ON_COLOR_UPLOAD = ['@flow:backoffice-peluch-create-draft-on-color-upload', '@module:backoffice', '@priority:P2'];
+export const BACKOFFICE_PELUCH_COLOR_UPLOAD_PER_IMAGE_STATUS = ['@flow:backoffice-peluch-color-upload-per-image-status', '@module:backoffice', '@priority:P2'];
+export const BACKOFFICE_PELUCH_CREATE_CANCEL_DISCARDS_DRAFT = ['@flow:backoffice-peluch-create-cancel-discards-draft', '@module:backoffice', '@priority:P2'];
 
 // ── Backoffice (admin management) ──
 export const BACKOFFICE_CATEGORY_MANAGEMENT = ['@flow:backoffice-category-management', '@module:backoffice', '@priority:P3'];
@@ -123,6 +127,7 @@ export const AUTH_FORGOT_PASSWORD_SUBMIT = ['@flow:auth-forgot-password-submit',
 export const CATALOG_FILTER_BY_SIZE = ['@flow:catalog-filter-by-size', '@module:catalog', '@priority:P2'];
 export const CATALOG_FILTER_BY_PRICE = ['@flow:catalog-filter-by-price', '@module:catalog', '@priority:P3'];
 export const CATALOG_FILTER_PERSONALIZATION = ['@flow:catalog-filter-personalization', '@module:catalog', '@priority:P3'];
+export const CATALOG_PAGINATION = ['@flow:catalog-pagination', '@module:catalog', '@priority:P3'];
 
 // ── Orders (filter & search added in v1.4.0) ──
 export const ORDERS_FILTER_BY_STATUS = ['@flow:orders-filter-by-status', '@module:orders', '@priority:P2'];
