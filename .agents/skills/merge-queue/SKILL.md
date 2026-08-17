@@ -475,10 +475,13 @@ cd "$WT"
 git push -u origin "queue/integration-$TS"
 ```
 
-El push dispara el CI del repo (trigger `push: queue/**` — precondición F2 del
-protocolo). Si el repo aún no lo tiene: abrí un **PR draft**
-`queue/integration-<ts>` → `<BASE_T>` para dispararlo vía `pull_request` — ese
-draft **jamás se mergea** y se cierra en 5.6.
+El CI se dispara abriendo un **PR draft** `queue/integration-<ts>` → `<BASE_T>`
+(`gh pr create --draft`): los repos del fleet ya traen `pull_request` cubriendo
+sus bases (main/master y las release vía `release-*` o nombre explícito —
+verificado 2026-08-17), así que el draft corre la matriz completa sin tocar
+ningún workflow. Ese draft **jamás se mergea** y se cierra en 5.6. (Optimización
+opcional por repo: trigger `push: queue/**` — evita el PR draft; si existe, el
+push de arriba alcanza.)
 
 La espera sigue el «Cierre asíncrono de CI» de [[merge-when-green]]: consultá
 el run una vez (`gh run list --branch "queue/integration-$TS" --limit 1`); si

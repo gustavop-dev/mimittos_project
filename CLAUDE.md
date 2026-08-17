@@ -174,7 +174,7 @@ Cuando termines de implementar un cambio que afecte un **flujo de usuario en el 
 - Crear o editar un formulario (agregar/quitar campos)
 - Nueva ruta, página o vista accesible al usuario
 - Cambios en flujos de autenticación, checkout, onboarding, búsqueda, perfil
-- Modificaciones a `docs/USER_FLOW_MAP.md` o `frontend/e2e/flow-definitions.json`
+- Modificaciones al registro de flows E2E (`frontend/e2e/flow-definitions.json`, o los shards por-flow + docs derivados en repos con `flow_definitions_dir`)
 
 …debes invocar la skill `e2e-user-flows-check` como **paso final** antes de reportar la implementación como completa. Esa skill audita la cobertura E2E del flujo modificado y reporta brechas/riesgos.
 

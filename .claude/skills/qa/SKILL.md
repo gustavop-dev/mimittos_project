@@ -175,12 +175,16 @@ at the printed path.
   work — no dedicated agent) to build the Memory Bank. Safe anywhere.
 - Flow map: the preflight emits `flow_map_fresh=yes|no`; **if the key is ABSENT,
   the map does not exist** — same action as `no`: dispatch **`qa-analyst`** (it
-  preloads `e2e-user-flows-check`) to derive `frontend/e2e/flow-definitions.json`
-  + `docs/USER_FLOW_MAP.md` from the app's real code — the four outcome classes
-  (success/error/failure/display), **negative cases included**. The Analyst
-  RETURNS both files' content (role boundary: it never writes); the conductor
-  writes them (under dry-run: report the diff, write nothing). This is the
-  Analyst's ONLY duty — ranking belongs to the Architect. If `yes`, skip `⏭️`.
+  preloads `e2e-user-flows-check`) to derive the flow registry from the app's
+  real code — the four outcome classes (success/error/failure/display),
+  **negative cases included**. The Analyst RETURNS the content (role boundary:
+  it never writes); the conductor writes it **in the repo's declared layout**
+  (`.testquality.yml` → `flow_definitions_dir`): sharded ⇒ per-flow JSONs +
+  per-flow docs, then regenerate the derived aggregates with
+  `generate_flow_registry.py` (never hand-edit them); monolith ⇒
+  `frontend/e2e/flow-definitions.json` + `docs/USER_FLOW_MAP.md` as before.
+  Under dry-run: report the diff, write nothing. This is the Analyst's ONLY
+  duty — ranking belongs to the Architect. If `yes`, skip `⏭️`.
 
 ## Phase 2 — Coverage audit + worklist (conductor → Architect)
 
