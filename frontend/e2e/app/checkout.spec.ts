@@ -61,74 +61,94 @@ test.describe('Checkout Flow', () => {
     }
   });
 
-  // quality: disable test_too_long (full checkout journey: cart → form → API mock → Wompi redirect)
-  test('should call orders API and receive Wompi redirect URL on checkout submit',
+  // quality: disable test_too_long (full checkout journey: cart → form → API mock → payment step)
+  test('should navigate to payment after creating an order',
     { tag: [...CHECKOUT_WOMPI_REDIRECT] },
     async ({ page }) => {
-      // quality: disable too_many_assertions (multi-step flow: add-to-cart → mock API → fill form → submit → verify API call)
+      // quality: disable too_many_assertions (multi-step flow: add-to-cart → fill form → submit → verify request and payment navigation)
 
       // 1. Add a product to cart via UI
       await page.goto('/catalog');
       await waitForPageLoad(page);
       // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
       const peluchCards = page.locator('a[href^="/peluches/"]');
-      if (await peluchCards.count() === 0) return;
+      await expect(peluchCards.first()).toBeVisible();
 
       // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
       await peluchCards.first().click();
       await waitForPageLoad(page);
       const addBtn = page.getByRole('button', { name: /Agregar/i });
-      if (!await addBtn.isVisible()) return;
+      await expect(addBtn).toBeVisible();
       await addBtn.click();
       await page.waitForLoadState('domcontentloaded');
 
-      // 2. Mock POST /api/orders/ to return a checkout_url (Wompi)
-      let orderApiCalled = false;
-      const wompiUrl = 'https://checkout.wompi.co/l/test-redirect';
+      // 2. Mock the current order-create contract.
       await page.route('**/api/orders/', async (route) => {
         if (route.request().method() === 'POST') {
-          orderApiCalled = true;
           await route.fulfill({
             status: 201,
             contentType: 'application/json',
-            body: JSON.stringify({ checkout_url: wompiUrl }),
+            body: JSON.stringify({
+              order_number: 'MIM-900',
+              deposit_amount: 60000,
+              balance_amount: 60000,
+              shipping_amount: 0,
+              discount_amount: 0,
+              payment_mode: 'deposit',
+              amount_paid_now: 60000,
+              total_amount: 120000,
+              is_guest: true,
+            }),
           });
         } else {
           await route.continue();
         }
       });
 
-      // Abort Wompi navigation so the test does not hang on an external URL
-      await page.route('https://checkout.wompi.co/**', (route) => route.abort());
-
       // 3. Fill checkout form
       await page.goto('/checkout');
       await waitForPageLoad(page);
 
+      const customerName = 'Ana López';
+      const customerPhone = '3001234567';
+      const nameInput = page.getByText('Nombre completo', { exact: true }).locator('..').locator('input');
+      const phoneInput = page.getByText('Celular', { exact: true }).locator('..').locator('input');
+      await nameInput.fill(customerName);
+
       // quality: allow-fragile-selector (email input scoped by type attribute)
       const emailInput = page.locator('input[type="email"]').first();
-      if (await emailInput.isVisible()) {
-        await emailInput.fill(testCheckoutData.email);
-      }
-      const addressInput = page.getByPlaceholder('Calle 50 # 40-20, Apto 301');
-      if (await addressInput.isVisible()) {
-        await addressInput.fill(testCheckoutData.address);
-      }
-      const postalInput = page.getByPlaceholder('050001');
-      if (await postalInput.isVisible()) {
-        await postalInput.fill(testCheckoutData.postal_code);
-      }
+      await emailInput.fill(testCheckoutData.email);
+      await phoneInput.fill(customerPhone);
 
-      // 4. Submit and assert POST /api/orders/ was called
+      const addressInput = page.getByPlaceholder('Calle 50 # 40-20, Apto 301');
+      await addressInput.fill(testCheckoutData.address);
+      const postalInput = page.getByPlaceholder('050001');
+      await postalInput.fill(testCheckoutData.postal_code);
+      await page.getByRole('checkbox').check();
+
+      // 4. Submit and pin the request plus the real next step.
       const submitBtn = page.locator('button[type="submit"]');
-      if (await submitBtn.isEnabled()) {
-        const orderRequest = page.waitForRequest(
-          (req) => req.url().includes('/api/orders/') && req.method() === 'POST'
-        );
-        await submitBtn.click();
-        await orderRequest;
-        expect(orderApiCalled).toBe(true);
-      }
+      await expect(submitBtn).toBeEnabled();
+      const orderRequestPromise = page.waitForRequest(
+        (req) => req.url().includes('/api/orders/') && req.method() === 'POST'
+      );
+      await submitBtn.click();
+      const orderRequest = await orderRequestPromise;
+      const payload = orderRequest.postDataJSON();
+
+      expect(payload).toEqual(expect.objectContaining({
+        customer_name: customerName,
+        customer_email: testCheckoutData.email,
+        customer_phone: customerPhone,
+        address: testCheckoutData.address,
+        city: 'Bogotá',
+        department: 'Cundinamarca',
+        postal_code: testCheckoutData.postal_code,
+        payment_mode: 'deposit',
+      }));
+      expect(payload.items).toHaveLength(1);
+      expect(payload.items[0]).toEqual(expect.objectContaining({ quantity: 1 }));
+      await expect(page).toHaveURL(/\/payment\?order=MIM-900&amount=60000&guest=1$/);
     }
   );
 });

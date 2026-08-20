@@ -49,11 +49,14 @@ describe('PublicChrome', () => {
     render(<PublicChrome><div>cart content</div></PublicChrome>)
     expect(screen.queryByTestId('header')).not.toBeInTheDocument()
     expect(screen.queryByTestId('footer')).not.toBeInTheDocument()
+    expect(screen.getByText('cart content')).toBeInTheDocument()
   })
 
   it('renders only children on /checkout flow route', () => {
     mockUsePathname.mockReturnValue('/checkout')
     render(<PublicChrome><div>checkout content</div></PublicChrome>)
     expect(screen.queryByTestId('header')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('footer')).not.toBeInTheDocument()
+    expect(screen.getByText('checkout content')).toBeInTheDocument()
   })
 })

@@ -45,6 +45,7 @@ describe('ProductCard', () => {
   it('should not render image when gallery_urls is empty', () => {
     const peluchWithoutImage = { ...peluch, gallery_urls: [] }
     render(<ProductCard product={peluchWithoutImage} />)
+    expect(screen.getByText(peluch.title)).toBeInTheDocument()
     expect(screen.queryByAltText(peluch.title)).not.toBeInTheDocument()
   })
 

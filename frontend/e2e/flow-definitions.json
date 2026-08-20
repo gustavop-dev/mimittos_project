@@ -1,6 +1,6 @@
 {
-  "version": "1.5.0",
-  "lastUpdated": "2026-07-27",
+  "version": "1.5.1",
+  "lastUpdated": "2026-08-20",
   "flows": {
     "home-loads": {
       "name": "Home page loads",
@@ -507,13 +507,13 @@
       ]
     },
     "checkout-wompi-redirect": {
-      "name": "Checkout redirects to Wompi",
+      "name": "Checkout creates order and opens payment",
       "module": "checkout",
       "roles": [
         "shared"
       ],
       "priority": "P1",
-      "description": "After POST /api/orders/ succeeds, frontend clears cart and redirects browser to checkout_url from response",
+      "description": "After POST /api/orders/ succeeds, frontend navigates to /payment with the order number and amount due now; Wompi method submission happens on the payment page",
       "expectedSpecs": 1,
       "outcomes": [
         "success",
@@ -568,7 +568,7 @@
         "guest"
       ],
       "priority": "P1",
-      "description": "User submits valid credentials, receives JWT tokens, and is redirected to home/dashboard",
+      "description": "User submits valid credentials, receives JWT tokens and user data, then a customer is redirected to /orders while staff is redirected to /backoffice",
       "expectedSpecs": 1,
       "outcomes": [
         "success"
@@ -684,13 +684,13 @@
       ]
     },
     "backoffice-login": {
-      "name": "Admin login via /admin-login",
+      "name": "Staff sign-in via /sign-in",
       "module": "backoffice",
       "roles": [
         "staff"
       ],
       "priority": "P2",
-      "description": "Staff navigates to /admin-login, submits credentials, receives JWT, is redirected to /backoffice",
+      "description": "Staff submits credentials on /sign-in, receives JWT plus staff user data, and is redirected to /backoffice",
       "expectedSpecs": 1,
       "outcomes": [
         "success"

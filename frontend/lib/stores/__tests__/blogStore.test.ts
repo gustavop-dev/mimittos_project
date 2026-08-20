@@ -131,6 +131,7 @@ describe('blogStore', () => {
 
   describe('clearError', () => {
     it('resets error to null when clearError is called', () => {
+      // quality: allow-negation-only (null is the store's explicit cleared-error state)
       useBlogStore.setState({ error: 'some error' });
 
       const { result } = renderHook(() => useBlogStore());

@@ -135,6 +135,7 @@ describe('PeluchForm', () => {
   })
 
   it('does not delete a color when the confirmation resolves false', async () => {
+    // quality: allow-mock-only (declining confirmation must prevent the delete service call)
     ;(globalPresetService.getColorUsage as jest.Mock).mockResolvedValue({ products: 0, photos: 0, orders: 0 })
     ;(confirmDangerousDelete as jest.Mock).mockResolvedValue(false)
 

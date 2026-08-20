@@ -2,9 +2,18 @@ import { test, expect } from '../test-with-coverage';
 import { waitForPageLoad } from '../fixtures';
 import { AUTH_LOGIN_SUCCESS, AUTH_SESSION_PERSISTENCE } from '../helpers/flow-tags';
 
+const mockCustomer = {
+  id: 7,
+  email: 'test@example.com',
+  first_name: 'Ana',
+  last_name: 'López',
+  role: 'customer',
+  is_staff: false,
+};
+
 test.describe('Auth — authenticated flows', () => {
   test(
-    'should redirect to home after successful sign in',
+    'should redirect customers to orders after successful sign in',
     { tag: [...AUTH_LOGIN_SUCCESS, '@outcome:success'] },
     async ({ page }) => {
       // Disable captcha by returning no site key
@@ -19,8 +28,18 @@ test.describe('Auth — authenticated flows', () => {
         route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ access: 'fake-access', refresh: 'fake-refresh' }),
+          body: JSON.stringify({ access: 'fake-access', refresh: 'fake-refresh', user: mockCustomer }),
         })
+      );
+      await page.route('**/api/validate_token/**', (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ valid: true, user: mockCustomer }),
+        })
+      );
+      await page.route('**/api/orders/my/**', (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
       );
 
       await page.goto('/sign-in');
@@ -30,29 +49,39 @@ test.describe('Auth — authenticated flows', () => {
       await page.locator('input[type="password"]').fill('password123');
       await page.locator('button[type="submit"]').click();
 
-      await expect(page).not.toHaveURL(/.*sign-in/, { timeout: 10_000 });
+      await expect(page).toHaveURL(/\/orders$/, { timeout: 10_000 });
+      await expect(page.getByRole('heading', { name: 'Hola, Ana ♡' })).toBeVisible();
     }
   );
 
   test(
     'should remain authenticated after page reload with valid cookies',
     { tag: [...AUTH_SESSION_PERSISTENCE, '@outcome:display'] },
-    async ({ page }) => {
-      // quality: allow-no-interaction (session persistence is verified across a reload — there is no user action, and fake cookies cannot yield real server-side auth UI)
+    async ({ page, baseURL }) => {
+      // quality: allow-no-interaction (session restoration is triggered by navigation and reload; authenticated UI is the observable outcome)
+      const appUrl = baseURL ?? 'http://localhost:3001';
       await page.context().addCookies([
-        { name: 'access_token', value: 'fake-access', domain: 'localhost', path: '/' },
-        { name: 'refresh_token', value: 'fake-refresh', domain: 'localhost', path: '/' },
+        { name: 'access_token', value: 'fake-access', url: appUrl, sameSite: 'Lax' },
+        { name: 'refresh_token', value: 'fake-refresh', url: appUrl, sameSite: 'Lax' },
       ]);
+      await page.route('**/api/validate_token/**', (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ valid: true, user: mockCustomer }),
+        })
+      );
+      await page.route('**/api/orders/my/**', (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+      );
 
-      await page.goto('/');
+      await page.goto('/orders');
       await waitForPageLoad(page);
       await page.reload();
       await waitForPageLoad(page);
 
-      // The home page still renders after the reload...
-      await expect(page.getByRole('heading', { name: /Cada abrazo|Peluchelandia|peluche/i }).first()).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Hola, Ana ♡' })).toBeVisible();
 
-      // ...and the session cookie survived it.
       const cookies = await page.context().cookies();
       const accessCookie = cookies.find((c) => c.name === 'access_token');
       expect(accessCookie?.value).toBe('fake-access');

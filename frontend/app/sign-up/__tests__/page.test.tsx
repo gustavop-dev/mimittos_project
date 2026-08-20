@@ -51,6 +51,7 @@ describe('SignUpPage', () => {
   });
 
   it('shows error when passwords do not match', async () => {
+    // quality: allow-mock-only (client validation must block sign-up when passwords differ)
     const signUp = jest.fn();
     setAuthStoreState({ signUp });
     mockUseRouter.mockReturnValue({ replace: jest.fn() });
@@ -69,6 +70,7 @@ describe('SignUpPage', () => {
   });
 
   it('shows error when password is too short', async () => {
+    // quality: allow-mock-only (client validation must block sign-up when the password is too short)
     const signUp = jest.fn();
     setAuthStoreState({ signUp });
     mockUseRouter.mockReturnValue({ replace: jest.fn() });

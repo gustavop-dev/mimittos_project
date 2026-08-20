@@ -4,8 +4,8 @@
 
 Use this document to understand each flow's steps, branching conditions, role restrictions, and API contracts before writing or reviewing E2E tests.
 
-**Version:** 1.5.0
-**Last Updated:** 2026-05-21
+**Version:** 1.5.1
+**Last Updated:** 2026-08-20
 
 ---
 
@@ -41,7 +41,7 @@ Use this document to understand each flow's steps, branching conditions, role re
 | `app-cart-add` | Add Peluch to Cart | app | P1 | guest | `/peluches/[slug]` |
 | `app-cart-manage` | Manage Cart | app | P1 | guest | `/cart` |
 | `app-cart-persistence` | Cart Persistence | app | P2 | guest | `/cart` |
-| `app-checkout-complete` | Complete Checkout (Wompi) | app | P1 | guest | `/checkout` |
+| `checkout-wompi-redirect` | Create Order and Open Payment | checkout | P1 | shared | `/checkout` |
 | `app-peluch-size-color` | Select Size and Color | app | P2 | guest | `/peluches/[slug]` |
 | `app-peluch-huella` | Configure Huella | app | P2 | guest | `/peluches/[slug]` |
 | `app-peluch-corazon` | Configure Corazón | app | P2 | guest | `/peluches/[slug]` |
@@ -57,7 +57,7 @@ Use this document to understand each flow's steps, branching conditions, role re
 | `payment-page-display` | Payment Page | payment | P1 | shared | `/payment` |
 | `order-confirmed-display` | Order Confirmed | payment | P1 | shared | `/order-confirmed` |
 | `review-submit` | Submit Review | reviews | P2 | user | `/peluches/[slug]` |
-| `backoffice-login` | Admin Login | backoffice | P2 | staff | `/admin-login` |
+| `backoffice-login` | Staff Sign-In | backoffice | P2 | staff | `/sign-in` |
 | `backoffice-dashboard-display` | Backoffice Dashboard | backoffice | P2 | staff | `/backoffice` |
 | `backoffice-order-management` | Order Management | backoffice | P2 | staff | `/backoffice/pedidos` |
 | `backoffice-peluch-list` | Peluch List | backoffice | P3 | staff | `/backoffice/peluches` |
@@ -264,14 +264,14 @@ Use this document to understand each flow's steps, branching conditions, role re
 2. User fills in valid email and password.
 3. User clicks **Sign in**.
 4. Frontend sends `POST /api/sign_in/` → backend returns `{ access, refresh }` (HTTP 200).
-5. Frontend stores tokens in cookies and redirects to home or dashboard.
+5. Frontend stores tokens and user data, then redirects according to role.
 
 **Branching conditions:**
 
 | Condition | Behavior |
 |-----------|----------|
-| Redirect param present | Frontend redirects to original protected URL |
-| No redirect param | Redirects to `/` or `/dashboard` |
+| Customer account | Redirects to `/orders` |
+| Staff account | Redirects to `/backoffice` |
 
 ---
 
@@ -614,7 +614,7 @@ Use this document to understand each flow's steps, branching conditions, role re
 
 ---
 
-### app-checkout-complete
+### checkout-wompi-redirect
 
 | Field | Value |
 |-------|-------|
@@ -629,15 +629,15 @@ Use this document to understand each flow's steps, branching conditions, role re
 
 1. User navigates to `/checkout` with items in cart.
 2. Form shows: **Nombre completo**, **Correo electrónico**, **Celular**, **Departamento** (select), **Ciudad** (select), **Código postal**, **Dirección completa**, **Notas** (optional).
-3. Wompi info panel: "Serás redirigido a Wompi para pagar el abono del 50%."
-4. Order summary shows items + Subtotal + Abono (50%) + Saldo al recibir.
+3. Payment information explains that Wompi methods are selected in the next step.
+4. Order summary shows items, subtotal, amount due now and remaining balance.
 5. User accepts terms checkbox.
 6. **Ir a pagar** button becomes enabled (requires non-empty cart + terms accepted).
 7. User clicks **Ir a pagar**.
 8. Frontend sends `POST /api/orders/` with `{ customer_name, customer_email, customer_phone, address, city, department, postal_code, notes, items[] }`.
-9. Backend creates order + Wompi payment link. Returns `{ order_number, checkout_url, deposit_amount, balance_amount, total_amount }`.
-10. Frontend calls `clearCart()`.
-11. Frontend sets `window.location.href = checkout_url` (Wompi redirect).
+9. Backend creates the order and returns `{ order_number, amount_paid_now, deposit_amount, balance_amount, total_amount, is_guest }`.
+10. Frontend navigates to `/payment?order=<order_number>&amount=<amount_paid_now>` and adds `guest=1` for guest orders.
+11. The `/payment` flow owns Wompi method selection and any external redirect.
 
 **Branching conditions:**
 
@@ -647,7 +647,7 @@ Use this document to understand each flow's steps, branching conditions, role re
 | Terms not accepted | **Ir a pagar** button disabled |
 | API failure | Error message from `err.response.data.detail` |
 | Button loading | Shows "Procesando..." during submission |
-| No `checkout_url` in response | Router pushes to `/orders/track/[order_number]` |
+| Successful guest order | Payment URL includes `guest=1` |
 
 ---
 
@@ -972,17 +972,17 @@ Use this document to understand each flow's steps, branching conditions, role re
 |-------|-------|
 | **Priority** | P2 |
 | **Roles** | staff |
-| **Frontend route** | `/admin-login` |
+| **Frontend route** | `/sign-in` |
 | **API endpoints** | `POST /api/sign_in/` |
 
 **Preconditions:** User has a staff account (`is_staff = true`).
 
 **Steps:**
 
-1. User navigates to `/admin-login`.
+1. User navigates to `/sign-in`.
 2. Page renders email and password form.
 3. User enters credentials and clicks **Sign in**.
-4. Frontend sends `POST /api/sign_in/` → backend returns tokens.
+4. Frontend sends `POST /api/sign_in/` → backend returns tokens plus the staff user.
 5. Frontend stores tokens and redirects to `/backoffice`.
 
 **Branching conditions:**
@@ -990,7 +990,7 @@ Use this document to understand each flow's steps, branching conditions, role re
 | Condition | Behavior |
 |-----------|----------|
 | Invalid credentials | `401` error shown below form |
-| Valid but non-staff user | Redirects to `/backoffice`, which then shows 403 on data fetch |
+| Valid non-staff user | Redirects to `/orders` |
 
 ---
 

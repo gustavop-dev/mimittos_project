@@ -27,6 +27,7 @@ describe('BlogDetailPage', () => {
   });
 
   it('renders loading state when blogId is invalid', async () => {
+    // quality: allow-mock-only (an invalid route id must not call the blog service while the loading fallback renders)
     const fetchBlog = jest.fn();
     setBlogStoreState({ fetchBlog });
     mockUseParams.mockReturnValue({ blogId: 'abc' });

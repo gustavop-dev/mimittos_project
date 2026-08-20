@@ -32,6 +32,7 @@ describe('analyticsService', () => {
     })
 
     it('returns null when the api call fails', async () => {
+      // quality: allow-negation-only (null is the documented failure sentinel returned by this service)
       mockPost.mockRejectedValue(new Error('Network error'))
       const result = await analyticsService.recordPageView(pageViewData)
       expect(result).toBeNull()

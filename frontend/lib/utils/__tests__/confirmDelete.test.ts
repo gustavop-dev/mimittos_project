@@ -121,6 +121,7 @@ describe('confirmDangerousDelete — didOpen gate', () => {
   })
 
   it('does nothing when the confirm button is not available', async () => {
+    // quality: allow-negation-only (not throwing is the defensive contract when the optional button is absent)
     mockGetConfirmButton.mockReturnValue(null)
     mockGetInput.mockReturnValue(document.createElement('input'))
     mockFire.mockResolvedValue({ isConfirmed: false })
