@@ -61,11 +61,13 @@ describe('layout components', () => {
   })
 
   it('does not render Ingresar link for authenticated users', () => {
+    // quality: allow-negation-only (absence of the guest sign-in action is the authenticated navigation contract)
     renderHeader({ isAuthenticated: true, signOut: jest.fn() }, [])
     expect(screen.queryByRole('link', { name: 'Ingresar' })).not.toBeInTheDocument()
   })
 
   it('does not render Salir button for unauthenticated users', () => {
+    // quality: allow-negation-only (absence of the sign-out action is the anonymous navigation contract)
     renderHeader({ isAuthenticated: false, signOut: jest.fn() }, [])
     expect(screen.queryByRole('button', { name: 'Salir' })).not.toBeInTheDocument()
   })

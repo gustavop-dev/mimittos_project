@@ -36,6 +36,7 @@ describe('tokens service', () => {
   });
 
   it('returns null when tokens are missing', () => {
+    // quality: allow-negation-only (null is the exact token API result when the cookie is absent)
     mockCookies.get.mockReturnValue(undefined);
 
     expect(getAccessToken()).toBeNull();

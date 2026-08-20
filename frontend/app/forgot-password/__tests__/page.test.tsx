@@ -84,6 +84,7 @@ describe('ForgotPasswordPage', () => {
   });
 
   it('validates password mismatch', async () => {
+    // quality: allow-mock-only (client validation must block the reset service when passwords differ)
     const sendPasswordResetCode = jest.fn().mockResolvedValue(undefined);
     const resetPassword = jest.fn();
     setAuthStoreState({ sendPasswordResetCode, resetPassword });
@@ -102,6 +103,7 @@ describe('ForgotPasswordPage', () => {
   });
 
   it('validates password length', async () => {
+    // quality: allow-mock-only (client validation must block the reset service when the password is too short)
     const sendPasswordResetCode = jest.fn().mockResolvedValue(undefined);
     const resetPassword = jest.fn();
     setAuthStoreState({ sendPasswordResetCode, resetPassword });

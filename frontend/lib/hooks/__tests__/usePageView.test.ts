@@ -39,12 +39,16 @@ describe('usePageView', () => {
   })
 
   it('skips recording on /backoffice routes', () => {
+    // quality: allow-mock-only (analytics suppression is observable only at the service boundary)
+    // quality: allow-negation-only (the required outcome is the absence of a page-view call)
     mockUsePathname.mockReturnValue('/backoffice/pedidos')
     renderHook(() => usePageView())
     expect(mockRecordPageView).not.toHaveBeenCalled()
   })
 
   it('skips recording on /sign- routes', () => {
+    // quality: allow-mock-only (analytics suppression is observable only at the service boundary)
+    // quality: allow-negation-only (the required outcome is the absence of a page-view call)
     mockUsePathname.mockReturnValue('/sign-in')
     renderHook(() => usePageView())
     expect(mockRecordPageView).not.toHaveBeenCalled()

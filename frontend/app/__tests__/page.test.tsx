@@ -65,6 +65,7 @@ describe('HomePage', () => {
   })
 
   it('hides first FAQ answer after clicking its container', () => {
+    // quality: allow-negation-only (the answer is present before the click and its removal is the accordion contract)
     render(<HomePage />)
     const firstAnswer = screen.getByText(/Estamos en Bogotá/i)
     fireEvent.click(firstAnswer.closest('[style*="cursor: pointer"]')! as HTMLElement)

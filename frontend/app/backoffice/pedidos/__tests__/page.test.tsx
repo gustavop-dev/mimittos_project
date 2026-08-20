@@ -148,6 +148,7 @@ describe('PedidosAdminPage', () => {
   })
 
   it('does not submit tracking when the input is empty', async () => {
+    // quality: allow-mock-only (not calling the tracking service is the validation contract for an empty input)
     mockListOrders.mockResolvedValueOnce([sampleOrder])
     const user = userEvent.setup()
     render(<PedidosAdminPage />)
@@ -238,6 +239,7 @@ describe('PedidosAdminPage', () => {
   })
 
   it('does not open the detail modal when the status select is changed', async () => {
+    // quality: allow-mock-only (changing status must not request order details; the service boundary is the contract)
     mockListOrders.mockResolvedValueOnce([sampleOrder])
     const user = userEvent.setup()
     render(<PedidosAdminPage />)
