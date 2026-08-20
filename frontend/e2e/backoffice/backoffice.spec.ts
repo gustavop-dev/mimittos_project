@@ -2,17 +2,67 @@ import { test, expect } from '../test-with-coverage';
 import { waitForPageLoad } from '../fixtures';
 import { BACKOFFICE_LOGIN, BACKOFFICE_DASHBOARD_DISPLAY, BACKOFFICE_ORDER_MANAGEMENT, BACKOFFICE_SITE_CONFIG } from '../helpers/flow-tags';
 
+const mockStaff = {
+  id: 1,
+  email: 'admin@test.com',
+  first_name: 'Admin',
+  last_name: 'Test',
+  role: 'admin',
+  is_staff: true,
+};
+
+const mockOrder = {
+  order_number: 'MIM-001',
+  customer_name: 'María García',
+  customer_email: 'maria@example.com',
+  city: 'Bogotá',
+  status: 'pending_payment',
+  total_amount: 250000,
+  deposit_amount: 125000,
+  created_at: '2026-04-01T10:00:00Z',
+};
+
 test.describe('Backoffice', () => {
   test(
-    'should redirect to admin-login when accessing backoffice unauthenticated',
+    'should sign staff in to backoffice',
     { tag: [...BACKOFFICE_LOGIN] },
     async ({ page }) => {
-      // quality: allow-no-interaction (auth guard: an unauthenticated visit is redirected — there is no user action, and the redirect is the real assertion)
-      await page.goto('/backoffice');
-      await waitForPageLoad(page);
+      await page.route('**/api/google-captcha/site-key/', (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ site_key: null }) })
+      );
+      await page.route('**/api/sign_in/', (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ access: 'fake-admin-access', refresh: 'fake-admin-refresh', user: mockStaff }),
+        })
+      );
+      await page.route('**/api/validate_token/**', (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, user: mockStaff }) })
+      );
+      await page.route('**/api/analytics/kpis/**', (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ new_orders: 5, in_production: 3, pending_dispatch: 1, confirmed_deposits: 2 }),
+        })
+      );
+      await page.route('**/api/analytics/dashboard/**', (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ revenue_by_day: [], orders_by_status: [], top_products: [] }),
+        })
+      );
 
-      // Without admin auth, should be redirected away from /backoffice
-      await expect(page).not.toHaveURL(/^.*\/backoffice$/, { timeout: 10_000 });
+      await page.goto('/sign-in');
+      await waitForPageLoad(page);
+      await page.locator('input[type="email"]').fill(mockStaff.email);
+      await page.locator('input[type="password"]').fill('admin-password');
+      await page.locator('button[type="submit"]').click();
+
+      await expect(page).toHaveURL(/\/backoffice$/, { timeout: 10_000 });
+      await expect(page.getByText('Pedidos nuevos hoy')).toBeVisible();
     }
   );
 
@@ -22,7 +72,7 @@ test.describe('Backoffice', () => {
     async ({ page }) => {
       // quality: allow-no-interaction (admin dashboard display-class flow; the auth guard is satisfied so the app stays on /backoffice)
       await page.route('**/api/validate_token/**', (route) =>
-        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, user: { id: 1, email: 'admin@test.com', role: 'admin', is_staff: true } }) })
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, user: mockStaff }) })
       );
       await page.route('**/api/analytics/kpis/**', (route) =>
         route.fulfill({
@@ -36,7 +86,7 @@ test.describe('Backoffice', () => {
           }),
         })
       );
-      await page.route('**/api/analytics/**', (route) =>
+      await page.route('**/api/analytics/dashboard/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -52,8 +102,8 @@ test.describe('Backoffice', () => {
       await page.goto('/backoffice');
       await waitForPageLoad(page);
 
-      // Authenticated: the app is NOT bounced to the admin login.
-      await expect(page).not.toHaveURL(/admin-login|sign-in/, { timeout: 10_000 });
+      const newOrdersKpi = page.getByText('Pedidos nuevos hoy').locator('..');
+      await expect(newOrdersKpi.getByText('5', { exact: true })).toBeVisible();
     }
   );
 
@@ -63,13 +113,13 @@ test.describe('Backoffice', () => {
     async ({ page }) => {
       // quality: allow-no-interaction (admin orders display-class flow; the auth guard is satisfied so the app stays on the orders page)
       await page.route('**/api/validate_token/**', (route) =>
-        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, user: { id: 1, email: 'admin@test.com', role: 'admin', is_staff: true } }) })
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, user: mockStaff }) })
       );
       await page.route('**/api/orders/**', (route) =>
         route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ results: [], count: 0 }),
+          body: JSON.stringify([mockOrder]),
         })
       );
 
@@ -81,8 +131,8 @@ test.describe('Backoffice', () => {
       await page.goto('/backoffice/pedidos');
       await waitForPageLoad(page);
 
-      // Authenticated: the app is NOT bounced to the admin login.
-      await expect(page).not.toHaveURL(/admin-login|sign-in/, { timeout: 10_000 });
+      await expect(page.getByRole('heading', { name: 'Pedidos' })).toBeVisible();
+      await expect(page.getByTestId('order-row-MIM-001')).toBeVisible();
     }
   );
 

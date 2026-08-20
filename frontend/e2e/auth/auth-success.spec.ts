@@ -4,9 +4,18 @@ import { AUTH_LOGIN_SUCCESS, AUTH_SESSION_PERSISTENCE } from '../helpers/flow-ta
 
 test.describe('Auth — authenticated flows', () => {
   test(
-    'should redirect to home after successful sign in',
+    'should redirect customers to orders after successful sign in',
     { tag: [...AUTH_LOGIN_SUCCESS, '@outcome:success'] },
     async ({ page }) => {
+      const customer = {
+        id: 7,
+        email: 'test@example.com',
+        first_name: 'Ana',
+        last_name: 'López',
+        role: 'customer',
+        is_staff: false,
+      };
+
       // Disable captcha by returning no site key
       await page.route('**/api/google-captcha/site-key/', (route) =>
         route.fulfill({
@@ -19,8 +28,18 @@ test.describe('Auth — authenticated flows', () => {
         route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ access: 'fake-access', refresh: 'fake-refresh' }),
+          body: JSON.stringify({ access: 'fake-access', refresh: 'fake-refresh', user: customer }),
         })
+      );
+      await page.route('**/api/validate_token/**', (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ valid: true, user: customer }),
+        })
+      );
+      await page.route('**/api/orders/my/**', (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
       );
 
       await page.goto('/sign-in');
@@ -30,7 +49,8 @@ test.describe('Auth — authenticated flows', () => {
       await page.locator('input[type="password"]').fill('password123');
       await page.locator('button[type="submit"]').click();
 
-      await expect(page).not.toHaveURL(/.*sign-in/, { timeout: 10_000 });
+      await expect(page).toHaveURL(/\/orders$/, { timeout: 10_000 });
+      await expect(page.getByRole('heading', { name: 'Hola, Ana ♡' })).toBeVisible();
     }
   );
 

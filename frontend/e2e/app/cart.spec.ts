@@ -143,27 +143,26 @@ test.describe('Shopping Cart', () => {
 
     // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
     const peluchCards = page.locator('a[href^="/peluches/"]');
-    const count = await peluchCards.count();
+    const firstPeluch = peluchCards.first();
+    await expect(firstPeluch).toBeVisible();
 
-    if (count > 0) {
-      // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
-      await peluchCards.first().click();
-      await waitForPageLoad(page);
+    // quality: allow-fragile-selector (peluch list links uniquely scoped by href pattern)
+    await firstPeluch.click();
+    await waitForPageLoad(page);
 
-      const addBtn = page.getByRole('button', { name: /Agregar/i });
-      if (await addBtn.isVisible()) {
-        await addBtn.click();
-        await page.waitForLoadState('domcontentloaded');
-      }
+    const addBtn = page.getByRole('button', { name: /Agregar/i });
+    await expect(addBtn).toBeVisible();
+    await addBtn.click();
+    await page.waitForLoadState('domcontentloaded');
 
-      await page.reload();
-      await waitForPageLoad(page);
+    await page.reload();
+    await waitForPageLoad(page);
 
-      await page.goto('/cart');
-      await waitForPageLoad(page);
+    await page.goto('/cart');
+    await waitForPageLoad(page);
 
-      await expect(page.getByText(/Tu carrito está vacío/)).toBeHidden();
-    }
+    await expect(page.getByText('Subtotal productos')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Eliminar' })).toBeVisible();
   });
 
   test('should show empty cart when item quantity is decremented to zero', { tag: [...CART_UPDATE_QTY] }, async ({ page }) => {

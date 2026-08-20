@@ -13,22 +13,34 @@ const mockCategories = [
 ];
 
 const mockPeluches = [
-  { id: 1, slug: 'osito-clasico', title_es: 'Osito Clásico', base_price: 120000, category_name: 'Clásicos', is_active: true, badge: 'none' },
-  { id: 2, slug: 'conejita-suave', title_es: 'Conejita Suave', base_price: 150000, category_name: 'Especiales', is_active: true, badge: 'bestseller' },
+  { id: 1, slug: 'osito-clasico', title: 'Osito Clásico', min_price: 120000, discounted_min_price: 120000, discount_pct: 0, category_name: 'Clásicos', category_slug: 'clasicos', is_active: true, is_featured: false, badge: 'none' },
+  { id: 2, slug: 'conejita-suave', title: 'Conejita Suave', min_price: 150000, discounted_min_price: 150000, discount_pct: 0, category_name: 'Especiales', category_slug: 'especiales', is_active: true, is_featured: false, badge: 'bestseller' },
 ];
 
 const mockPeluchDetail = {
   id: 1,
   slug: 'osito-clasico',
-  title_es: 'Osito Clásico',
+  title: 'Osito Clásico',
   title_en: 'Classic Bear',
-  base_price: 120000,
-  category: 1,
+  category: mockCategories[0],
   category_name: 'Clásicos',
+  lead_description: 'Un clásico hecho a mano',
+  description: [],
   is_active: true,
+  is_featured: false,
   badge: 'none',
+  discount_pct: 0,
+  display_order: 100,
+  has_huella: false,
+  has_corazon: false,
+  has_audio: false,
+  huella_extra_cost: 0,
+  corazon_extra_cost: 0,
+  audio_extra_cost: 0,
   size_prices: [],
   available_colors: [],
+  specifications: {},
+  care_instructions: [],
 };
 
 const mockAdmin = {
@@ -70,7 +82,7 @@ test.describe('Backoffice — Catalog Management', () => {
       await waitForPageLoad(page);
 
       // quality: allow-no-interaction (admin table display-class flow: an authenticated admin reaches the peluches list, not the sign-in redirect)
-      await expect(page).not.toHaveURL(/sign-in/);
+      await expect(page.getByText('Osito Clásico')).toBeVisible();
     }
   );
 
@@ -120,6 +132,12 @@ test.describe('Backoffice — Catalog Management', () => {
       await page.route('**/api/categories/**', (route) =>
         route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mockCategories) })
       );
+      await page.route('**/api/colors/**', (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+      );
+      await page.route('**/api/sizes/**', (route) =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
+      );
       await page.route('**/api/peluches/osito-clasico/color-image/**', (route) =>
         route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) })
       );
@@ -128,7 +146,7 @@ test.describe('Backoffice — Catalog Management', () => {
       await waitForPageLoad(page);
 
       // quality: allow-no-interaction (edit-form display-class flow: an authenticated admin reaches the edit form, not the sign-in redirect)
-      await expect(page).not.toHaveURL(/sign-in/);
+      await expect(page.getByPlaceholder('Osito Suave Premium')).toHaveValue('Osito Clásico');
     }
   );
 });
