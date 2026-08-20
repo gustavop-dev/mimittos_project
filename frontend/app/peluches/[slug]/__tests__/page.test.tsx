@@ -128,6 +128,7 @@ describe('PeluchDetailPage', () => {
     mockPeluchService.getPeluchBySlug.mockResolvedValue(mockPeluchDetail)
     render(<PeluchDetailPage />)
     await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Osito Coral' })).toBeInTheDocument()
       expect(screen.queryByText(/Audio personalizado/i)).not.toBeInTheDocument()
     })
   })

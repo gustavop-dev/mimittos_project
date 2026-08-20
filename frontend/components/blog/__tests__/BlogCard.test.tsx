@@ -42,6 +42,7 @@ describe('BlogCard', () => {
   it('should not render image when image_url is not provided', () => {
     const blogWithoutImage = { ...blog, image_url: undefined };
     render(<BlogCard blog={blogWithoutImage} />);
+    expect(screen.getByText(blog.title)).toBeInTheDocument();
     expect(screen.queryByAltText(blog.title)).not.toBeInTheDocument();
   });
 

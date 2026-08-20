@@ -53,6 +53,10 @@ describe('cartStore', () => {
       const { result } = renderHook(() => useCartStore())
       act(() => {
         result.current.addToCart({ ...item1, quantity: 1 })
+      })
+      expect(result.current.items).toHaveLength(1)
+
+      act(() => {
         result.current.removeFromCart(item1.peluch_id, item1.size_id, item1.color_id)
       })
       expect(result.current.items).toHaveLength(0)
@@ -84,6 +88,10 @@ describe('cartStore', () => {
       const { result } = renderHook(() => useCartStore())
       act(() => {
         result.current.addToCart({ ...item1, quantity: 1 })
+      })
+      expect(result.current.items).toHaveLength(1)
+
+      act(() => {
         result.current.updateQuantity(item1.peluch_id, item1.size_id, item1.color_id, 0)
       })
       expect(result.current.items).toHaveLength(0)
@@ -96,6 +104,10 @@ describe('cartStore', () => {
       act(() => {
         result.current.addToCart({ ...item1, quantity: 1 })
         result.current.addToCart({ ...item2, quantity: 1 })
+      })
+      expect(result.current.items).toHaveLength(2)
+
+      act(() => {
         result.current.clearCart()
       })
       expect(result.current.items).toHaveLength(0)
