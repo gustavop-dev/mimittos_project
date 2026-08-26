@@ -18,7 +18,8 @@ jest.mock('../tokens', () => ({
 let requestInterceptor: ((config: any) => any) | null = null;
 let responseSuccessInterceptor: ((response: any) => any) | null = null;
 let responseErrorInterceptor: ((error: any) => Promise<any>) | null = null;
-let apiInstance: jest.Mock<Promise<any>, any> & { interceptors: any };
+type MockApiInstance = jest.Mock<Promise<any>, any> & { interceptors: any };
+let apiInstance: MockApiInstance;
 let mockAxios: any;
 let mockGetAccessToken: jest.Mock;
 let mockGetRefreshToken: jest.Mock;
@@ -42,7 +43,7 @@ describe('http service', () => {
     requestInterceptor = null;
     responseSuccessInterceptor = null;
     responseErrorInterceptor = null;
-    apiInstance = jest.fn() as jest.Mock<Promise<any>, any>;
+    apiInstance = jest.fn() as MockApiInstance;
     apiInstance.interceptors = {
       request: {
         use: jest.fn((handler) => {

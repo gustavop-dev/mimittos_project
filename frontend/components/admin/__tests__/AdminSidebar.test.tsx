@@ -22,7 +22,7 @@ const renderSidebar = (pathname: string, signOut = jest.fn()) => {
   mockUseAuthStore.mockImplementation((selector: (s: { signOut: typeof signOut }) => unknown) =>
     selector({ signOut })
   )
-  return render(<AdminSidebar />)
+  return render(<AdminSidebar isOpen onClose={jest.fn()} />)
 }
 
 describe('AdminSidebar', () => {

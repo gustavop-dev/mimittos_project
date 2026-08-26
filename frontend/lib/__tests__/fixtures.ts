@@ -148,6 +148,7 @@ export const mockBlogs: Blog[] = [
   },
 ]
 
+export const mockBlog: Blog = mockBlogs[0]
 export const mockPeluch: Peluch = mockPeluches[0]
 
 // Legacy aliases for tests that haven't migrated yet
