@@ -21,7 +21,7 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { orderService } from '@/lib/services/orderService'
 import OrdersPage from '../page'
 
-const mockUseAuthStore = useAuthStore as jest.Mock
+const mockUseAuthStore = useAuthStore as unknown as jest.Mock
 const mockGetMyOrders = orderService.getMyOrders as jest.Mock
 
 describe('OrdersPage', () => {

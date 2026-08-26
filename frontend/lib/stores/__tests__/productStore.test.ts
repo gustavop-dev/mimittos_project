@@ -146,17 +146,17 @@ describe('productStore', () => {
 
   describe('selectors', () => {
     it('selectProducts returns the products array from state', () => {
-      const state = { products: mockProducts, loading: false, error: null } as Parameters<typeof selectProducts>[0];
+      const state = { ...useProductStore.getState(), products: mockProducts, loading: false, error: null };
       expect(selectProducts(state)).toBe(mockProducts);
     });
 
     it('selectProductsLoading returns the loading flag from state', () => {
-      const state = { products: [], loading: true, error: null } as Parameters<typeof selectProductsLoading>[0];
+      const state = { ...useProductStore.getState(), products: [], loading: true, error: null };
       expect(selectProductsLoading(state)).toBe(true);
     });
 
     it('selectProductsError returns the error string from state', () => {
-      const state = { products: [], loading: false, error: 'oops' } as Parameters<typeof selectProductsError>[0];
+      const state = { ...useProductStore.getState(), products: [], loading: false, error: 'oops' };
       expect(selectProductsError(state)).toBe('oops');
     });
   });

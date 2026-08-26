@@ -62,7 +62,16 @@ import type { PeluchDetail } from '@/lib/types'
 
 const mockUseRouter = useRouter as unknown as jest.Mock
 
-const mockCategories = [{ id: 1, name: 'Ositos', slug: 'ositos', description: '', display_order: 1, is_active: true }]
+const mockCategories = [{
+  id: 1,
+  name: 'Ositos',
+  slug: 'ositos',
+  description: '',
+  display_order: 1,
+  is_active: true,
+  is_featured: false,
+  image_url: null,
+}]
 const mockColors = [{ id: 1, name: 'Coral', slug: 'coral', hex_code: '#FF6B6B', sort_order: 1 }]
 const mockSizes = [{ id: 1, label: 'S', slug: 's', cm: '20cm', sort_order: 1 }]
 
@@ -72,9 +81,19 @@ const mockExisting: PeluchDetail = {
   slug: 'osito-coral',
   category_name: 'Ositos',
   category_slug: 'ositos',
-  category: { id: 1, name: 'Ositos', slug: 'ositos', description: '', display_order: 1, is_active: true },
+  category: {
+    id: 1,
+    name: 'Ositos',
+    slug: 'ositos',
+    description: '',
+    display_order: 1,
+    is_active: true,
+    is_featured: false,
+    image_url: null,
+  },
   lead_description: 'El oseznito más querido',
   badge: 'bestseller',
+  is_active: true,
   is_featured: true,
   discount_pct: 0,
   display_order: 100,

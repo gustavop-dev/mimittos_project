@@ -146,17 +146,17 @@ describe('blogStore', () => {
 
   describe('selectors', () => {
     it('selectBlogs returns the blogs array from state', () => {
-      const state = { blogs: mockBlogs, loading: false, error: null } as Parameters<typeof selectBlogs>[0];
+      const state = { ...useBlogStore.getState(), blogs: mockBlogs, loading: false, error: null };
       expect(selectBlogs(state)).toBe(mockBlogs);
     });
 
     it('selectBlogsLoading returns the loading flag from state', () => {
-      const state = { blogs: [], loading: true, error: null } as Parameters<typeof selectBlogsLoading>[0];
+      const state = { ...useBlogStore.getState(), blogs: [], loading: true, error: null };
       expect(selectBlogsLoading(state)).toBe(true);
     });
 
     it('selectBlogsError returns the error string from state', () => {
-      const state = { blogs: [], loading: false, error: 'oops' } as Parameters<typeof selectBlogsError>[0];
+      const state = { ...useBlogStore.getState(), blogs: [], loading: false, error: 'oops' };
       expect(selectBlogsError(state)).toBe('oops');
     });
   });

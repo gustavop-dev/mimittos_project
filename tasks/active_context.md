@@ -5,7 +5,26 @@ description: Current work focus, recent changes, active decisions, and next step
 
 # Active Context — Mimittos
 
-Last updated: 2026-06-10
+Last updated: 2026-08-26
+
+---
+
+## Dependency vulnerability remediation (2026-08-26)
+
+Branch `chore/26082026-vuln-audit`. The frontend dependency audit moved from
+10 findings (9 high, 1 low; 6 high in production dependencies) to zero after
+patch/minor updates, including Next.js 16.3.3 and Axios 1.20.0. The production
+build passes and 57 focused Jest tests cover the fixtures/mocks corrected when a
+clean build exposed pre-existing type drift.
+
+The backend audit moved from 44 findings across Django, Pillow, pip, PyJWT, and
+sqlparse to 4 findings in sqlparse 0.5.5 only. Django 6.0.8, Pillow 12.3.0, and
+PyJWT 2.13.0 contain the applicable fixes. sqlparse 0.6.0 remains a separately
+reviewed major transition under the project's 0.x policy; there is no direct
+sqlparse import in application code. Backend verification used an isolated
+Python 3.12 venv and SQLite: 0 Django check issues, 502 tests collected, and the
+8-test smoke slice passed. Full evidence and deferred majors are recorded in
+`audit-report.md`.
 
 ---
 

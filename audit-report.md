@@ -1,158 +1,207 @@
 # Vulnerability Audit & Dependency Update Report
 
-**Branch:** main
-**Date:** 2026-05-17
-**Base:** main @ 6f6d5ba
+**Branch:** chore/26082026-vuln-audit
+**Date:** 2026-08-26
+**Base:** main @ ca78e8c
 **Scope:** patch + minor updates only (no major version bumps)
 
 ## Summary
 
-| Surface  | Vulns (initial) | Vulns (final) | Outdated (initial) | Updated |
-|----------|-----------------|---------------|--------------------|---------|
-| Frontend | 2 (1 high, 1 moderate) | 3 moderate* | 16 | 14 (2 SKIP MAJOR) |
-| Backend  | 24 CVEs en 7 paquetes | 7 CVEs en 3 paquetes† | 16 | 9 paquetes |
+| Surface | Vulns (initial) | Vulns (final) | Outdated (initial) |
+|---|---:|---:|---:|
+| Frontend | 10 total: 0 critical / 9 high / 0 moderate / 1 low | 0 | 23 |
+| Backend | 44 findings (33 unique) across 5 packages | 4 findings across 1 package | 23 |
 
-\* Las 3 moderate restantes están en `postcss` **empaquetado dentro de `next`** — la única "solución" de npm es downgrade a `next@9.3.3` (breaking change). Inaplicable.
-
-† Vulnerabilidades restantes en dependencias transitivas no gestionadas directamente en `requirements.txt` (`pip`, `python-dotenv`, `urllib3`).
-
----
-
-## Frontend — `npm audit` (initial)
-
-| Paquete | Severity | CVEs / Notas |
-|---------|----------|-------------|
-| `next` 16.2.4 | **high** | DoS, middleware bypass, cache poisoning, XSS, SSRF (≥13 CVEs) |
-| `postcss` (transitivo en next) | moderate | XSS via `</style>` no escapado — GHSA-qx2v-qp2m-jg93 |
-
-**Totales iniciales:** 0 critical / 1 high / 1 moderate / 0 low = **2 total**
-
-## Frontend — `npm outdated` (initial)
-
-| Paquete | Current | Wanted | Latest | Acción |
-|---------|---------|--------|--------|--------|
-| `@playwright/test` | 1.59.1 | 1.60.0 | 1.60.0 | actualizado |
-| `@tailwindcss/postcss` | 4.2.4 | 4.3.0 | 4.3.0 | actualizado |
-| `@types/node` | 25.6.0 | 25.8.0 | 25.8.0 | actualizado |
-| `axios` | 1.15.2 | 1.16.1 | 1.16.1 | actualizado |
-| `eslint` | 9.39.4 | 9.39.4 | 10.4.0 | SKIP MAJOR (9→10) |
-| `eslint-config-next` | 16.2.4 | 16.2.4 | 16.2.6 | actualizado |
-| `jest` | 30.3.0 | 30.4.2 | 30.4.2 | actualizado |
-| `jest-environment-jsdom` | 30.3.0 | 30.4.1 | 30.4.1 | actualizado |
-| `js-cookie` | 3.0.5 | 3.0.7 | 3.0.7 | actualizado |
-| `next` | 16.2.4 | 16.2.4 | 16.2.6 | actualizado (fix high) |
-| `next-intl` | 4.11.0 | 4.12.0 | 4.12.0 | actualizado |
-| `react` | 19.2.5 | 19.2.5 | 19.2.6 | actualizado |
-| `react-dom` | 19.2.5 | 19.2.5 | 19.2.6 | actualizado |
-| `tailwindcss` | 4.2.4 | 4.3.0 | 4.3.0 | actualizado |
-| `typescript` | 5.9.3 | 5.9.3 | 6.0.3 | SKIP MAJOR (5→6) |
-| `zustand` | 5.0.12 | 5.0.13 | 5.0.13 | actualizado |
+The production-only npm audit initially reported 6 high vulnerabilities. The full
+audit, including development dependencies, reported the 10 packages summarized
+below.
 
 ---
 
-## Backend — `pip-audit` (initial, desde venv)
+## Frontend — npm audit (initial)
 
-> **Nota:** el venv tenía versiones anteriores a las del `requirements.txt` — la sincronización con `pip install -r requirements.txt` resolvio la mayoría de las vulnerabilidades.
+Source: /tmp/mimittos_project-npm-audit-apply-initial.json
 
-| Paquete | Version venv | CVEs | Fix mínimo | Acción |
-|---------|-------------|------|------------|--------|
-| `django` | 6.0.2 | 10 (DoS, XSS, middleware bypass) | 6.0.5 | → 6.0.5 |
-| `pillow` | 12.1.1 | 5 (GZIP, PDF, PSD, overflow) | 12.2.0 | → 12.2.0 |
-| `pytest` | 9.0.2 | 1 (tmpdir race — CVE-2025-71176) | 9.0.3 | → 9.0.3 |
-| `python-dotenv` | 1.2.1 | 1 (symlink follow — CVE-2026-28684) | 1.2.2 | transitivo, no en requirements.txt |
-| `requests` | 2.32.5 | 1 (zip path traversal — CVE-2026-25645) | 2.33.0 | → 2.34.2 |
-| `urllib3` | 2.6.3 | 2 (redirect headers, streaming) | 2.7.0 | transitivo, no en requirements.txt |
-| `pip` | 24.0 | 4 (tar/wheel extraction) | 25.3–26.1 | herramienta venv, no en requirements.txt |
+| Package | Severity | Notes |
+|---|---|---|
+| @babel/core | low | Arbitrary file read through sourceMappingURL comments. |
+| axios | high | HTTP proxy inheritance plus form serialization, prototype pollution, and upload-limit advisories. |
+| brace-expansion | high | CPU and memory denial-of-service advisories. |
+| form-data | high | CRLF injection in multipart names and filenames. |
+| js-yaml | high | Quadratic CPU use in merge-key and omap resolution. |
+| nanoid | high | Infinite-loop denial of service in custom/non-secure generators. |
+| next | high | App Router, Server Actions, rewrites, cache, image, and endpoint-disclosure advisories. |
+| postcss | high | XSS, path traversal, and source-map file disclosure advisories. |
+| sharp | high | Vulnerable libvips versions bundled below sharp 0.35.0. |
+| ws | high | Memory exhaustion through fragmented WebSocket payloads. |
 
-## Backend — `pip list --outdated` (initial)
+**Totals:** 0 critical / 9 high / 0 moderate / 1 low.
 
-| Paquete | Instalado | Latest | Acción |
-|---------|-----------|--------|--------|
-| Django | 6.0.2 | 6.0.5 | pin 6.0.4→6.0.5 + sync venv |
-| Faker | 40.5.1 | 40.18.0 | pin 40.15.0→40.18.0 |
-| coverage | 7.13.4 | 7.14.0 | pin 7.13.5→7.14.0 |
-| djangorestframework | 3.16.1 | 3.17.1 | ya en requirements.txt, sync venv |
-| gunicorn | 23.0.0 | 26.0.0 | pin `<24.0` — no hay 23.x mas nuevo |
-| huey | 3.0.0 | 3.0.1 | satisface `>=2.5.0`, sync venv |
-| idna | 3.13 | 3.15 | transitivo |
-| packaging | 26.1 | 26.2 | transitivo |
-| pillow | 12.1.1 | 12.2.0 | ya en requirements.txt, sync venv |
-| pip | 24.0 | 26.1.1 | herramienta venv — SKIP MAJOR |
-| pytest | 9.0.2 | 9.0.3 | ya en requirements.txt, sync venv |
-| pytest-cov | 7.0.0 | 7.1.0 | ya en requirements.txt, sync venv |
-| python-dotenv | 1.2.1 | 1.2.2 | transitivo, no en requirements.txt |
-| requests | 2.32.5 | 2.34.2 | pin 2.33.1→2.34.2 |
-| ruff | 0.15.2 | 0.15.13 | pin 0.15.12→0.15.13 |
-| urllib3 | 2.6.3 | 2.7.0 | transitivo |
+## Frontend — npm outdated (initial)
+
+Source: /tmp/mimittos_project-npm-outdated-apply-initial.json
+
+- @playwright/test: 1.60.0 -> 1.62.1 -> 1.62.1
+- @tailwindcss/postcss: 4.3.0 -> 4.3.3 -> 4.3.3
+- @testing-library/user-event: 14.6.1 -> 14.6.6 -> 14.6.6
+- @types/node: 25.8.0 -> 25.9.5 -> 26.3.0 (latest major skipped)
+- @types/react: 19.2.14 -> 19.2.18 -> 19.2.18
+- @types/react-dom: 19.2.3 -> 19.2.5 -> 19.2.5
+- @uiw/react-md-editor: 4.1.0 -> 4.1.2 -> 4.1.2
+- axios: 1.16.1 -> 1.20.0 -> 1.20.0
+- eslint: 9.39.4 -> 9.39.5 -> 10.9.1 (latest major skipped)
+- eslint-config-next: 16.2.6 -> 16.2.6 -> 16.3.3
+- eslint-plugin-playwright: 2.10.2 -> 2.11.0 -> 2.11.0
+- framer-motion: 12.38.0 -> 12.43.0 -> 13.1.1 (latest major skipped)
+- js-cookie: 3.0.7 -> 3.0.8 -> 3.0.8
+- next: 16.2.6 -> 16.2.6 -> 16.3.3
+- next-intl: 4.12.0 -> 4.13.7 -> 4.13.7
+- react: 19.2.6 -> 19.2.6 -> 19.2.8
+- react-dom: 19.2.6 -> 19.2.6 -> 19.2.8
+- recharts: 3.8.1 -> 3.10.1 -> 3.10.1
+- sweetalert2: 11.26.24 -> 11.26.25 -> 11.26.25
+- swiper: 12.1.4 -> 12.2.0 -> 14.1.0 (latest major skipped)
+- tailwindcss: 4.3.0 -> 4.3.3 -> 4.3.3
+- typescript: 5.9.3 -> 5.9.3 -> 7.0.2 (major skipped)
+- zustand: 5.0.13 -> 5.0.15 -> 5.0.15
 
 ---
+
+## Backend — pip-audit (initial)
+
+Source: /tmp/mimittos_project-pip-audit.json
+
+| Package | Current | Findings | Minimum in-major fix |
+|---|---:|---:|---:|
+| Django | 6.0.5 | 9 | 6.0.8 |
+| Pillow | 12.2.0 | 20 reported / 13 unique | 12.3.0 |
+| pip | 26.1.1 | 3 reported / 2 unique | 26.2 |
+| PyJWT | 2.12.1 | 8 reported / 5 unique | 2.13.0 |
+| sqlparse | 0.5.5 | 4 | 0.6.0 (major under 0.x policy) |
+
+## Backend — pip list --outdated (initial)
+
+Source: /tmp/mimittos_project-pip-outdated.json
+
+- asgiref 3.11.1 -> 3.12.1
+- certifi 2026.4.22 -> 2026.7.22 (transitive)
+- charset-normalizer 3.4.7 -> 3.5.1 (transitive)
+- coverage 7.14.0 -> 7.15.4
+- Django 6.0.5 -> 6.1 (security plan targets 6.0.8; feature release deferred)
+- django-silk 5.5.0 -> 5.5.2 (existing open range)
+- djangorestframework 3.17.1 -> 3.18.0
+- Faker 40.18.0 -> 40.37.0
+- gunicorn 23.0.0 -> 26.2.0 (major and blocked by <24 pin)
+- huey 3.0.1 -> 3.3.4
+- idna 3.15 -> 3.19 (transitive)
+- packaging 26.2 -> 26.3 (transitive)
+- Pillow 12.2.0 -> 12.3.0
+- pip 26.1.1 -> 26.2.1 (audit environment tooling)
+- Pygments 2.20.0 -> 2.21.0 (transitive)
+- PyJWT 2.12.1 -> 2.13.0
+- pytest 9.0.3 -> 9.1.1
+- pytest-django 4.12.0 -> 4.14.0
+- redis 7.4.0 -> 8.1.0 (major skipped; 7.4.1 selected)
+- ruff 0.15.13 -> 0.16.4 (0.x minor is treated as major; 0.15.22 selected)
+- sqlparse 0.5.5 -> 0.6.0 (0.x minor is treated as major; skipped)
+- typing_extensions 4.15.0 -> 4.16.0
+- wheel 0.47.0 -> 0.48.0 (transitive)
+
+---
+
+## Plan
+
+### Frontend
+
+- Run npm audit fix without force to refresh vulnerable transitive dependencies.
+- Apply patch/minor direct updates with npm-check-updates.
+- Keep all direct dependencies within their current major.
+- Revert any update whose runtime engine or compatibility contract is not met.
+
+### Backend
+
+- Apply secure in-major releases for Django, Pillow, PyJWT, and the outdated
+  direct requirements.
+- Add an explicit PyJWT pin because it was previously only transitive.
+- Bound Redis and Huey below their next major while raising their minimums.
+- Keep ruff on 0.15.x and sqlparse on 0.5.x because 0.x -> 0.y is a major
+  transition under this audit policy.
 
 ## Updates Applied
 
-### Frontend (commit `deps(frontend): apply patch+minor updates` — a88997c)
+### Frontend (commit deps(frontend): apply patch+minor updates)
 
-| Paquete | Antes | Despues |
-|---------|-------|---------|
-| `next` | 16.2.4 | 16.2.6 |
-| `eslint-config-next` | 16.2.4 | 16.2.6 |
-| `@playwright/test` | ^1.59.1 | ^1.60.0 |
-| `@tailwindcss/postcss` | ^4.2.4 | ^4.3.0 |
-| `@types/node` | ^25.6.0 | ^25.8.0 |
-| `axios` | ^1.15.2 | ^1.16.1 |
-| `jest` | ^30.3.0 | ^30.4.2 |
-| `jest-environment-jsdom` | ^30.3.0 | ^30.4.1 |
-| `js-cookie` | ^3.0.5 | ^3.0.7 |
-| `next-intl` | ^4.11.0 | ^4.12.0 |
-| `react` | 19.2.5 | 19.2.6 |
-| `react-dom` | 19.2.5 | 19.2.6 |
-| `tailwindcss` | ^4.2.4 | ^4.3.0 |
-| `zustand` | ^5.0.12 | ^5.0.13 |
+- 22 direct dependency versions were updated:
+  - @uiw/react-md-editor 4.1.0 -> 4.1.2
+  - axios 1.16.1 -> 1.20.0
+  - framer-motion 12.38.0 -> 12.43.0
+  - js-cookie 3.0.7 -> 3.0.8
+  - next 16.2.6 -> 16.3.3
+  - next-intl 4.12.0 -> 4.13.7
+  - react/react-dom 19.2.6 -> 19.2.8
+  - recharts 3.8.1 -> 3.10.1
+  - sweetalert2 11.26.24 -> 11.26.25
+  - swiper 12.1.4 -> 12.2.0
+  - zustand 5.0.13 -> 5.0.15
+  - @playwright/test 1.60.0 -> 1.62.1
+  - @tailwindcss/postcss/tailwindcss 4.3.0 -> 4.3.3
+  - @testing-library/user-event 14.6.1 -> 14.6.6
+  - @types/node 25.8.0 -> 25.9.5
+  - @types/react 19.2.14 -> 19.2.18
+  - @types/react-dom 19.2.3 -> 19.2.5
+  - eslint 9.39.4 -> 9.39.5
+  - eslint-config-next 16.2.6 -> 16.3.3
+  - eslint-plugin-playwright 2.10.2 -> 2.11.0
+- npm audit fix also refreshed vulnerable transitive packages without --force.
+- Final npm audit: 0 critical / 0 high / 0 moderate / 0 low.
+- Remaining outdated majors: @types/node 26, eslint 10, framer-motion 13,
+  swiper 14, and TypeScript 7.
 
-`npm audit` final: 0 critical / 0 high / 3 moderate / 0 low
-Moderate restantes: `postcss` empaquetado en `next/node_modules/postcss` — la correccion de npm (`next@9.3.3`) es un downgrade de 7 majors. Inaplicable sin breaking change.
+### Backend (commit deps(backend): apply patch+minor updates)
 
-### Backend (commit `deps(backend): apply patch+minor updates` — 7f1ecd1)
-
-Cambios en `requirements.txt`:
-
-| Paquete | Antes | Despues |
-|---------|-------|---------|
-| Django | 6.0.4 | 6.0.5 |
-| Faker | 40.15.0 | 40.18.0 |
-| requests | 2.33.1 | 2.34.2 |
-| ruff | 0.15.12 | 0.15.13 |
-| coverage | 7.13.5 | 7.14.0 |
-
-Paquetes actualizados en venv por sincronizacion (ya estaban en requirements.txt):
-
-| Paquete | Venv antes | Venv despues |
-|---------|-----------|-------------|
-| django | 6.0.2 | 6.0.5 |
-| pillow | 12.1.1 | 12.2.0 |
-| pytest | 9.0.2 | 9.0.3 |
-| pytest-cov | 7.0.0 | 7.1.0 |
-| djangorestframework | 3.16.1 | 3.17.1 |
-| requests | 2.32.5 | 2.34.2 |
-| ruff | 0.15.2 | 0.15.13 |
-| coverage | 7.13.4 | 7.14.0 |
-| Faker | 40.5.1 | 40.18.0 |
-
-`pip-audit` final: 7 CVEs en 3 paquetes (todos transitivos / herramienta):
-- `pip 24.0`: 4 CVEs — herramienta venv, no en requirements.txt. Fix requiere pip 26.x (MAJOR).
-- `python-dotenv 1.2.1`: 1 CVE (CVE-2026-28684) — transitivo, fix 1.2.2 disponible pero no es dependencia directa.
-- `urllib3 2.6.3`: 2 CVEs (CVE-2026-44431/44432) — transitivo, fix 2.7.0 disponible pero no es dependencia directa.
+- asgiref 3.11.1 -> 3.12.1
+- Django 6.0.5 -> 6.0.8
+- djangorestframework 3.17.1 -> 3.18.0
+- PyJWT 2.12.1 -> 2.13.0, now explicitly pinned
+- Faker 40.18.0 -> 40.37.0
+- huey floor 2.5.0 -> 3.3.4 with <4.0 ceiling
+- Pillow 12.2.0 -> 12.3.0
+- pytest 9.0.3 -> 9.1.1
+- pytest-django 4.12.0 -> 4.14.0
+- coverage 7.14.0 -> 7.15.4
+- redis 7.4.0 -> 7.4.1 with <8.0 ceiling
+- ruff 0.15.13 -> 0.15.22
+- typing_extensions 4.15.0 -> 4.16.0
+- The isolated audit environment also updated pip to 26.2.1.
+- Final pip-audit: 4 findings in sqlparse only, down from 44 findings in
+  five packages. All four fixes require sqlparse 0.6.0.
 
 ## Rollbacks
 
-Ninguno.
+- @testing-library/jest-dom 6.10.0 was reverted to 6.9.1 and pinned exactly.
+  The proposed release declares Node >=22 and is marked as a breaking/deprecated
+  transition, while this project builds on Node 20.
 
 ## Verification Results
 
 ### Frontend
-- `npm audit`: 1 high → 0 high (eliminado), 3 moderate restantes (postcss en next).
-- `npm run build`: success — todas las rutas compiladas.
+
+- npm audit: 0 vulnerabilities.
+- npm run build: success with Next.js 16.3.3; 29 routes generated.
+- Focused Jest verification: 57 tests passed across the seven affected test files.
+- A clean-worktree build exposed stale test fixture typings that also failed on
+  main with the original dependencies. Test-only fixtures and mocks were brought
+  in line with the production types; application behavior was not changed.
 
 ### Backend
-- `python manage.py check`: System check identified no issues (0 silenced)
-- `pytest --collect-only -q`: 472 tests collected, 0 errores de coleccion
-- Slice — `pytest base_feature_app/tests/models/test_password_code_model.py -v`: 5 passed
+
+- pip check: no broken requirements.
+- python manage.py check: 0 issues.
+- pytest --collect-only -q: 502 tests collected, 0 collection errors.
+- Slice: pytest base_feature_app/tests/commands/test_fake_data_commands.py -v:
+  8 passed.
+- All Django test commands used an isolated SQLite database. No migrations were
+  run and the production database was not touched.
+- Code search found no direct sqlparse import or formatter endpoint in the
+  project. The residual risk is therefore indirect through framework/tooling
+  paths, but remains tracked until a separately reviewed 0.6 migration.
