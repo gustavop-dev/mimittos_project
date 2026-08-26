@@ -13,41 +13,40 @@ description: Technical stack, dev setup, design patterns, env config, and testin
 
 | Package | Version |
 |---------|---------|
-| Python | 3.x (venv) |
-| Django | 6.0.2 |
-| djangorestframework | 3.16.1 |
+| Python | 3.12 (venv) |
+| Django | 6.0.8 |
+| djangorestframework | 3.18.0 |
 | djangorestframework-simplejwt | 5.5.1 |
+| PyJWT | 2.13.0 |
 | django-cors-headers | 4.9.0 |
 | mysqlclient | >=2.2,<3.0 |
-| Pillow | 12.1.1 |
+| Pillow | 12.3.0 |
 | easy-thumbnails | 2.10.1 |
-| Huey | >=2.5.0 |
-| Redis | >=4.0.0 |
-| pytest | 9.0.2 |
-| pytest-cov | 7.0.0 |
+| Huey | >=3.3.4,<4.0 |
+| Redis | >=7.4.1,<8.0 |
+| pytest | 9.1.1 |
+| pytest-cov | 7.1.0 |
 | factory-boy | 3.3.3 |
 | freezegun | 1.5.5 |
 | gunicorn | >=23.0,<24.0 |
-| ruff | 0.15.2 |
+| ruff | 0.15.22 |
 
 ### Frontend
 
 | Package | Version |
 |---------|---------|
-| Next.js | 16.1.6 |
-| React | 19.2.4 |
+| Next.js | 16.3.3 |
+| React | 19.2.8 |
 | TypeScript | ^5 |
-| Zustand | ^5.0.11 |
-| Axios | ^1.13.5 |
-| next-intl | ^4.8.3 |
-| Tailwind CSS | ^4.2.1 |
-| @playwright/test | ^1.58.2 |
-| Jest | ^30.2.0 |
+| Zustand | ^5.0.15 |
+| Axios | ^1.20.0 |
+| next-intl | ^4.13.7 |
+| Tailwind CSS | ^4.3.3 |
+| @playwright/test | ^1.62.1 |
+| Jest | ^30.4.2 |
 | @testing-library/react | ^16.3.2 |
-| jwt-decode | ^4.0.0 |
-| js-cookie | ^3.0.5 |
-| @react-oauth/google | ^0.13.4 |
-| recharts | ^3.8.1 |
+| js-cookie | ^3.0.8 |
+| recharts | ^3.10.1 |
 
 ---
 
