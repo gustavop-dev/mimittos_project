@@ -29,5 +29,5 @@ typing_extensions==4.16.0
 pydub>=0.25.1
 
 # Production server
-gunicorn>=23.0,<24.0
+gunicorn>=26.2,<27.0
 mysqlclient>=2.2,<3.0
