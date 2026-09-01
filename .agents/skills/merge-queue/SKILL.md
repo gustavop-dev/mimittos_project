@@ -632,6 +632,22 @@ gh run list --branch "$DEFAULT" --limit 3
 rm -rf "/tmp/merge-queue-${REPO_NAME}"
 ```
 
+### Integridad (eco) — informativo, NUNCA un gate
+
+La queue mergeó trabajo de N sesiones sobre clones que además son árboles
+deployados. Antes del tablero final, pedile su línea al motor `vps-integrity`.
+**No condiciona el drenaje**: `drift>0` o críticos abiertos se REPORTAN, jamás
+frenan un merge ni degradan una fila ya mergeada.
+
+```bash
+if [ -f "$HOME/webapps/vps-ops-toolkit/scripts/integrity/fleet-integrity-status.sh" ]; then bash "$HOME/webapps/vps-ops-toolkit/scripts/integrity/fleet-integrity-status.sh"; elif [ -x /usr/local/sbin/vps-integrity ]; then sudo -n /usr/local/sbin/vps-integrity status --line; else echo "ℹ️ vps-integrity no instalado — sin eco de integridad"; fi
+```
+
+La vista de fleet resuelve sola local vs `tailscale ssh`; su **exit 75** es la
+pausa de auth de Tailscale, no un error: mostrale el link al operador y seguí.
+Va como UNA línea bajo el tablero (`Integridad: drift=<n> · críticos=<n> · <VPS>`
+o `Integridad: ⏭️ motor no instalado`), nunca como columna ni como veredicto.
+
 Los **worktrees de sesión** cuyo PR quedó mergeado se reportan como **retirables**:
 los retira la **sesión dueña** con `$all-in-base` al ver su PR ya mergeado
 (`session-worktree.sh remove <slug>`, sin `--force`); los **huérfanos** los junta el
