@@ -7,7 +7,7 @@ description: "Audita vulnerabilidades y dependencias en backend (Python) y front
 
 | Skill | Úsala cuando | Cadencia típica |
 |---|---|---|
-| `$full-audit` | Veredicto integral 🟢/🟡/🔴 del VPS o del fleet (`--all`): configs, drift, envs, timers, health, email — 12 fases automatizadas, ~4 min | Post-cambio grande, post-incidente, trimestral |
+| `$full-audit` | Veredicto integral 🟢/🟡/🔴 del VPS o del fleet (`--all`): configs, drift, envs, timers, huérfanas, integridad, health, email — 15 fases automatizadas, ~4 min | Post-cambio grande, post-incidente, trimestral |
 | `$server-diagnostic` | Informe profundo por las 15 buenas prácticas con score y recomendaciones por proyecto — más narrativo y granular que full-audit | Semanal automático (cron) / a demanda |
 | `$vuln-audit` | Dependencias y CVEs de UN proyecto (pip + npm): default arma el plan sin tocar nada; `--apply` aplica patch+minor en batch; `--upgrade` moderniza todo (majors incluidos) commit a commit con CI verde por commit | Por proyecto: mensual o ante CVE; `--upgrade` trimestral o al planificar una modernización |
 

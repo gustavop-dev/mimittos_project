@@ -45,8 +45,13 @@ La detección usa `resolve_server_alias` + `is_dev_machine` de `scripts/lib/boot
 |---|---|---|
 | `--check` | Preflight + dry-run report de los 20 pasos. Sin mutaciones. | No |
 | `--apply` | Pasos 1-19: snapshot + transfer + clone + DB + media + bootstrap + systemd/nginx/SSL en target. Services en origin SIGUEN VIVOS. Idempotente. | No |
-| `--cutover --confirm-downtime` | Paso 20: stop origin → final delta dump → start target → DNS guidance → smoke tests → commit `projects.yml` flip | **Sí, ≤5 min HTTP / ≈0 min si SSL blue-green** |
+| `--cutover --confirm-downtime` | Paso 20: stop origin → final delta dump → start target → baseline de integridad → DNS guidance → smoke tests → commit `projects.yml` flip | **Sí, ≤5 min HTTP / ≈0 min si SSL blue-green** |
 | `--rollback` | Restart origin services, deja target en warm spare. DNS flip back es manual. | Reversión |
+
+**Flag adicional — `--accept-origin-drift`:** el paso 1 verifica la integridad
+del árbol de ORIGEN con `vps-integrity verify` antes de cualquier snapshot. Con
+`drift`, `--apply` aborta salvo que se pase este flag. No cubre `tamper` ni un
+verify no evaluable: esos abortan siempre.
 
 ## Cómo invocar este skill
 
@@ -111,12 +116,26 @@ pesado en paso 12.
 
 ## Los 20 pasos (v1.3)
 
-### Paso 1 — Preflight SSH/Tailscale + repo version check
+### Paso 1 — Preflight SSH/Tailscale + repo version check + integridad del origen
 
 Verifica conectividad SSH a origin y target. Después chequea que ambos
 hosts tengan la versión del repo con `FORCE_SINGLE_PROJECT` implementado
 en `scripts/lib/project-definitions.sh`. Si alguno tiene versión vieja,
 aborta con instrucción de `git pull` (Hardening D v1.1).
+
+Y cierra verificando la **integridad del árbol de origen** —
+`sudo -n /usr/local/sbin/vps-integrity verify --project <proj> --tier stat
+--offline --json` corrido EN el origen, read-only, gateado por
+`[ -x /usr/local/sbin/vps-integrity ]`—, porque el paso 12 copia ese árbol tal
+cual está: lo que nadie explique acá viaja al target y el paso 20 lo firma allí
+como baseline legítimo, blanqueando el drift con la mudanza. Veredictos:
+`ok` sigue · **sin baseline** advierte ("no se puede afirmar que esté íntegro",
+con el comando `baseline … --if-missing` para sembrarlo) y sigue · `stale`
+(baseline >90 días, sin drift) advierte y sigue · **`drift`** lista las rutas y
+**aborta el `--apply`** salvo `--accept-origin-drift` · **`tamper`** y un verify
+no evaluable abortan siempre el `--apply` (en `--check` se reportan). El
+veredicto sale también en el summary final (`Integridad del origen: <estado>`).
+Motor no instalado en el origen ⇒ una línea `ℹ️` y la migración sigue igual.
 
 ### Paso 2 — Target bootstrap status
 
@@ -340,13 +359,14 @@ Sólo se ejecuta con `--cutover --confirm-downtime`:
 
 1. **Stop** `<gunicorn_svc>` + `<huey_svc>` en origin (downtime starts).
 2. **Final delta mysqldump** en origin via `mysqldump --defaults-file=/etc/mysql/debian.cnf` → rsync a target → import en target (captura escrituras durante la ventana de pasos 4-19).
-3. **Start** services en target.
-4. **DNS flip guidance**: imprime IP del target, espera confirmación del operador (operador cambia A record en panel DNS).
-5. **Dig loop** hasta resolver target (timeout 5 min).
-6. **Emit SSL** vía certbot HTTP-01 (solo si paso 19 lo defirió por blue-green).
-7. **Smoke tests**: `curl -fsS https://<domain>/`, `systemctl is-active`.
-8. **Commit `projects.yml`**: flip de `server: <origin>` → `<target>` (el skill hace el `awk` surgical; commit + push manual).
-9. **(v1.3 NEW) Auto-cleanup `mysql-users.env`**: corre `build-mysql-users-env.sh --server=<target> --apply` para regenerar el archivo limpio sin marker `migration-temp:<proj>`. Reporta diff; commit + push manual.
+3. **Start** services en target (gunicorn + huey + `-frontend` si existe).
+4. **Baseline de integridad en el target**: `vps-integrity baseline --project <proj> --reason migrate --if-missing`, sólo si el motor está instalado allí. El clon recién restaurado no tiene manifiesto firmado en el VPS destino; sin él `verify` reporta NOBASELINE y el watcher no tiene contra qué comparar. `--if-missing` es idempotente y nunca rota un baseline vigente. El **origen no necesita nada**: su watch set sale de `projects.yml` y el flip de `server:` (paso 9) lo saca de la lista.
+5. **DNS flip guidance**: imprime IP del target, espera confirmación del operador (operador cambia A record en panel DNS).
+6. **Dig loop** hasta resolver target (timeout 5 min).
+7. **Emit SSL** vía certbot HTTP-01 (solo si paso 19 lo defirió por blue-green).
+8. **Smoke tests**: `curl -fsS https://<domain>/`, `systemctl is-active`.
+9. **Commit `projects.yml`**: flip de `server: <origin>` → `<target>` (el skill hace el `awk` surgical; commit + push manual).
+10. **(v1.3 NEW) Auto-cleanup `mysql-users.env`**: corre `build-mysql-users-env.sh --server=<target> --apply` para regenerar el archivo limpio sin marker `migration-temp:<proj>`. Reporta diff; commit + push manual.
 
 ---
 
@@ -480,26 +500,11 @@ Sustituciones por modo/estado:
 
 ---
 
-## Suspensión de proyecto (checklist manual, meta-review 2026-07 P1)
+## Suspensión de proyecto
 
-La migración limpia certs huérfanos en origen (paso 20.10), pero la **suspensión**
-(status → `suspended`, offline-total) era ad-hoc y dejó 2 renewals huérfanos que
-rompieron `certbot renew` global (korehealths + mimittos, detectados 2026-07-06).
-Al suspender un proyecto, en ESTE orden:
-
-1. `sudo systemctl stop --now <gunicorn> <huey> [<frontend>]` + `disable` de los 3
-   (+ `.socket` si existe). Verificar `systemctl is-enabled` = disabled.
-2. nginx: `sudo rm /etc/nginx/sites-enabled/<site>` + `nginx -t` + reload
-   (el archivo queda en sites-available para reactivación).
-3. **Cert SSL — decidir explícitamente** (el paso que siempre se olvida):
-   - Reactivación improbable/lejana → `sudo certbot delete --cert-name <dominio>`
-     (re-emitir al reactivar toma segundos; un renewal huérfano con webroot/site
-     removido rompe el `certbot renew` de TODO el host cuando entra en ventana).
-   - Reactivación inminente (<30 días) → conservar, PERO anotar en projects.yml
-     `notes:` la fecha de expiry y quién lo vigila.
-4. Datos: dump pre-suspensión a `/var/backups/<proj>/pre-suspension-<ts>/`
-   (patrón xpandia 2026-06-27); sqlite + media quedan en el dir del proyecto.
-5. `projects.yml`: `status: suspended` + `notes:` con fecha, razón y qué se
-   preservó dónde (los reportes y el traffic report leen esas notes).
-6. Verificar: `sudo certbot renew --dry-run` limpio + `vps-healthcheck` sin
-   críticos + el proyecto aparece como ⏸️ en el próximo reporte.
+La suspensión ya no forma parte de este runbook de migración ni se ejecuta con
+un checklist ad-hoc. Usar $project-lifecycle con action `suspend`: atribuye
+units/timers al proyecto exacto, crea el snapshot final, apaga todo trabajo
+recurrente, actualiza `projects.yml` y exige una decisión TLS explícita. La misma
+skill maneja `activate`; la migración conserva su flujo propio de warm
+spare/cutover/rollback.
