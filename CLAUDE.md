@@ -13,6 +13,36 @@ la seccion `project-specific` mas abajo.
 - Docs operativos, skills y reportes: **espanol** (terminos tecnicos en ingles donde son de uso corriente).
 - Mensajes de error visibles al usuario final: idioma del proyecto.
 
+<!-- progress-estimate-protocol:begin -->
+## Avance teórico en cada respuesta
+
+Rige para Claude Code y Codex en cualquier repo o directorio: toda respuesta al
+operador termina con una línea que estima cuánto va de la tarea en curso.
+
+`📊 Avance ▰▰▰▰▰▰▱▱▱▱ 60 % (antes 45 %) — falta: tests del parser y PR`
+
+- **Barra de 10 bloques:** un `▰` por cada 10 % completo (se trunca: 95 % muestra
+  nueve) y `▱` para el resto; después, el número exacto.
+- **100 % = la tarea cerrada como la pidió el operador**, con su definición de
+  terminado (repo de proyecto: PR abierto + CI verde; `vps-ops-toolkit`: commit
+  pusheado y propagado). Un número por tarea; con varios frentes, uno global.
+  Si el alcance cambia, se re-ancla y se dice.
+- **Estimación, no métrica:** sale del trabajo que falta (pasos y su peso), no del
+  tiempo transcurrido. No se guarda en memoria, ledgers ni reportes, ni se vuelve
+  objetivo.
+- **Puede bajar o saltar.** Trabajo nuevo (un test rojo, un bloqueo, más alcance)
+  la baja y `falta:` dice por qué; un salto grande se reporta tal cual.
+  `(antes N %)` sólo cuando cambió desde la respuesta anterior.
+- **100 % sólo con el cierre verificado.** Una pregunta contestada en un turno
+  cierra en 100 %; esperar una decisión del operador no mueve el número — el
+  bloqueo va en `falta:`.
+- **Dónde va:** última línea. Si una skill fija su última línea (un veredicto,
+  `Report path:`), va justo antes de esa. Nunca dentro de un texto para copiar
+  (correo, WhatsApp, commit, body de PR, documento), en la respuesta de un
+  subagente a quien lo lanzó, ni en una salida que lee un programa (headless,
+  JSON, bloques `STATUS:`).
+<!-- progress-estimate-protocol:end -->
+
 <!-- session-start-protocol:begin -->
 ## Session Start Protocol
 
