@@ -343,7 +343,13 @@ HUEY = RedisHuey(
 # The /silk/ UI is intentionally not exposed (see urls.py).
 # ---------------------------------------------------------------------------
 if ENABLE_SILK:
-    SILKY_ANALYZE_QUERIES = True
+    from .monitoring_export import should_profile
+
+    SILKY_ANALYZE_QUERIES = False
+    SILKY_PYTHON_PROFILER = False
+    SILKY_PYTHON_PROFILER_BINARY = False
+    SILKY_META = False
+    MONITORING_SILK_SAMPLE_PERCENT = max(0, min(100, config('MONITORING_SILK_SAMPLE_PERCENT', default=5, cast=int)))
 
     SILKY_AUTHENTICATION = True
     SILKY_AUTHORISATION = True
@@ -353,7 +359,7 @@ if ENABLE_SILK:
 
     SILKY_PERMISSIONS = silk_permissions
 
-    SILKY_MAX_RECORDED_REQUESTS = 10_000
+    SILKY_MAX_RECORDED_REQUESTS = 1_000
     SILKY_MAX_RECORDED_REQUESTS_CHECK_PERCENT = 10
 
     SILKY_IGNORE_PATHS = [
@@ -366,10 +372,8 @@ if ENABLE_SILK:
     SILKY_MAX_REQUEST_BODY_SIZE = 0
     SILKY_MAX_RESPONSE_BODY_SIZE = 0
 
-    def _silk_intercept(request):
-        return request.path.startswith('/api/')
-
-    SILKY_INTERCEPT_FUNC = _silk_intercept
+    SILKY_INTERCEPT_FUNC = should_profile
+    SILKY_SENSITIVE_KEYS = {'username', 'api', 'token', 'key', 'secret', 'password', 'signature', 'cookie', 'authorization'}
 
 SLOW_QUERY_THRESHOLD_MS = config('SLOW_QUERY_THRESHOLD_MS', default=500, cast=int)
 N_PLUS_ONE_THRESHOLD = config('N_PLUS_ONE_THRESHOLD', default=10, cast=int)
