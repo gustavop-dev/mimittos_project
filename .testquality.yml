@@ -42,3 +42,11 @@ banned_tokens:
   - "coverage"
   - "cov"
   - "deep"
+
+# Performance: bounded reads for order creation and the customer order list.
+performance_paths:
+  - "orders=backend/base_feature_app/serializers/order.py,backend/base_feature_app/services/order_service.py,backend/base_feature_app/views/order_views.py"
+performance_budget_tests:
+  - "backend/base_feature_app/tests/serializers/test_order_serializer.py"
+  - "backend/base_feature_app/tests/services/test_order_service.py"
+  - "backend/base_feature_app/tests/views/test_order_views.py"
