@@ -5,7 +5,19 @@ description: Task backlog, feature completion status, known issues, and test cov
 
 # Tasks Plan — Mimittos
 
-Last updated: 2026-05-01
+Última actualización: 2026-09-24 (ronda de rendimiento de pedidos).
+
+## Trabajo actual — rendimiento de pedidos
+
+- [x] Agrupar las lecturas de validación y precios de creación de pedidos sin
+  modificar reglas ni contrato (`P-backend-queries-06`).
+- [x] Retirar la precarga no utilizada por Mis pedidos (`P-backend-queries-07`).
+- [x] Completar QA de presupuestos, errores, precios actualizados y aislamiento.
+- [x] Abrir PR #69 para entrega; el CI vigente se consulta en GitHub y se verifica
+  sobre el último commit antes del cierre de la sesión.
+
+El filtro de precio del catálogo queda registrado como candidato futuro en el
+ledger del toolkit. No ampliar esta ronda a cargas de imágenes ni paginación.
 
 ---
 
@@ -61,7 +73,7 @@ Last updated: 2026-05-01
 
 ---
 
-## Current Work
+## Historical Work — 2026-05-01
 
 **Branch**: `double-check-30042026`
 **Status**: Stabilizing CI before merge to main
