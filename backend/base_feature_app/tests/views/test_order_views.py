@@ -1,6 +1,10 @@
+"""Order API behavior tests."""
+
 from unittest.mock import patch
 
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django_attachments.models import Library
 
 from base_feature_app.models import (
@@ -8,9 +12,74 @@ from base_feature_app.models import (
     GlobalColor,
     GlobalSize,
     Order,
+    OrderItem,
+    OrderStatusHistory,
     Peluch,
     PeluchSizePrice,
+    PersonalizationMedia,
 )
+from base_feature_app.tests.factories import (
+    GlobalColorFactory,
+    GlobalSizeFactory,
+    PeluchFactory,
+)
+
+MAX_ORDER_READ_QUERIES = 4
+
+
+def _create_read_items(order, count, *, include_media=False):
+    """Create distinct item relations before measuring an order read endpoint."""
+    created_items = []
+    start_index = order.items.count()
+    for item_index in range(start_index, start_index + count):
+        item_peluch = PeluchFactory()
+        item_size = GlobalSizeFactory()
+        item_color = GlobalColorFactory()
+        item_kwargs = {
+            'order': order,
+            'peluch': item_peluch,
+            'size': item_size,
+            'color': item_color,
+            'quantity': 1,
+            'unit_price': 80000,
+        }
+        if include_media:
+            item_kwargs['huella_media'] = PersonalizationMedia.objects.create(
+                uploaded_by=order.customer,
+                media_type=PersonalizationMedia.MediaType.HUELLA_IMAGE,
+                file=f'personalizations/test-huella-{order.pk}-{item_index}.jpg',
+                file_size_kb=120,
+            )
+            item_kwargs['audio_media'] = PersonalizationMedia.objects.create(
+                uploaded_by=order.customer,
+                media_type=PersonalizationMedia.MediaType.AUDIO,
+                file=f'personalizations/test-audio-{order.pk}-{item_index}.mp3',
+                duration_sec=6.5,
+                file_size_kb=240,
+            )
+        created_items.append(OrderItem.objects.create(**item_kwargs))
+    return created_items
+
+
+def _create_status_histories(order, count, *, start_index=0):
+    """Create histories with distinct unhashed authors outside query measurement."""
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    authors = User.objects.bulk_create([
+        User(email=f'history-author-{author_index}@example.com')
+        for author_index in range(start_index, start_index + count)
+    ])
+    OrderStatusHistory.objects.bulk_create([
+        OrderStatusHistory(
+            order=order,
+            previous_status=Order.Status.PENDING_PAYMENT,
+            new_status=Order.Status.PAYMENT_CONFIRMED,
+            changed_by=author,
+        )
+        for author in authors
+    ])
+    return {author.email for author in authors}
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -18,21 +87,25 @@ from base_feature_app.models import (
 
 @pytest.fixture
 def category(db):
+    """Provide an active category for order fixtures."""
     return Category.objects.create(name='Osos', slug='osos', is_active=True)
 
 
 @pytest.fixture
 def size(db):
+    """Provide an active size for order fixtures."""
     return GlobalSize.objects.create(label='Pequeño', slug='pequeno', cm='20cm')
 
 
 @pytest.fixture
 def color(db):
+    """Provide an active color for order fixtures."""
     return GlobalColor.objects.create(name='Rosa', slug='rosa', hex_code='#FF69B4')
 
 
 @pytest.fixture
 def peluch(db, category, color):
+    """Provide a peluch with gallery and color."""
     library = Library.objects.create(title='Peluch Gallery')
     p = Peluch.objects.create(
         title='Osito',
@@ -48,12 +121,14 @@ def peluch(db, category, color):
 
 @pytest.fixture
 def peluch_with_price(peluch, size):
+    """Provide a peluch with an orderable size price."""
     PeluchSizePrice.objects.create(peluch=peluch, size=size, price=80000)
     return peluch
 
 
 @pytest.fixture
 def order_data(peluch_with_price, size, color):
+    """Provide a valid public order request payload."""
     return {
         'customer_name': 'Ana García',
         'customer_email': 'ana@example.com',
@@ -77,6 +152,7 @@ def order_data(peluch_with_price, size, color):
 
 @pytest.fixture
 def existing_order(db, existing_user):
+    """Provide an existing order owned by the authenticated user."""
     return Order.objects.create(
         order_number='MMT-20260420-TEST',
         customer=existing_user,
@@ -94,6 +170,7 @@ def existing_order(db, existing_user):
 
 @pytest.fixture
 def existing_user(db):
+    """Provide a regular order customer."""
     from django.contrib.auth import get_user_model
     User = get_user_model()
     return User.objects.create_user(email='user@example.com', password='pass')
@@ -101,6 +178,7 @@ def existing_user(db):
 
 @pytest.fixture
 def admin_user(db):
+    """Provide a staff user for order administration."""
     from django.contrib.auth import get_user_model
     User = get_user_model()
     u = User.objects.create_user(email='admin@example.com', password='pass')
@@ -111,6 +189,7 @@ def admin_user(db):
 
 @pytest.fixture
 def authenticated_client(existing_user):
+    """Provide an API client authenticated as the order owner."""
     from rest_framework.test import APIClient
     client = APIClient()
     client.force_authenticate(user=existing_user)
@@ -119,6 +198,7 @@ def authenticated_client(existing_user):
 
 @pytest.fixture
 def admin_client(admin_user):
+    """Provide an API client authenticated as staff."""
     from rest_framework.test import APIClient
     client = APIClient()
     client.force_authenticate(user=admin_user)
@@ -127,6 +207,7 @@ def admin_client(admin_user):
 
 @pytest.fixture
 def anon_client():
+    """Provide an unauthenticated API client."""
     from rest_framework.test import APIClient
     return APIClient()
 
@@ -138,6 +219,7 @@ def anon_client():
 @pytest.mark.django_db
 @patch('base_feature_app.views.order_views.NotificationService.notify_new_order_admin', return_value=True)
 def test_create_order_returns_201_with_valid_data(mock_notify, anon_client, order_data):
+    """Verify valid public orders are created."""
     response = anon_client.post('/api/orders/', order_data, format='json')
     assert response.status_code == 201
     assert 'order_number' in response.data
@@ -146,6 +228,7 @@ def test_create_order_returns_201_with_valid_data(mock_notify, anon_client, orde
 @pytest.mark.django_db
 @patch('base_feature_app.views.order_views.NotificationService.notify_new_order_admin', return_value=True)
 def test_create_order_stores_order_in_database(mock_notify, anon_client, order_data):
+    """Verify public order creation persists the customer email."""
     anon_client.post('/api/orders/', order_data, format='json')
     assert Order.objects.filter(customer_email='ana@example.com').exists()
 
@@ -153,6 +236,7 @@ def test_create_order_stores_order_in_database(mock_notify, anon_client, order_d
 @pytest.mark.django_db
 @patch('base_feature_app.views.order_views.NotificationService.notify_new_order_admin', return_value=True)
 def test_create_order_returns_amounts_in_response(mock_notify, anon_client, order_data):
+    """Verify created orders return their calculated amounts."""
     response = anon_client.post('/api/orders/', order_data, format='json')
     assert response.data['total_amount'] == 80000
     assert response.data['deposit_amount'] == 40000
@@ -161,12 +245,14 @@ def test_create_order_returns_amounts_in_response(mock_notify, anon_client, orde
 
 @pytest.mark.django_db
 def test_create_order_returns_400_for_missing_fields(anon_client):
+    """Verify incomplete orders are rejected."""
     response = anon_client.post('/api/orders/', {}, format='json')
     assert response.status_code == 400
 
 
 @pytest.mark.django_db
 def test_create_order_returns_400_for_empty_items(anon_client, order_data):
+    """Verify orders without items are rejected."""
     order_data['items'] = []
     response = anon_client.post('/api/orders/', order_data, format='json')
     assert response.status_code == 400
@@ -175,6 +261,7 @@ def test_create_order_returns_400_for_empty_items(anon_client, order_data):
 @pytest.mark.django_db
 @patch('base_feature_app.views.order_views.NotificationService.notify_new_order_admin', return_value=True)
 def test_create_order_returns_201_with_expected_keys(mock_notify, anon_client, order_data):
+    """Verify created orders expose their public contract fields."""
     response = anon_client.post('/api/orders/', order_data, format='json')
     assert response.status_code == 201
     for key in ('order_number', 'deposit_amount', 'balance_amount', 'total_amount', 'is_guest'):
@@ -187,6 +274,7 @@ def test_create_order_returns_201_with_expected_keys(mock_notify, anon_client, o
 
 @pytest.mark.django_db
 def test_track_order_returns_200_for_valid_order(anon_client, existing_order):
+    """Verify public tracking returns an existing order."""
     response = anon_client.get(f'/api/orders/track/{existing_order.order_number}/')
     assert response.status_code == 200
     assert response.data['order_number'] == existing_order.order_number
@@ -194,14 +282,91 @@ def test_track_order_returns_200_for_valid_order(anon_client, existing_order):
 
 @pytest.mark.django_db
 def test_track_order_returns_404_for_nonexistent_order(anon_client):
+    """Verify public tracking rejects an unknown order."""
     response = anon_client.get('/api/orders/track/MMT-NOEXISTE-0000/')
     assert response.status_code == 404
 
 
 @pytest.mark.django_db
 def test_track_order_returns_status_in_response(anon_client, existing_order):
+    """Verify public tracking exposes the order status."""
     response = anon_client.get(f'/api/orders/track/{existing_order.order_number}/')
     assert 'status' in response.data
+
+
+@pytest.mark.django_db
+def test_track_order_query_budget_is_constant(
+    anon_client, existing_order, settings, tmp_path,
+):
+    """Fails if tracking restores per-item relation queries for personalization media."""
+    settings.MEDIA_ROOT = tmp_path
+    _create_read_items(existing_order, 1, include_media=True)
+
+    with CaptureQueriesContext(connection) as one_item_queries:
+        one_item_response = anon_client.get(f'/api/orders/track/{existing_order.order_number}/')
+
+    _create_read_items(existing_order, 49, include_media=True)
+    with CaptureQueriesContext(connection) as fifty_item_queries:
+        fifty_item_response = anon_client.get(f'/api/orders/track/{existing_order.order_number}/')
+
+    assert one_item_response.status_code == 200
+    assert fifty_item_response.status_code == 200
+    assert len(one_item_response.data['items']) == 1
+    assert len(fifty_item_response.data['items']) == 50
+    assert len(one_item_queries) == len(fifty_item_queries)
+    assert len(fifty_item_queries) <= MAX_ORDER_READ_QUERIES
+
+
+@pytest.mark.django_db
+def test_track_order_serializes_media_values(
+    anon_client, existing_order, settings, tmp_path,
+):
+    """Fails if tracking loses concrete URL, duration, or size values for media."""
+    settings.MEDIA_ROOT = tmp_path
+    created_item = _create_read_items(existing_order, 1, include_media=True)[0]
+
+    response = anon_client.get(f'/api/orders/track/{existing_order.order_number}/')
+
+    item = response.data['items'][0]
+    assert response.status_code == 200
+    assert item['huella_media_url'] == f'http://testserver{created_item.huella_media.file.url}'
+    assert item['audio_media_url'] == f'http://testserver{created_item.audio_media.file.url}'
+    assert item['audio_duration_sec'] == 6.5
+    assert item['audio_size_kb'] == 240
+
+
+@pytest.mark.django_db
+def test_track_order_serializes_optional_item_relations(anon_client, existing_order, peluch):
+    """Fails if optional item relations no longer retain their null JSON contract."""
+    OrderItem.objects.create(
+        order=existing_order,
+        peluch=peluch,
+        size=None,
+        color=None,
+        quantity=2,
+        unit_price=80000,
+        personalization_cost=5000,
+    )
+
+    response = anon_client.get(f'/api/orders/track/{existing_order.order_number}/')
+
+    item = response.data['items'][0]
+    assert response.status_code == 200
+    assert item['size'] is None
+    assert item['color'] is None
+    assert item['huella_media_url'] is None
+    assert item['audio_media_url'] is None
+    assert item['line_total'] == 170000
+
+
+@pytest.mark.django_db
+def test_track_order_returns_null_payment_fields(anon_client, existing_order):
+    """Fails if tracking no longer supports unpaid orders without a transaction."""
+    response = anon_client.get(f'/api/orders/track/{existing_order.order_number}/')
+
+    assert response.status_code == 200
+    assert response.data['payment_status'] is None
+    assert response.data['checkout_url'] is None
 
 
 # ---------------------------------------------------------------------------
@@ -210,6 +375,7 @@ def test_track_order_returns_status_in_response(anon_client, existing_order):
 
 @pytest.mark.django_db
 def test_my_orders_returns_200_for_authenticated_user(authenticated_client, existing_order):
+    """Verify authenticated customers can list their orders."""
     response = authenticated_client.get('/api/orders/my/')
     assert response.status_code == 200
     assert len(response.data) == 1
@@ -217,6 +383,7 @@ def test_my_orders_returns_200_for_authenticated_user(authenticated_client, exis
 
 @pytest.mark.django_db
 def test_my_orders_returns_401_for_anonymous(anon_client):
+    """Verify anonymous users cannot list their orders."""
     response = anon_client.get('/api/orders/my/')
     assert response.status_code == 401
 
@@ -247,6 +414,7 @@ def test_my_orders_only_returns_own_orders(authenticated_client, db, existing_us
 
 @pytest.mark.django_db
 def test_orders_list_returns_200_for_admin(admin_client, existing_order):
+    """Verify staff can list orders."""
     response = admin_client.get('/api/orders/list/')
     assert response.status_code == 200
     assert len(response.data) == 1
@@ -254,12 +422,14 @@ def test_orders_list_returns_200_for_admin(admin_client, existing_order):
 
 @pytest.mark.django_db
 def test_orders_list_returns_403_for_anonymous(anon_client):
+    """Verify anonymous order listing is forbidden."""
     response = anon_client.get('/api/orders/list/')
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
 def test_orders_list_filters_by_status(admin_client, existing_order):
+    """Verify staff order listing filters by status."""
     response = admin_client.get('/api/orders/list/?status=pending_payment')
     assert response.status_code == 200
     assert len(response.data) == 1
@@ -267,6 +437,7 @@ def test_orders_list_filters_by_status(admin_client, existing_order):
 
 @pytest.mark.django_db
 def test_orders_list_filters_by_city(admin_client, existing_order):
+    """Verify staff order listing filters by city."""
     response = admin_client.get('/api/orders/list/?city=Bogotá')
     assert response.status_code == 200
     assert len(response.data) == 1
@@ -274,6 +445,7 @@ def test_orders_list_filters_by_city(admin_client, existing_order):
 
 @pytest.mark.django_db
 def test_orders_list_returns_empty_for_unmatched_city(admin_client, existing_order):
+    """Verify an unmatched city produces no orders."""
     response = admin_client.get('/api/orders/list/?city=NoExiste')
     assert response.status_code == 200
     assert len(response.data) == 0
@@ -285,6 +457,7 @@ def test_orders_list_returns_empty_for_unmatched_city(admin_client, existing_ord
 
 @pytest.mark.django_db
 def test_order_detail_returns_200_for_owner(authenticated_client, existing_order):
+    """Verify an order owner can read detail."""
     response = authenticated_client.get(f'/api/orders/{existing_order.order_number}/')
     assert response.status_code == 200
     assert response.data['order_number'] == existing_order.order_number
@@ -292,12 +465,14 @@ def test_order_detail_returns_200_for_owner(authenticated_client, existing_order
 
 @pytest.mark.django_db
 def test_order_detail_returns_200_for_admin(admin_client, existing_order):
+    """Verify staff can read order detail."""
     response = admin_client.get(f'/api/orders/{existing_order.order_number}/')
     assert response.status_code == 200
 
 
 @pytest.mark.django_db
 def test_order_detail_returns_403_for_other_user(db, existing_order):
+    """Verify another user cannot read order detail."""
     from django.contrib.auth import get_user_model
     from rest_framework.test import APIClient
     User = get_user_model()
@@ -310,8 +485,72 @@ def test_order_detail_returns_403_for_other_user(db, existing_order):
 
 @pytest.mark.django_db
 def test_order_detail_returns_404_for_nonexistent(admin_client):
+    """Verify order detail rejects an unknown order."""
     response = admin_client.get('/api/orders/MMT-NOEXISTE-0000/')
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_order_detail_allows_email_owner(db, existing_user):
+    """Fails if the nullable customer email ownership path is removed."""
+    from rest_framework.test import APIClient
+
+    email_owned_order = Order.objects.create(
+        customer=None,
+        customer_email=existing_user.email,
+        customer_name='Email Owner',
+        address='Calle 3',
+        city='Cali',
+        department='Valle',
+        total_amount=80000,
+        deposit_amount=40000,
+        balance_amount=40000,
+    )
+    client = APIClient()
+    client.force_authenticate(user=existing_user)
+
+    response = client.get(f'/api/orders/{email_owned_order.order_number}/')
+
+    assert response.status_code == 200
+    assert response.data['order_number'] == email_owned_order.order_number
+
+
+@pytest.mark.django_db
+def test_order_detail_query_budget_is_constant(
+    authenticated_client, existing_order, settings, tmp_path,
+):
+    """Fails if detail serialization restores per-item or status-history queries."""
+    settings.MEDIA_ROOT = tmp_path
+    _create_read_items(existing_order, 1, include_media=True)
+    one_history_emails = _create_status_histories(existing_order, 1)
+
+    with CaptureQueriesContext(connection) as one_item_queries:
+        one_item_response = authenticated_client.get(f'/api/orders/{existing_order.order_number}/')
+
+    _create_read_items(existing_order, 49, include_media=True)
+    fifty_history_emails = one_history_emails | _create_status_histories(
+        existing_order, 49, start_index=1,
+    )
+    with CaptureQueriesContext(connection) as fifty_item_queries:
+        fifty_item_response = authenticated_client.get(f'/api/orders/{existing_order.order_number}/')
+
+    assert (
+        one_item_response.status_code,
+        len(one_item_response.data['items']),
+        len(one_item_response.data['status_history']),
+    ) == (200, 1, 1)
+    assert (
+        fifty_item_response.status_code,
+        len(fifty_item_response.data['items']),
+        len(fifty_item_response.data['status_history']),
+    ) == (200, 50, 50)
+    assert {
+        history['changed_by_email'] for history in one_item_response.data['status_history']
+    } == one_history_emails
+    assert {
+        history['changed_by_email'] for history in fifty_item_response.data['status_history']
+    } == fifty_history_emails
+    assert len(one_item_queries) == len(fifty_item_queries) <= MAX_ORDER_READ_QUERIES
 
 
 # ---------------------------------------------------------------------------
@@ -321,6 +560,7 @@ def test_order_detail_returns_404_for_nonexistent(admin_client):
 @pytest.mark.django_db
 @patch('base_feature_app.services.notification_service.NotificationService.notify_status_change')
 def test_update_order_status_returns_200_for_admin(mock_notify, admin_client, existing_order):
+    """Verify staff can update an order status."""
     payload = {'status': 'payment_confirmed', 'notes': 'Pago verificado'}
     response = admin_client.patch(f'/api/orders/{existing_order.order_number}/status/', payload)
     assert response.status_code == 200
@@ -330,18 +570,21 @@ def test_update_order_status_returns_200_for_admin(mock_notify, admin_client, ex
 
 @pytest.mark.django_db
 def test_update_order_status_returns_403_for_anonymous(anon_client, existing_order):
+    """Verify anonymous status updates are forbidden."""
     response = anon_client.patch(f'/api/orders/{existing_order.order_number}/status/', {'status': 'payment_confirmed'})
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
 def test_update_order_status_returns_400_for_invalid_status(admin_client, existing_order):
+    """Verify invalid order statuses are rejected."""
     response = admin_client.patch(f'/api/orders/{existing_order.order_number}/status/', {'status': 'invalid_status'})
     assert response.status_code == 400
 
 
 @pytest.mark.django_db
 def test_update_order_status_returns_404_for_missing_order(admin_client):
+    """Verify status updates reject unknown orders."""
     response = admin_client.patch('/api/orders/MMT-NOEXISTE-0000/status/', {'status': 'payment_confirmed'})
     assert response.status_code == 404
 
@@ -352,6 +595,7 @@ def test_update_order_status_returns_404_for_missing_order(admin_client):
 
 @pytest.mark.django_db
 def test_update_order_tracking_stores_tracking_number(admin_client, existing_order):
+    """Verify staff tracking updates persist both fields."""
     payload = {'tracking_number': '123456', 'shipping_carrier': 'Servientrega'}
     response = admin_client.patch(f'/api/orders/{existing_order.order_number}/tracking/', payload)
     assert response.status_code == 200
@@ -362,11 +606,13 @@ def test_update_order_tracking_stores_tracking_number(admin_client, existing_ord
 
 @pytest.mark.django_db
 def test_update_order_tracking_returns_403_for_anonymous(anon_client, existing_order):
+    """Verify anonymous tracking updates are forbidden."""
     response = anon_client.patch(f'/api/orders/{existing_order.order_number}/tracking/', {'tracking_number': '123'})
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
 def test_update_order_tracking_returns_404_for_missing_order(admin_client):
+    """Verify tracking updates reject unknown orders."""
     response = admin_client.patch('/api/orders/MMT-NOEXISTE-0000/tracking/', {'tracking_number': '123'})
     assert response.status_code == 404

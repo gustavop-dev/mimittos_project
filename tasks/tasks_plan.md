@@ -116,3 +116,12 @@ None documented.
 **Product bugs surfaced by audit**:
 - Contact form (`frontend/app/contact/page.tsx`) has no backend handler — submit is silent no-op
 - Backoffice has no UI for blog management despite full CRUD endpoints in `backend/base_feature_app/urls/blog.py`
+
+## Ronda de rendimiento — 2026-09-24
+
+- [x] Catálogo/listado y destacados: precio disponible anotado y relaciones precargadas.
+- [x] Detalle/tracking: precarga agrupada de items, medios, pago e historial.
+- [x] Dashboard: clientes en SQL y reutilización de agregados exactos.
+- [x] QA: 18 casos nuevos y 14 regresiones sobre presupuestos de queries y contratos conservados.
+- Entrega: PR #67; el estado vigente del CI se consulta en el PR.
+- Pendiente externo a la ronda: validación ejecutada MySQL aislada y contrato paginado para catálogo.

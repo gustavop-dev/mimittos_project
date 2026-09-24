@@ -5,6 +5,18 @@ description: Current work focus, recent changes, active decisions, and next step
 
 # Active Context — Mimittos
 
+## Rendimiento de lecturas — 2026-09-24
+
+Ronda catálogo, pedidos y dashboard en `fix/24092026-perf-catalog-orders-dashboard`, PR #67.
+El catálogo anota el mínimo disponible sin alterar filtros de precio ni limitar destacados;
+las lecturas de pedidos agrupan relaciones y medios opcionales; el dashboard agrega clientes
+en SQL y reutiliza resultados diarios exactos. Sin cambios de API, migraciones ni frontend.
+QA backend: 18 casos nuevos y 14 regresiones pasaron sobre SQLite aislado. Los presupuestos
+comparan una y cincuenta filas, incluyendo precios nulos e historiales con autores distintos.
+La ejecución en MySQL y el tamaño/memoria del catálogo sin paginar no están certificados.
+Reporte y ledger en el toolkit: `2026-09-24-mimittos_project-perf-catalog-orders-dashboard.md`.
+El cierre de QA está en `2026-09-24-mimittos_project-qa.md`; entrega mediante PR #67.
+
 ## Monitoreo local — 2026-09-19
 
 Exportación semanal Silk agrupada y sin SQL/valores URL para el módulo de
