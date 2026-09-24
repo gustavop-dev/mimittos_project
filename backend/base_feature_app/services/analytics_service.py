@@ -2,7 +2,7 @@ import csv
 import io
 from datetime import date
 
-from django.db.models import Case, Count, DecimalField, Sum, When
+from django.db.models import Case, Count, DecimalField, Exists, OuterRef, Q, Sum, When
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
@@ -74,26 +74,18 @@ class AnalyticsService:
         ]
 
         # --- new_vs_returning ---
-        period_user_ids = set(
-            orders_qs
-            .exclude(customer__isnull=True)
-            .values_list('customer_id', flat=True)
-            .distinct()
+        prior_orders = Order.objects.filter(
+            customer_id=OuterRef('customer_id'),
+            created_at__date__lt=date_from,
         )
-        returning_user_ids = set(
-            Order.objects.filter(
-                customer_id__in=period_user_ids,
-                created_at__date__lt=date_from,
-            )
-            .values_list('customer_id', flat=True)
-            .distinct()
+        customer_counts = orders_qs.aggregate(
+            registered=Count('customer_id', distinct=True),
+            returning=Count('customer_id', filter=Exists(prior_orders), distinct=True),
+            guests=Count('pk', filter=Q(customer__isnull=True)),
         )
-        returning_count = len(returning_user_ids)
-        new_registered_count = len(period_user_ids - returning_user_ids)
-        guest_count = orders_qs.filter(customer__isnull=True).count()
         new_vs_returning = {
-            'new': new_registered_count + guest_count,
-            'returning': returning_count,
+            'new': customer_counts['registered'] - customer_counts['returning'] + customer_counts['guests'],
+            'returning': customer_counts['returning'],
         }
 
         # --- device_types (mapped from raw device_type values) ---
@@ -135,11 +127,8 @@ class AnalyticsService:
         )
 
         # --- confirmed_revenue ---
-        confirmed_revenue = (
-            orders_qs
-            .filter(status__in=confirmed_statuses)
-            .aggregate(total=Sum('deposit_amount'))['total'] or 0
-        )
+        # Reuse exact aggregates, before the daily response converts them to floats.
+        confirmed_revenue = int(sum(day['revenue'] or 0 for day in daily_data))
 
         # --- orders_by_status ---
         orders_by_status = dict(
@@ -153,7 +142,7 @@ class AnalyticsService:
             'traffic_sources': traffic_sources,
             'top_peluches': top_peluches,
             'confirmed_revenue': confirmed_revenue,
-            'total_orders': orders_qs.count(),
+            'total_orders': sum(day['count'] for day in daily_data),
             'orders_by_status': orders_by_status,
         }
 
