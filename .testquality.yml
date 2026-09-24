@@ -42,3 +42,13 @@ banned_tokens:
   - "coverage"
   - "cov"
   - "deep"
+
+# Performance budgets use the production compute profile from the fleet toolkit.
+performance_paths:
+  - "analytics=backend/base_feature_app/services/analytics_service.py"
+  - "reviews=backend/base_feature_app/services/review_service.py"
+  - "authentication=frontend/lib/stores/authStore.ts"
+performance_budget_tests:
+  - "backend/base_feature_app/tests/services/test_analytics_service.py"
+  - "backend/base_feature_app/tests/services/test_review_service.py"
+  - "frontend/lib/stores/__tests__/authStore.test.ts"
