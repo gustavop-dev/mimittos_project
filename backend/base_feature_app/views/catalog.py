@@ -1,7 +1,7 @@
 import io
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
-from django.db.models import Min, Q
+from django.db.models import Min, OuterRef, Prefetch, Q, Subquery
 from PIL import Image
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -223,13 +223,23 @@ def category_detail(request, category_id: int):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+def _with_list_relations(queryset):
+    """Load the list representation without per-product price queries."""
+    available_prices = PeluchSizePrice.objects.filter(
+        peluch_id=OuterRef('pk'), is_available=True,
+    ).order_by('price').values('price')[:1]
+    return queryset.annotate(
+        available_min_price=Subquery(available_prices),
+    ).select_related('category', 'gallery').prefetch_related(
+        'available_colors', 'gallery__attachment_set',
+        Prefetch('color_images', queryset=PeluchColorImage.objects.select_related('attachment')),
+    )
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def peluches_featured(request):
-    qs = Peluch.objects.filter(is_active=True, is_featured=True).prefetch_related(
-        'available_colors', 'size_prices__size', 'gallery__attachment_set',
-        'color_images__color', 'color_images__attachment',
-    )
+    qs = _with_list_relations(Peluch.objects.filter(is_active=True, is_featured=True))
     return Response(PeluchListSerializer(qs, many=True, context={'request': request}).data)
 
 
@@ -239,10 +249,7 @@ def peluches(request):
     if request.method == 'GET':
         is_admin = request.user.is_authenticated and request.user.is_staff
         qs = Peluch.objects.all() if is_admin else Peluch.objects.filter(is_active=True)
-        qs = qs.prefetch_related(
-            'available_colors', 'size_prices__size', 'gallery__attachment_set', 'category',
-            'color_images__color', 'color_images__attachment',
-        )
+        qs = _with_list_relations(qs)
 
         category_slug = request.query_params.get('category')
         if category_slug:

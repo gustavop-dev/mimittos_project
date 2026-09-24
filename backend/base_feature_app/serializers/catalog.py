@@ -171,16 +171,18 @@ class PeluchListSerializer(serializers.ModelSerializer):
         ]
 
     def get_min_price(self, obj):
+        if hasattr(obj, 'available_min_price'):
+            return obj.available_min_price
         sp = obj.size_prices.filter(is_available=True).order_by('price').first()
         return sp.price if sp else None
 
     def get_discounted_min_price(self, obj):
-        sp = obj.size_prices.filter(is_available=True).order_by('price').first()
-        if not sp:
+        min_price = self.get_min_price(obj)
+        if min_price is None:
             return None
         if obj.discount_pct > 0:
-            return round(sp.price * (100 - obj.discount_pct) / 100)
-        return sp.price
+            return round(min_price * (100 - obj.discount_pct) / 100)
+        return min_price
 
     def get_available_colors(self, obj):
         return colors_with_images(obj, include_images=False)

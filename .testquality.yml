@@ -42,3 +42,14 @@ banned_tokens:
   - "coverage"
   - "cov"
   - "deep"
+
+# Performance budgets for the catalog, order reads and dashboard.
+# Dataset ceiling is intentionally unset: use the standard fallback, not production counts.
+performance_paths:
+  - "catalog=backend/base_feature_app/views/catalog.py,backend/base_feature_app/serializers/catalog.py"
+  - "orders=backend/base_feature_app/views/order_views.py"
+  - "dashboard=backend/base_feature_app/services/analytics_service.py"
+performance_budget_tests:
+  - "backend/base_feature_app/tests/views/test_catalog_views.py"
+  - "backend/base_feature_app/tests/views/test_order_views.py"
+  - "backend/base_feature_app/tests/services/test_analytics_service.py"
