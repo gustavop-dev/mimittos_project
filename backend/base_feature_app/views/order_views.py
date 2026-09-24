@@ -1,10 +1,11 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Prefetch
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from base_feature_app.models import Order
+from base_feature_app.models import Order, OrderItem, OrderStatusHistory
 from base_feature_app.serializers.order import (
     OrderCreateSerializer, OrderListSerializer, OrderDetailSerializer,
     OrderTrackingSerializer, OrderStatusUpdateSerializer, OrderTrackingUpdateSerializer,
@@ -62,13 +63,20 @@ def my_orders(request):
 def track_order(request, order_number: str):
     try:
         order = Order.objects.select_related('payment').prefetch_related(
-            'items__peluch', 'items__size', 'items__color',
+            _read_items_prefetch(),
         ).get(order_number=order_number)
     except Order.DoesNotExist:
         return Response({'detail': 'Pedido no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
     serializer = OrderTrackingSerializer(order, context={'request': request})
     return Response(serializer.data)
+
+
+def _read_items_prefetch():
+    """Load item details and optional media in one query."""
+    return Prefetch('items', queryset=OrderItem.objects.select_related(
+        'peluch', 'size', 'color', 'huella_media', 'audio_media',
+    ))
 
 
 @api_view(['GET'])
@@ -95,11 +103,9 @@ def orders_list(request):
 @permission_classes([AllowAny])
 def order_detail_view(request, order_number: str):
     try:
-        order = Order.objects.prefetch_related(
-            'items__peluch', 'items__size', 'items__color',
-            'items__huella_media', 'items__audio_media',
-            'status_history__changed_by',
-            'payment',
+        order = Order.objects.select_related('customer', 'payment').prefetch_related(
+            _read_items_prefetch(),
+            Prefetch('status_history', queryset=OrderStatusHistory.objects.select_related('changed_by')),
         ).get(order_number=order_number)
     except Order.DoesNotExist:
         return Response({'detail': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
