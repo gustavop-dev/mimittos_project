@@ -103,7 +103,14 @@ async function flushAsyncState() {
   })
 }
 
-const immediateFilterCases = [
+type CatalogListParams = NonNullable<Parameters<typeof peluchService.listPeluches>[0]>
+
+const immediateFilterCases: Array<{
+  name: string
+  prepare: () => unknown
+  trigger: () => Promise<void>
+  params: CatalogListParams
+}> = [
   {
     name: 'category',
     prepare: () => mockPeluchService.getCategories.mockResolvedValue([catalogCategory]),
