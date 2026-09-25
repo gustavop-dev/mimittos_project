@@ -5,6 +5,25 @@ description: Current work focus, recent changes, active decisions, and next step
 
 # Active Context — Mimittos
 
+## Limpieza del repositorio — 2026-09-25
+
+Rama `chore/25092026-repo-cleanup`, desde `main` en `3dd5d84`. Auditoría y lote
+aprobados por el operador: retirar cinco módulos frontend sin consumidores y sus
+cinco tests, dos mocks antiguos y next-intl; ignorar siete salidas del CI.
+Se conservan Swiper, BlogCard, blogStore, assets públicos y todo el backend.
+
+Las guías de setup, tests, stack, arquitectura y lecciones se alinearon con el
+código y con los servicios de `projects.yml`. La interfaz actual no implementa
+el objetivo bilingüe histórico; retirarlo del runtime no cancela ese requerimiento.
+El registro de flujos E2E permanece intacto porque no se retira comportamiento
+alcanzable. `test:e2e:1` deja de mencionar el spec inexistente smoke.
+
+Validación local: 14 tests Jest aprobados (portada, blogs y catálogo), build Next.js
+aprobado, siete exclusiones verificadas y ninguna referencia de código pendiente.
+Quality gate: passed, 0 errores, score 100; 16 warnings (Ruff no disponible y
+observaciones en specs existentes). ESLint externo pasó. El CI del PR valida las
+suites completas antes del squash autorizado por el operador; no se despliega.
+
 ## Rendimiento del filtro de precio — 2026-09-25
 
 Ronda `perf-catalog-requests`, PR #70. El precio mostrado se actualiza de inmediato;
@@ -179,7 +198,7 @@ tests with `DJANGO_DB_ENGINE=django.db.backends.sqlite3 pytest ...` (the project
 
 ---
 
-## Current Focus
+## Contexto histórico — 2026-05-01
 
 Stabilizing CI on branch `double-check-30042026`. The 1 failing E2E (`auth-login-invalid`) is fixed and the CI matrix now exercises all 20 e2e spec files — projected 61/61 flow coverage on next CI run.
 

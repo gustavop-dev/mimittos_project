@@ -7,6 +7,12 @@ description: Product requirements document — why Mimittos exists, core feature
 
 **Más que un peluche, un recuerdo**
 
+> Estado verificado el 2026-09-25: el objetivo bilingüe descrito en este PRD
+> sigue pendiente. La interfaz actual está en español y Blog no tiene variantes
+> por idioma. La limpieza retiró infraestructura i18n sin consumidores; no cancela
+> el requerimiento de producto. La implementación vigente está documentada en
+> `technical.md` y `architecture.md`.
+
 ---
 
 ## 1. Project Overview

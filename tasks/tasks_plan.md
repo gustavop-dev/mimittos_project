@@ -5,6 +5,21 @@ description: Task backlog, feature completion status, known issues, and test cov
 
 # Tasks Plan — Mimittos
 
+## Limpieza del repositorio — 2026-09-25
+
+- [x] Revalidar en `origin/main` los cinco módulos frontend sin uso y sus tests.
+- [x] Retirar el lote aprobado, mocks antiguos y dependencia next-intl.
+- [x] Ignorar reportes generados por CI y corregir referencia al spec smoke ausente.
+- [x] Actualizar las guías operativas con el stack, rutas y despliegue comprobados.
+- [x] Validar 14 tests de regresión, build y quality gate sin relajar umbrales
+  (0 errores; Ruff no disponible localmente).
+- Cierre: PR con CI verde y squash autorizado. Consultar su estado en GitHub;
+  el merge no ejecuta deploy ni modifica el checkout principal.
+
+Pendiente separado: el objetivo bilingüe histórico del PRD no está implementado.
+Los assets sin referencias literales necesitan evidencia de uso desde contenido
+persistido antes de considerar su borrado.
+
 ## Ronda de rendimiento — 2026-09-25
 
 - [x] P-frontend-views-01: agrupar solicitudes de precio y proteger la selección vigente.
@@ -52,11 +67,10 @@ ledger del toolkit. No ampliar esta ronda a cargas de imágenes ni paginación.
 | Order tracking | `/tracking?order=<id>` public; `/orders` authenticated history |
 | Reviews | Post-delivery reviews; staff approval flow |
 | Backoffice | Order management, peluch CRUD, category management, user list |
-| Blog | Bilingual posts (ES/EN) with structured JSON content |
+| Blog | Título, descripción, categoría e imagen; listado y detalle públicos |
 | Analytics | Page view tracking; KPI dashboard; data export |
-| Email system | Template registry; transactional emails (verification, order updates) |
+| Email system | Plantilla Django compartida para emails transaccionales |
 | Captcha | Google reCAPTCHA integration on auth endpoints |
-| Bilingual i18n | ES primary, EN secondary via next-intl |
 | Media uploads | Image/audio for personalization; compression + validation |
 
 ---

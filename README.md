@@ -3,9 +3,9 @@
 > **Más que un peluche, un recuerdo.**  
 > E-commerce de peluches artesanales hechos a mano en Colombia, con personalización completa y panel de administración.
 
-[![Django](https://img.shields.io/badge/Django-5-092E20?style=flat&logo=django)](https://www.djangoproject.com/)
-[![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=flat&logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat&logo=typescript)](https://www.typescriptlang.org/)
+[![Django](https://img.shields.io/badge/Django-6-092E20?style=flat&logo=django)](https://www.djangoproject.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?style=flat&logo=typescript)](https://www.typescriptlang.org/)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python)](https://www.python.org/)
 
 ---
@@ -14,11 +14,11 @@
 
 | Capa | Tecnología |
 |------|-----------|
-| Backend | Django 5 + Django REST Framework, JWT auth (SimpleJWT), Google OAuth |
-| Frontend | Next.js 14 App Router, React 18, TypeScript, Tailwind CSS 4, Zustand |
+| Backend | Django 6.0.8 + Django REST Framework, JWT auth (SimpleJWT), Google OAuth |
+| Frontend | Next.js 16.3.3 App Router, React 19.2.8, TypeScript 6, Tailwind CSS 4, Zustand |
 | Pagos | Wompi (Colombia) — flujo webhook, sin polling |
 | Imágenes | django-attachments + PIL (optimización automática) |
-| Base de datos | SQLite (desarrollo) / MySQL 8 (producción) |
+| Base de datos | MySQL 8 en el entorno configurado; SQLite para pruebas aisladas |
 | Tareas | Huey + Redis |
 | Animaciones | GSAP (page curtain), CSS keyframes (ticker banner) |
 
@@ -62,6 +62,11 @@
 - Python 3.12+
 - Node.js 20+
 - Git
+
+Las instrucciones de instalación y seed son para un entorno local nuevo con base
+aislada. Los worktrees del fleet no deben ejecutar migraciones ni seeders contra
+el `.env` del clon de producción. El despliegue autorizado usa procesos separados
+para Django y Next.js; ver [arquitectura](docs/methodology/architecture.md).
 
 ### 1. Clonar
 
@@ -263,15 +268,16 @@ GET   /api/peluches/<slug>/                   # Detalle de peluche
 ### Órdenes
 ```
 POST  /api/orders/                            # Crear orden (checkout)
-GET   /api/orders/                            # Mis órdenes (auth)
+GET   /api/orders/my/                         # Mis órdenes (auth)
 GET   /api/orders/<order_number>/             # Detalle de orden (auth)
 ```
 
 ### Pagos — Wompi
 ```
-POST  /api/payments/initiate/                 # Iniciar pago → crea WompiTransaction
-GET   /api/payments/status/<order_number>/    # Estado de pago (un solo check)
-POST  /api/payments/webhook/                  # Webhook Wompi (sin auth, con firma)
+POST  /api/payment/process/                  # Procesar pago según el método elegido
+GET   /api/payment/status/<reference>/       # Estado de la transacción
+GET   /api/payment/check/<order_number>/     # Verificación al regresar del pago
+POST  /api/payment/wompi/webhook/            # Webhook Wompi (sin auth, con firma)
 ```
 
 ### Contenido configurable
@@ -284,10 +290,11 @@ PUT   /api/content/<key>/                     # Actualizar contenido (admin)
 
 ### Backoffice (requiere role=admin)
 ```
-GET/PUT  /api/backoffice/orders/              # Gestión de pedidos
-GET/PUT  /api/backoffice/peluches/            # Gestión de peluches
-GET/PUT  /api/backoffice/categories/          # Gestión de categorías
-GET/PUT  /api/backoffice/users/               # Gestión de usuarios
+GET      /api/orders/list/                   # Listado administrativo de pedidos
+PATCH    /api/orders/<order_number>/status/  # Cambio de estado
+GET/POST /api/peluches/                      # Listado y creación de peluches
+GET/POST /api/categories/                    # Listado y creación de categorías
+GET      /api/users/                         # Listado de usuarios
 ```
 
 ---
@@ -301,12 +308,12 @@ npm run dev              # Servidor de desarrollo
 npm run build            # Build de producción
 npm run lint             # ESLint
 
-npm run test             # Tests unitarios (Jest)
-npm run test:coverage    # Con reporte de cobertura
-
-npm run e2e              # Tests E2E (Playwright)
-npm run e2e:coverage     # E2E + reporte de flujos
+npm test -- app/__tests__/page.test.tsx --runInBand
+npx playwright test e2e/public/navigation.spec.ts --project="Desktop Chrome"
 ```
+
+En local se seleccionan archivos: hasta 20 tests por lote y dos specs E2E por
+invocación. El CI ejecuta las suites completas y publica la cobertura.
 
 ---
 
@@ -316,11 +323,12 @@ npm run e2e:coverage     # E2E + reporte de flujos
 
 ```env
 DJANGO_SECRET_KEY=your-secret-key
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
+DJANGO_DEBUG=True
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 
-# Base de datos (omitir para SQLite en dev)
-# DATABASE_URL=mysql://user:pass@localhost/mimittos
+# Base aislada de desarrollo; producción usa MySQL mediante DB_NAME/DB_USER/etc.
+DJANGO_DB_ENGINE=django.db.backends.sqlite3
+DB_NAME=/tmp/mimittos-local.sqlite3
 
 # Wompi
 WOMPI_PUBLIC_KEY=pub_test_...
@@ -328,10 +336,10 @@ WOMPI_PRIVATE_KEY=prv_test_...
 WOMPI_EVENTS_SECRET=your-events-secret
 
 # Email
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_HOST_USER=hola@mimittos.co
-EMAIL_HOST_PASSWORD=your-app-password
+DJANGO_EMAIL_HOST=smtp.gmail.com
+DJANGO_EMAIL_PORT=587
+DJANGO_EMAIL_HOST_USER=your-email@example.com
+DJANGO_EMAIL_HOST_PASSWORD=your-app-password
 
 # Google OAuth
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
@@ -352,12 +360,12 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 ## Flujo de pago (Wompi)
 
 ```
-Usuario → Checkout → POST /api/orders/ → POST /api/payments/initiate/
-  → Redirect a Wompi checkout
-  → Usuario paga
-  → Wompi → POST /api/payments/webhook/ (APPROVED)
+Usuario → Checkout → POST /api/orders/ → /payment
+  → POST /api/payment/process/ (tarjeta o PSE)
+  → Autorización según el método elegido
+  → Wompi → POST /api/payment/wompi/webhook/ (APPROVED)
   → Order.status = payment_confirmed
-  → Frontend: GET /api/payments/status/<order_number>/ (un solo check al volver)
+  → Frontend: GET /api/payment/check/<order_number>/ al volver
   → Página de confirmación
 ```
 
