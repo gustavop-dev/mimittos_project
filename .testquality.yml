@@ -45,10 +45,12 @@ banned_tokens:
 
 # Performance budgets use the production compute profile from the fleet toolkit.
 performance_paths:
+  - "catalog=frontend/app/catalog/page.tsx,frontend/lib/services/peluchService.ts"
   - "analytics=backend/base_feature_app/services/analytics_service.py"
   - "reviews=backend/base_feature_app/services/review_service.py"
   - "authentication=frontend/lib/stores/authStore.ts"
 performance_budget_tests:
+  - "frontend/app/catalog/__tests__/page.test.tsx"
   - "backend/base_feature_app/tests/services/test_analytics_service.py"
   - "backend/base_feature_app/tests/services/test_review_service.py"
   - "frontend/lib/stores/__tests__/authStore.test.ts"

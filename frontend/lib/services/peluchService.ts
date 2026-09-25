@@ -11,7 +11,8 @@ export const peluchService = {
     has_huella?: boolean
     has_audio?: boolean
     sort?: 'popular' | 'new' | 'price_asc' | 'price_desc' | 'top_rated'
-  }) => api.get<Peluch[]>('/peluches/', { params }).then((r) => r.data),
+  }, options?: { signal?: AbortSignal }) =>
+    api.get<Peluch[]>('/peluches/', { params, ...options }).then((r) => r.data),
 
   getFeatured: () => api.get<Peluch[]>('/peluches/featured/').then((r) => r.data),
 

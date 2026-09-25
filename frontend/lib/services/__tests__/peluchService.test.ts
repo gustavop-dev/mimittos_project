@@ -27,6 +27,20 @@ describe('peluchService', () => {
       expect(mockGet).toHaveBeenCalledWith('/peluches/', { params })
       expect(result).toEqual(mockPeluches)
     })
+
+    it('forwards an optional abort signal with the filter params', async () => {
+      const controller = new AbortController()
+      mockGet.mockResolvedValue({ data: mockPeluches })
+
+      const result = await peluchService.listPeluches({ max_price: 100000 }, { signal: controller.signal })
+
+      // Fails if catalog requests cannot cancel an obsolete in-flight response.
+      expect(mockGet).toHaveBeenCalledWith('/peluches/', {
+        params: { max_price: 100000 },
+        signal: controller.signal,
+      })
+      expect(result).toEqual(mockPeluches)
+    })
   })
 
   describe('getFeatured', () => {
