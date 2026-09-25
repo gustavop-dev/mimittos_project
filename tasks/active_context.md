@@ -5,6 +5,39 @@ description: Current work focus, recent changes, active decisions, and next step
 
 # Active Context — Mimittos
 
+## Rendimiento del filtro de precio — 2026-09-25
+
+Ronda `perf-catalog-requests`, PR #70. El precio mostrado se actualiza de inmediato;
+las consultas de precio se agrupan tras 300 ms de pausa. Categoría, talla, huella y
+orden consultan de inmediato con el precio vigente. La selección anterior se
+invalida antes de esperar, y sus respuestas no pueden publicar resultados ni
+finalizar la carga vigente. QA valida presupuesto de llamadas, cancelaciones y
+contratos; la prueba E2E existente usa el control accesible por teclado.
+
+El lote local pasa 32 pruebas (23 de catálogo y 9 del servicio), con el presupuesto
+de una consulta adicional para ráfagas de uno y cincuenta cambios. El spec público
+se ejecuta en el entorno aislado de CI; su resultado vigente y el cierre de entrega
+se consultan en [PR #70](https://github.com/gustavop-dev/mimittos_project/pull/70).
+
+La concurrencia de subidas queda en diagnóstico: falta un presupuesto canónico de
+trabajos activos. No se modifican uploads ni infraestructura. Evidencia operativa
+en el toolkit: `docs/audits/2026-09-25-mimittos_project-perf-catalog-requests.md`.
+
+## Rendimiento — KPIs, reseñas y sesión (2026-09-24)
+
+Rama `fix/24092026-perf-kpis-reviews-session`, PR #68 contra `main`, independiente
+del PR #67. KPIs usa un agregado condicional; el rating reúne promedio y cantidad
+aprobada antes de actualizar; las restauraciones simultáneas comparten una
+validación pendiente por sesión. Al cerrar o cambiar sesión se invalida la
+restauración anterior. Se conserva el refresco automático de access token.
+
+Presupuestos declarados: KPIs `Q(1)=Q(50)≤1`, rating `Q(1)=Q(50)≤2` incluyendo
+la escritura, sesión una validación lógica para consumidores concurrentes. QA
+verificado sobre SQLite aislada y Jest, con gate estricto limpio; sin modificaciones de base de datos,
+infraestructura, dependencias o flujos de usuario. Perfil: `vps-projectapp-prod`,
+según el estándar canónico y el ledger del toolkit.
+
+
 ## Rendimiento de pedidos — 2026-09-24
 
 Rama `fix/24092026-perf-order-batches`, PR #69 hacia `main`. Candidatos

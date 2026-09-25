@@ -2,7 +2,7 @@ import csv
 import io
 from datetime import date
 
-from django.db.models import Case, Count, DecimalField, Sum, When
+from django.db.models import Case, Count, DecimalField, Q, Sum, When
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
@@ -16,22 +16,25 @@ class AnalyticsService:
         if for_date is None:
             for_date = timezone.now().date()
 
-        day_orders = Order.objects.filter(created_at__date=for_date)
-
-        return {
-            'new_orders': day_orders.count(),
-            'confirmed_deposits': Order.objects.filter(
-                status__in=[
-                    Order.Status.PAYMENT_CONFIRMED,
-                    Order.Status.IN_PRODUCTION,
-                    Order.Status.SHIPPED,
-                    Order.Status.DELIVERED,
-                ],
-                updated_at__date=for_date,
-            ).aggregate(total=Sum('deposit_amount'))['total'] or 0,
-            'in_production': Order.objects.filter(status=Order.Status.IN_PRODUCTION).count(),
-            'pending_dispatch': Order.objects.filter(status=Order.Status.PAYMENT_CONFIRMED).count(),
-        }
+        kpis = Order.objects.aggregate(
+            new_orders=Count('pk', filter=Q(created_at__date=for_date)),
+            confirmed_deposits=Sum(
+                'deposit_amount',
+                filter=Q(
+                    status__in=[
+                        Order.Status.PAYMENT_CONFIRMED,
+                        Order.Status.IN_PRODUCTION,
+                        Order.Status.SHIPPED,
+                        Order.Status.DELIVERED,
+                    ],
+                    updated_at__date=for_date,
+                ),
+            ),
+            in_production=Count('pk', filter=Q(status=Order.Status.IN_PRODUCTION)),
+            pending_dispatch=Count('pk', filter=Q(status=Order.Status.PAYMENT_CONFIRMED)),
+        )
+        kpis['confirmed_deposits'] = kpis['confirmed_deposits'] or 0
+        return kpis
 
     @staticmethod
     def get_dashboard_data(date_from: date, date_to: date) -> dict:

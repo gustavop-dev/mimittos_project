@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 
 import { peluchService } from '@/lib/services/peluchService'
 import type { Category, GlobalSize, Peluch } from '@/lib/types'
@@ -27,6 +27,15 @@ type SortValue = (typeof SORT_OPTIONS)[number]['value']
 const PAGE_SIZE_DESKTOP = 16
 const PAGE_SIZE_MOBILE = 12
 const DESKTOP_MEDIA_QUERY = '(min-width: 1024px)'
+const PRICE_FILTER_DEBOUNCE_MS = 300
+
+interface CatalogFilters {
+  category: string
+  size: string
+  maxPrice: number
+  huella: boolean
+  sort: SortValue
+}
 
 function fmt(n: number | null) {
   if (n == null) return '—'
@@ -50,6 +59,8 @@ function CatalogContent() {
   const [sortBy, setSortBy] = useState<SortValue>('popular')
   const [page, setPage] = useState(1)
   const [isDesktop, setIsDesktop] = useState(false)
+  const previousFilters = useRef<CatalogFilters | null>(null)
+  const requestGeneration = useRef(0)
 
   const pageSize = isDesktop ? PAGE_SIZE_DESKTOP : PAGE_SIZE_MOBILE
   const totalPages = Math.max(1, Math.ceil(peluches.length / pageSize))
@@ -74,18 +85,52 @@ function CatalogContent() {
   }, [])
 
   useEffect(() => {
+    const previous = previousFilters.current
+    const priceOnlyChanged = previous !== null
+      && previous.maxPrice !== maxPrice
+      && previous.category === activeCategory
+      && previous.size === activeSize
+      && previous.huella === filterHuella
+      && previous.sort === sortBy
+    previousFilters.current = {
+      category: activeCategory, size: activeSize, maxPrice, huella: filterHuella, sort: sortBy,
+    }
+
+    // Invalidate the old response before waiting for a price interaction to settle.
+    const generation = ++requestGeneration.current
+    const controller = new AbortController()
+    const isCurrent = () => requestGeneration.current === generation && !controller.signal.aborted
     setLoading(true)
     setPage(1)
-    peluchService
-      .listPeluches({
-        category: activeCategory || undefined,
-        size: activeSize || undefined,
-        max_price: maxPrice < 250000 ? maxPrice : undefined,
-        has_huella: filterHuella || undefined,
-        sort: sortBy,
-      })
-      .then(setPeluches)
-      .finally(() => setLoading(false))
+
+    const loadPeluches = () => {
+      peluchService
+        .listPeluches({
+          category: activeCategory || undefined,
+          size: activeSize || undefined,
+          max_price: maxPrice < 250000 ? maxPrice : undefined,
+          has_huella: filterHuella || undefined,
+          sort: sortBy,
+        }, { signal: controller.signal })
+        .then((results) => {
+          if (isCurrent()) setPeluches(results)
+        })
+        .catch(() => {
+          // Preserve the last successful results on failure or cancellation.
+        })
+        .finally(() => {
+          if (isCurrent()) setLoading(false)
+        })
+    }
+
+    let timer: ReturnType<typeof setTimeout> | undefined
+    if (priceOnlyChanged) timer = setTimeout(loadPeluches, PRICE_FILTER_DEBOUNCE_MS)
+    else loadPeluches()
+
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
   }, [activeCategory, activeSize, maxPrice, filterHuella, sortBy])
 
   function goToPage(nextPage: number) {
@@ -136,6 +181,7 @@ function CatalogContent() {
         <h4 style={filterHeadStyle}>Precio máximo</h4>
         <input
           type="range"
+          aria-label="Precio máximo"
           min="60000"
           max="250000"
           step="10000"
