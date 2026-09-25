@@ -15,9 +15,73 @@ from base_feature_app.models import (
     GlobalSize,
     Order,
     OrderItem,
+    OrderStatusHistory,
     Peluch,
     PeluchSizePrice,
+    PersonalizationMedia,
 )
+from base_feature_app.tests.factories import (
+    GlobalColorFactory,
+    GlobalSizeFactory,
+    PeluchFactory,
+)
+
+MAX_ORDER_READ_QUERIES = 4
+
+
+def _create_read_items(order, count, *, include_media=False):
+    """Create distinct item relations before measuring an order read endpoint."""
+    created_items = []
+    start_index = order.items.count()
+    for item_index in range(start_index, start_index + count):
+        item_peluch = PeluchFactory()
+        item_size = GlobalSizeFactory()
+        item_color = GlobalColorFactory()
+        item_kwargs = {
+            'order': order,
+            'peluch': item_peluch,
+            'size': item_size,
+            'color': item_color,
+            'quantity': 1,
+            'unit_price': 80000,
+        }
+        if include_media:
+            item_kwargs['huella_media'] = PersonalizationMedia.objects.create(
+                uploaded_by=order.customer,
+                media_type=PersonalizationMedia.MediaType.HUELLA_IMAGE,
+                file=f'personalizations/test-huella-{order.pk}-{item_index}.jpg',
+                file_size_kb=120,
+            )
+            item_kwargs['audio_media'] = PersonalizationMedia.objects.create(
+                uploaded_by=order.customer,
+                media_type=PersonalizationMedia.MediaType.AUDIO,
+                file=f'personalizations/test-audio-{order.pk}-{item_index}.mp3',
+                duration_sec=6.5,
+                file_size_kb=240,
+            )
+        created_items.append(OrderItem.objects.create(**item_kwargs))
+    return created_items
+
+
+def _create_status_histories(order, count, *, start_index=0):
+    """Create histories with distinct unhashed authors outside query measurement."""
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    authors = User.objects.bulk_create([
+        User(email=f'history-author-{author_index}@example.com')
+        for author_index in range(start_index, start_index + count)
+    ])
+    OrderStatusHistory.objects.bulk_create([
+        OrderStatusHistory(
+            order=order,
+            previous_status=Order.Status.PENDING_PAYMENT,
+            new_status=Order.Status.PAYMENT_CONFIRMED,
+            changed_by=author,
+        )
+        for author in authors
+    ])
+    return {author.email for author in authors}
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -280,6 +344,81 @@ def test_track_order_returns_status_in_response(anon_client, existing_order):
     assert 'status' in response.data
 
 
+@pytest.mark.django_db
+def test_track_order_query_budget_is_constant(
+    anon_client, existing_order, settings, tmp_path,
+):
+    """Fails if tracking restores per-item relation queries for personalization media."""
+    settings.MEDIA_ROOT = tmp_path
+    _create_read_items(existing_order, 1, include_media=True)
+
+    with CaptureQueriesContext(connection) as one_item_queries:
+        one_item_response = anon_client.get(f'/api/orders/track/{existing_order.order_number}/')
+
+    _create_read_items(existing_order, 49, include_media=True)
+    with CaptureQueriesContext(connection) as fifty_item_queries:
+        fifty_item_response = anon_client.get(f'/api/orders/track/{existing_order.order_number}/')
+
+    assert one_item_response.status_code == 200
+    assert fifty_item_response.status_code == 200
+    assert len(one_item_response.data['items']) == 1
+    assert len(fifty_item_response.data['items']) == 50
+    assert len(one_item_queries) == len(fifty_item_queries)
+    assert len(fifty_item_queries) <= MAX_ORDER_READ_QUERIES
+
+
+@pytest.mark.django_db
+def test_track_order_serializes_media_values(
+    anon_client, existing_order, settings, tmp_path,
+):
+    """Fails if tracking loses concrete URL, duration, or size values for media."""
+    settings.MEDIA_ROOT = tmp_path
+    created_item = _create_read_items(existing_order, 1, include_media=True)[0]
+
+    response = anon_client.get(f'/api/orders/track/{existing_order.order_number}/')
+
+    item = response.data['items'][0]
+    assert response.status_code == 200
+    assert item['huella_media_url'] == f'http://testserver{created_item.huella_media.file.url}'
+    assert item['audio_media_url'] == f'http://testserver{created_item.audio_media.file.url}'
+    assert item['audio_duration_sec'] == 6.5
+    assert item['audio_size_kb'] == 240
+
+
+@pytest.mark.django_db
+def test_track_order_serializes_optional_item_relations(anon_client, existing_order, peluch):
+    """Fails if optional item relations no longer retain their null JSON contract."""
+    OrderItem.objects.create(
+        order=existing_order,
+        peluch=peluch,
+        size=None,
+        color=None,
+        quantity=2,
+        unit_price=80000,
+        personalization_cost=5000,
+    )
+
+    response = anon_client.get(f'/api/orders/track/{existing_order.order_number}/')
+
+    item = response.data['items'][0]
+    assert response.status_code == 200
+    assert item['size'] is None
+    assert item['color'] is None
+    assert item['huella_media_url'] is None
+    assert item['audio_media_url'] is None
+    assert item['line_total'] == 170000
+
+
+@pytest.mark.django_db
+def test_track_order_returns_null_payment_fields(anon_client, existing_order):
+    """Fails if tracking no longer supports unpaid orders without a transaction."""
+    response = anon_client.get(f'/api/orders/track/{existing_order.order_number}/')
+
+    assert response.status_code == 200
+    assert response.data['payment_status'] is None
+    assert response.data['checkout_url'] is None
+
+
 # ---------------------------------------------------------------------------
 # GET /api/orders/my/ — authenticated customer orders
 # ---------------------------------------------------------------------------
@@ -447,6 +586,69 @@ def test_order_detail_returns_404_for_nonexistent(admin_client):
     """Verify order detail returns 404 for nonexistent."""
     response = admin_client.get('/api/orders/MMT-NOEXISTE-0000/')
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_order_detail_allows_email_owner(db, existing_user):
+    """Fails if the nullable customer email ownership path is removed."""
+    from rest_framework.test import APIClient
+
+    email_owned_order = Order.objects.create(
+        customer=None,
+        customer_email=existing_user.email,
+        customer_name='Email Owner',
+        address='Calle 3',
+        city='Cali',
+        department='Valle',
+        total_amount=80000,
+        deposit_amount=40000,
+        balance_amount=40000,
+    )
+    client = APIClient()
+    client.force_authenticate(user=existing_user)
+
+    response = client.get(f'/api/orders/{email_owned_order.order_number}/')
+
+    assert response.status_code == 200
+    assert response.data['order_number'] == email_owned_order.order_number
+
+
+@pytest.mark.django_db
+def test_order_detail_query_budget_is_constant(
+    authenticated_client, existing_order, settings, tmp_path,
+):
+    """Fails if detail serialization restores per-item or status-history queries."""
+    settings.MEDIA_ROOT = tmp_path
+    _create_read_items(existing_order, 1, include_media=True)
+    one_history_emails = _create_status_histories(existing_order, 1)
+
+    with CaptureQueriesContext(connection) as one_item_queries:
+        one_item_response = authenticated_client.get(f'/api/orders/{existing_order.order_number}/')
+
+    _create_read_items(existing_order, 49, include_media=True)
+    fifty_history_emails = one_history_emails | _create_status_histories(
+        existing_order, 49, start_index=1,
+    )
+    with CaptureQueriesContext(connection) as fifty_item_queries:
+        fifty_item_response = authenticated_client.get(f'/api/orders/{existing_order.order_number}/')
+
+    assert (
+        one_item_response.status_code,
+        len(one_item_response.data['items']),
+        len(one_item_response.data['status_history']),
+    ) == (200, 1, 1)
+    assert (
+        fifty_item_response.status_code,
+        len(fifty_item_response.data['items']),
+        len(fifty_item_response.data['status_history']),
+    ) == (200, 50, 50)
+    assert {
+        history['changed_by_email'] for history in one_item_response.data['status_history']
+    } == one_history_emails
+    assert {
+        history['changed_by_email'] for history in fifty_item_response.data['status_history']
+    } == fifty_history_emails
+    assert len(one_item_queries) == len(fifty_item_queries) <= MAX_ORDER_READ_QUERIES
 
 
 # ---------------------------------------------------------------------------

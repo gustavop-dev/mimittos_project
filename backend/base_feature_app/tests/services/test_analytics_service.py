@@ -3,6 +3,7 @@
 from datetime import date, datetime
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -22,6 +23,7 @@ from base_feature_app.models import (
 from base_feature_app.services.analytics_service import AnalyticsService
 
 MAX_KPI_QUERIES = 1
+MAX_DASHBOARD_QUERIES = 6
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -106,6 +108,12 @@ def _get_kpis_with_query_count(for_date):
     with CaptureQueriesContext(connection) as captured:
         result = AnalyticsService.get_kpis(for_date=for_date)
     return result, len(captured)
+
+
+def _create_orders(count, **kwargs):
+    """Create dashboard orders before measuring the service query budget."""
+    for _ in range(count):
+        _make_order(**kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -319,6 +327,77 @@ def test_get_dashboard_data_new_vs_returning_counts_guest_as_new():
     _make_order()  # no customer → guest
     result = AnalyticsService.get_dashboard_data(date(2026, 4, 1), date(2026, 4, 30))
     assert result['new_vs_returning']['new'] >= 1
+
+
+@pytest.mark.django_db
+def test_dashboard_calculates_customer_segments():
+    """Fails if dashboard counts repeat customers as orders or merges guest orders."""
+    user_model = get_user_model()
+    returning_customer = user_model.objects.create_user(
+        email='returning@example.com', password='pass',
+    )
+    new_customer = user_model.objects.create_user(email='new@example.com', password='pass')
+    with freeze_time('2026-04-01 09:00:00'):
+        _make_order(user=returning_customer)
+    with freeze_time('2026-04-15 09:00:00'):
+        _create_orders(2, user=returning_customer)
+        _create_orders(2, user=new_customer)
+        _create_orders(2)
+
+    result = AnalyticsService.get_dashboard_data(date(2026, 4, 2), date(2026, 4, 30))
+
+    assert result['new_vs_returning'] == {'new': 3, 'returning': 1}
+
+
+@pytest.mark.django_db
+def test_dashboard_returns_zeros_for_empty_range():
+    """Fails if an empty dashboard range returns residual or non-zero aggregates."""
+    result = AnalyticsService.get_dashboard_data(date(2026, 4, 1), date(2026, 4, 30))
+
+    assert result['daily_orders'] == []
+    assert result['total_orders'] == 0
+    assert result['confirmed_revenue'] == 0
+    assert result['new_vs_returning'] == {'new': 0, 'returning': 0}
+
+
+@pytest.mark.django_db
+def test_dashboard_returns_confirmed_revenue_by_status():
+    """Fails if inclusive dates or confirmed revenue status aggregation changes."""
+    with freeze_time('2026-04-01 09:00:00'):
+        _make_order(status=Order.Status.PAYMENT_CONFIRMED, deposit=10000)
+    with freeze_time('2026-04-30 09:00:00'):
+        _make_order(status=Order.Status.DELIVERED, deposit=20000)
+        _make_order(status=Order.Status.PENDING_PAYMENT, deposit=999)
+
+    result = AnalyticsService.get_dashboard_data(date(2026, 4, 1), date(2026, 4, 30))
+
+    assert result['confirmed_revenue'] == 30000
+    assert type(result['confirmed_revenue']) is int
+    assert result['total_orders'] == 3
+    assert result['orders_by_status'] == {
+        Order.Status.PAYMENT_CONFIRMED: 1,
+        Order.Status.DELIVERED: 1,
+        Order.Status.PENDING_PAYMENT: 1,
+    }
+
+
+@pytest.mark.django_db
+@freeze_time('2026-04-15 09:00:00')
+def test_dashboard_query_budget_is_constant():
+    """Fails if dashboard restores per-order work or loses its material result."""
+    _create_orders(1)
+
+    with CaptureQueriesContext(connection) as one_order_queries:
+        one_order_result = AnalyticsService.get_dashboard_data(date(2026, 4, 1), date(2026, 4, 30))
+
+    _create_orders(49)
+    with CaptureQueriesContext(connection) as fifty_order_queries:
+        fifty_order_result = AnalyticsService.get_dashboard_data(date(2026, 4, 1), date(2026, 4, 30))
+
+    assert one_order_result['total_orders'] == 1
+    assert fifty_order_result['total_orders'] == 50
+    assert len(one_order_queries) == len(fifty_order_queries)
+    assert len(fifty_order_queries) <= MAX_DASHBOARD_QUERIES
 
 
 # ---------------------------------------------------------------------------
