@@ -1,148 +1,75 @@
 ---
 trigger: manual
-description: Project intelligence and lessons learned. Reference for project-specific patterns, preferences, and key insights discovered during development.
+description: Patrones comprobados y aprendizajes operativos de Mimittos.
 ---
 
-# Lessons Learned — Mimittos
+# Lecciones aprendidas — Mimittos
 
-This file captures important patterns, preferences, and project intelligence that help work more effectively with this codebase. Updated as new insights are discovered.
+Revisión: 2026-09-25. Registrar aquí comportamiento verificado; las propuestas de
+producto pendientes pertenecen al PRD/backlog y no se describen como implementadas.
 
----
+## Organización del código
 
-## 1. Architecture Patterns
+- El dominio vive en `base_feature_app`; no existe una app `content` separada.
+- Modelos por archivo; lógica de negocio en servicios y vistas DRF funcionales.
+- `SiteContent.content_json` contiene configuración por key. El modelo Blog usa
+  título, descripción, categoría e imagen: no tiene JSON bilingüe ni variantes
+  `_es`/`_en`. Propuestas y portfolios no forman parte de estos modelos.
+- Frontend: identificadores en inglés y copy visible en español. Los stores
+  activos son auth, cart y blog; la tienda consulta peluches mediante servicios.
+- La plantilla de emails está en `templates/emails/base.html`; la prepara
+  `utils/email_renderer.py` y se envía mediante las utilidades/servicios Django.
+  No existe EmailTemplateRegistry ni EmailTemplateConfig en este proyecto.
 
-### Content Storage: Structured JSON over CMS
-- Proposal sections, portfolio works, and blog posts use Django `JSONField` for content
-- Each proposal section's `content_json` maps directly to a React component's props interface
-- Blog supports dual format: structured JSON (preferred) with HTML fallback via `dangerouslySetInnerHTML` (sanitized with DOMPurify)
-- This avoids the need for a full CMS while keeping content rich and structured
+## Limpieza con evidencia
 
-### Single Django App: `base_feature_app`
-- All models, views, serializers, and services live in the `base_feature_app` app
-- This works for now but may need splitting if scope grows significantly
-- Models are already split into individual files under `base_feature_app/models/`
+La ausencia de referencias textuales no prueba que una imagen pública sea inútil:
+puede estar almacenada como URL en contenido de la base de datos. Conservarla hasta
+comprobar esa fuente.
 
-### Service Layer Pattern
-- Business logic lives in `base_feature_app/services/`, not in views
-- Views are thin FBV wrappers that call service methods
+Para código frontend, seguir imports desde páginas y layouts. Un módulo usado sólo
+por otro módulo inalcanzable continúa sin uso. Los tests y mocks por sí solos no
+justifican conservarlo. La limpieza del 2026-09-25 retiró cinco módulos y sus cinco
+tests: los carruseles antiguos, su tarjeta/store de productos y la configuración
+i18n aislada. next-intl no tenía consumidores runtime. Swiper, BlogCard y blogStore
+sí los tienen y permanecen.
 
----
+Conservar lockfiles reproducibles, migraciones, `__init__.py`, management commands
+y templates operativos con uso convencional aunque no tengan un import literal.
+Los directorios `.agents/`, `.claude/` y `.codex/` son capas intencionales del fleet.
 
-## 2. Code Style & Conventions
+## Desarrollo y producción
 
-### Backend: Function-Based Views (FBV)
-- **All** DRF views use `@api_view` decorators, not class-based views
-- Never convert to CBV unless explicitly requested
+- Trabajar en un worktree propio. La configuración enlazada puede apuntar a
+  producción: no ejecutar migraciones ni seeds desde ese worktree.
+- Backend: activar el venv al probar y seleccionar SQLite aislada explícitamente.
+- Next.js reenvía `/api` y `/media` al backend; no incluye `/admin` ni `/static`.
+- Producción usa procesos separados Django y Next.js. El build genera `.next/`;
+  no hay catch-all Django para HTML exportado.
+- Huey es inmediato fuera de producción y asíncrono con Redis en producción.
+- La fuente de host, puertos y servicios es `vps-ops-toolkit/projects.yml`.
+  Mimittos usa `mimittos_project`, `mimittos-frontend` y `mimittos-huey`.
 
-### Frontend: Zustand Stores
-- State management uses Zustand with TypeScript
-- HTTP requests go through centralized API client in `lib/services/http.ts` (Axios instance with JWT interceptors)
+## Pedidos, pagos y medios
 
-### Bilingual Content Pattern
-- Models have paired fields: `title_en`/`title_es`, `content_json_en`/`content_json_es`, etc.
-- Frontend reads the appropriate field based on current locale via `next-intl`
-- Proposals have a `language` field (`es`/`en`) that determines which default content to use
+- Configuración por talla en PeluchSizePrice; snapshots de OrderItem conservan
+  los datos históricos aunque desaparezcan tallas o colores.
+- Wompi usa `id` para identificar transacciones. El webhook
+  `/api/payment/wompi/webhook/` informa su resultado y actualiza el pedido.
+- El webhook es la fuente de verdad; no añadir polling a la API Wompi.
+- Media de personalización se recibe en `/api/media/upload/`; los límites de
+  imagen y audio se configuran separadamente.
+- Las reseñas requieren pedido entregado; la regla la aplica `review_service`.
 
-### Naming Conventions
-- Backend: snake_case for everything (Python standard)
-- Frontend components: PascalCase (`product/ProductCard.tsx`, `layout/Header.tsx`)
-- Frontend hooks: camelCase with `use` prefix (`useExpirationTimer.ts`)
-- Frontend stores: camelCase (`useProposalStore.ts`)
+## Validación
 
----
-
-## 3. Development Workflow
-
-### Backend Commands Always Need venv
-```bash
-source venv/bin/activate && <command>
-# or
-venv/bin/python <command>
-```
-
-### Huey Immediate Mode in Development
-- When `DJANGO_ENV != 'production'`, Huey tasks execute synchronously
-- No need to run Redis or Huey worker for development
-- Tasks still need to be importable and functional
-
-### Frontend Dev Proxy
-- Next.js proxies `/api`, `/admin`, `/static`, `/media` to Django at `127.0.0.1:8000`
-- Both servers must be running simultaneously for full functionality
-- In production, everything goes through Django (no separate Next.js server)
-
-### Test Execution Rules
-- Never run the full test suite — always specify files
-- Backend: `pytest backend/content/tests/<specific_file> -v`
-- Frontend: `npm test -- <specific_file>`
-- E2E: max 2 files per `npx playwright test` invocation
-- Use `E2E_REUSE_SERVER=1` when dev server is already running
-
----
-
-## 4. Staging Deployment
-
-### Build Flow
-1. Frontend: `npm run build` → generates static output
-2. Backend: `python manage.py collectstatic` → copies to `backend/staticfiles/`
-3. Restart: `sudo systemctl restart base_django_react_next_feature_staging && sudo systemctl restart base_django_react_next_feature-staging-huey`
-
-### Django Serves Next.js Pages
-- The catch-all view in `base_feature_project/views.py` serves pre-rendered Next.js pages
-- This is the LAST URL pattern — all other routes take priority
-
----
-
-## 5. Email System
-
-### Template Registry Pattern
-- All emails defined in `EmailTemplateRegistry` with default content
-- Admin can override content via `EmailTemplateConfig` model
-- Admin can disable specific emails via `is_active` flag
-- Preview rendering available for all templates
-
-### Transactional Emails
-- Order confirmation, status update, and account emails are all transactional
-- Each email type defined in `EmailTemplateRegistry` with default content
-- Admin can override content via `EmailTemplateConfig` model in Django admin
-- Admin can disable specific email types via `is_active` flag
-
----
-
-## 6. Mimittos Domain Specifics
-
-### Wompi Payment Flow
-- Checkout creates an `Order` + initiates Wompi transaction via `wompi_service`
-- Wompi sends async webhook to `POST /api/payment/wompi-webhook/` on status change
-- Webhook updates `WompiTransaction.status` and triggers `order_service` to update order status
-- Wompi response uses `id` field for transaction identifier (not `transaction_id`)
-- PSE bank list fetched from Wompi API at checkout time
-
-### Personalization Media
-- Four customization layers per order item: huella, corazón, audio, size+color
-- Audio and image files uploaded via `POST /api/media/upload/`
-- Files validated (type + 5 MB limit) and stored in `backend/media/`
-- `PersonalizationMedia` model links media files to `OrderItem`
-
-### Review Gate
-- Reviews only allowed after order status is `DELIVERED`
-- Enforced in `review_service` — raises validation error otherwise
-- Staff approves reviews via backoffice before they appear publicly
-
----
-
-## 7. Testing Insights
-
-### Backend conftest.py
-- Custom coverage report with Unicode progress bars replaces default pytest-cov output
-- `api_client` fixture provides unauthenticated DRF APIClient
-- `base_feature_app/tests/` has its own `conftest.py` with model-specific fixtures (factories via factory-boy)
-
-### E2E Flow Definitions
-- Every navigation flow must be registered in `docs/USER_FLOW_MAP.md` and `frontend/e2e/flow-definitions.json`
-- E2E tests must reflect real user integrations
-- Follow quality standards from `docs/TESTING_QUALITY_STANDARDS.md`
-
-### Spanish Locale is Canonical for Tests
-- All E2E and most unit tests assert Spanish-language strings
-- Wompi responses use `id` (not `transaction_id`) — tests align with this
-- Test fixtures for review tests require an order in `DELIVERED` status
+- Ejecutar hasta 20 tests por lote y tres comandos por ciclo. Seleccionar archivos;
+  no correr toda la suite por un cambio puntual.
+- E2E: hasta dos specs por llamada. El frontend Playwright usa el puerto 3001,
+  backend 8000, y reutiliza servidores fuera de CI. Desktop Chrome es el único
+  proyecto activo.
+- Los tests de páginas activas deben permanecer tras borrar módulos sin uso.
+- Los flujos reales se registran en `flow-definitions.json` y `USER_FLOW_MAP.md`;
+  no crear flujos para código que el usuario no puede alcanzar.
+- La cobertura y el quality gate complementan las aserciones de comportamiento.
+  Sus umbrales no deben relajarse para facilitar una limpieza.

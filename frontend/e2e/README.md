@@ -24,7 +24,7 @@ e2e/
 │   ├── blogs.spec.ts
 │   ├── navigation.spec.ts
 │   ├── products.spec.ts
-│   └── smoke.spec.ts
+│   └── public-pages.spec.ts
 └── README.md
 ```
 
@@ -86,17 +86,22 @@ npx playwright test e2e/app/cart.spec.ts
 npx playwright show-report
 ```
 
+Los comandos generales anteriores describen las capacidades del runner. Para
+validación local seleccionar hasta dos archivos y como máximo 20 tests por lote;
+la suite completa corresponde al CI. Desktop Chrome es el único proyecto activo:
+Mobile Chrome y Tablet están comentados en `playwright.config.ts`.
+
 > `--grep @module:<name>` runs only tests tagged with that module. The flow coverage report will still list other modules as missing because the subset was not executed.
 
 ## Local web servers (automatic)
 
 Playwright starts (or reuses) the following servers from `playwright.config.ts`:
 
-- Backend: `127.0.0.1:8000` (health check: `/api/blogs-data/`)
-- Frontend: `http://localhost:3000` (Next.js dev server)
+- Backend: `127.0.0.1:8000` (health check: `/api/health/`)
+- Frontend: `http://localhost:3001` (Next.js dev local; build precompilado en CI)
 
 If the servers are already running, `reuseExistingServer: true` is used when not in CI.
-`baseURL` defaults to `http://localhost:3000` and can be overridden with `PLAYWRIGHT_BASE_URL`.
+`baseURL` defaults to `http://localhost:3001` and can be overridden with `PLAYWRIGHT_BASE_URL`.
 
 ## Flow Coverage System
 

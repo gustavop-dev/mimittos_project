@@ -1,211 +1,146 @@
 ---
 trigger: manual
-description: System architecture, component relationships, model ER diagram, and deployment overview for Mimittos.
+description: Arquitectura de Mimittos verificada contra rutas, imports, modelos y configuración del fleet.
 ---
 
-# Architecture — Mimittos
+# Arquitectura — Mimittos
 
----
+Revisión: 2026-09-25.
 
-## 1. System Overview
+## Componentes del sistema
 
 ```mermaid
 graph TD
-    Browser["Browser / Client"]
-    NextJS["Next.js 16 (App Router)\nport 3000 in dev"]
-    Django["Django 6 + DRF\nport 8000"]
-    MySQL["MySQL 8"]
-    Redis["Redis"]
-    Huey["Huey Worker\n(async tasks)"]
-    Media["media/ (uploads)"]
-
-    Browser -->|HTTP| NextJS
-    NextJS -->|/api/* proxy| Django
-    Django --> MySQL
-    Django --> Redis
-    Django --> Media
-    Huey --> Django
+    Browser[Navegador] --> NextJS[Next.js 16 App Router]
+    NextJS -->|proxy /api y /media| Django[Django 6 y DRF]
+    Django --> MySQL[MySQL 8]
+    Django --> Media[Archivos de usuarios]
+    Django --> Redis[Redis]
+    Huey[Worker Huey] --> Django
     Huey --> Redis
 ```
 
-In production, Django serves pre-rendered Next.js pages via a catch-all URL pattern; no separate Next.js process runs.
+Next.js y Django son procesos separados. `frontend/next.config.ts` define los
+rewrites de desarrollo/API; `backend/base_feature_project/urls.py` publica API,
+admin y rutas condicionales de media/Silk. No existe una vista catch-all para
+servir HTML de Next.js desde Django.
 
----
+## Backend
 
-## 2. Django Application Structure
-
-```
+```text
 backend/
-├── base_feature_app/          # Main app — all domain logic
-│   ├── models/                # 19 model files (one per entity)
-│   ├── serializers/           # 21 serializer files
-│   ├── views/                 # 16 view files (all FBV with @api_view)
-│   ├── services/              # 8 service modules (business logic)
-│   ├── urls/                  # 13 URL routing modules
-│   ├── tests/                 # 41 test files
-│   ├── management/commands/   # 11 seed/fake data commands
-│   ├── forms/
-│   └── utils/
-├── django_attachments/        # Reusable media attachment library
-│   └── models.py              # Library, Attachment, TimestampModelMixin
-├── base_feature_project/      # Django project
-│   ├── settings.py
-│   ├── urls.py                # Root URL conf; catch-all → Next.js pages
-│   └── views.py               # Catch-all view (serves Next.js HTML)
-└── conftest.py                # pytest fixtures (api_client, coverage report)
+├── base_feature_app/
+│   ├── models/                 # Entidades, reexportadas por __init__.py
+│   ├── serializers/            # Contratos y validación de entradas
+│   ├── views/                  # Vistas funcionales DRF
+│   ├── services/               # Lógica por dominio
+│   ├── urls/                   # Rutas por dominio
+│   ├── management/commands/    # Seeds y datos fake
+│   ├── templates/emails/       # Plantilla transaccional compartida
+│   ├── utils/                  # Auth, media y render de emails
+│   └── tests/
+├── django_attachments/         # Library, Attachment y campos de imágenes
+├── base_feature_project/
+│   ├── settings.py             # Configuración común
+│   ├── settings_dev.py         # Desarrollo
+│   ├── settings_prod.py        # Producción
+│   └── urls.py                 # API, admin y rutas condicionales
+└── conftest.py                 # Fixtures pytest
 ```
 
----
+La lógica de negocio está en servicios de pedidos, reseñas, pagos, analytics,
+media, email y notificaciones. Se conserva la app de dominio única.
 
-## 3. Model Relationships
+### Relaciones principales
 
 ```mermaid
 erDiagram
-    User ||--o{ Order : places
-    User ||--o{ Review : writes
-    User ||--o{ PageView : generates
-
-    Peluch ||--o{ PeluchSizePrice : "has SKUs"
-    Peluch ||--o{ PeluchColorImage : "has images"
-    Peluch ||--o{ Review : "receives"
-    Peluch ||--o{ OrderItem : "appears in"
-
-    Category ||--o{ Peluch : categorizes
-    GlobalColor ||--o{ PeluchColorImage : colors
-    GlobalSize ||--o{ PeluchSizePrice : sizes
-
-    Order ||--o{ OrderItem : contains
-    Order ||--o{ OrderStatusHistory : tracks
-    Order ||--|| WompiTransaction : pays_via
-    Order ||--o{ PersonalizationMedia : attaches
-
-    Sale ||--o{ SoldProduct : records
-    SoldProduct }|--|| Product : references
-
-    Blog ||-- SiteContent : ""
-    PasswordCode }|--|| User : "belongs to"
+    User ||--o{ Order : realiza
+    User ||--o{ Review : escribe
+    Category ||--o{ Peluch : clasifica
+    Peluch ||--o{ PeluchSizePrice : configura
+    GlobalSize ||--o{ PeluchSizePrice : dimensiona
+    Peluch ||--o{ PeluchColorImage : ilustra
+    GlobalColor ||--o{ PeluchColorImage : colorea
+    Peluch ||--o{ Review : recibe
+    Order ||--o{ OrderItem : contiene
+    Peluch ||--o{ OrderItem : referencia
+    Order ||--o{ OrderStatusHistory : registra
+    Order ||--|| WompiTransaction : paga
 ```
 
-**Key models** (19 files in `base_feature_app/models/`):
-- `Peluch` — the product; slug-identified
-- `PeluchSizePrice` — price per size variant
-- `PeluchColorImage` — color gallery images
-- `Order` — customer order with delivery info
-- `OrderItem` — line item linking Order → Peluch + personalization
-- `OrderStatusHistory` — audit trail of status changes
-- `WompiTransaction` — Wompi payment record linked to Order
-- `PersonalizationMedia` — audio/image uploads for customization
-- `Review` — customer review on a Peluch
-- `Category` — product category
-- `GlobalColor` / `GlobalSize` — site-wide color/size presets
-- `Product` — general product (distinct from Peluch)
-- `Sale` / `SoldProduct` — promotional sales tracking
-- `Blog` — blog post (bilingual JSON content)
-- `SiteContent` — key-value dynamic site content
-- `PageView` — analytics page view event
-- `PasswordCode` — email-based password reset OTP
-- `User` — custom user model with `UserManager`
+`OrderItem` conserva una configuración snapshot y referencias opcionales a talla,
+color y `PersonalizationMedia`, para preservar el histórico. Precios, anticipos,
+descuentos por pago completo y envío se configuran por `PeluchSizePrice`.
 
----
+`SiteContent` almacena JSON por key. `Blog` tiene título, descripción, categoría e
+imagen, sin campos de idioma. Los modelos Product/Sale/SoldProduct y sus endpoints
+backend permanecen existentes aunque la tienda actual usa Peluch.
 
-## 4. Frontend Layer
+## Frontend
 
-```
-frontend/
-├── app/                       # Next.js App Router (27 routes)
-│   ├── layout.tsx             # Root layout
-│   ├── page.tsx               # Home (/)
-│   ├── catalog/               # /catalog
-│   ├── peluches/[slug]/       # /peluches/:slug (detail + personalization)
-│   ├── cart/                  # /cart
-│   ├── checkout/              # /checkout
-│   ├── orders/                # /orders (auth required)
-│   ├── tracking/              # /tracking (public)
-│   ├── blogs/                 # /blogs, /blogs/[blogId]
-│   ├── sign-in|sign-up|...    # Auth routes
-│   └── backoffice/            # Staff-only admin area
-├── components/                # 12 shared components
-│   ├── admin/                 # AdminSidebar, PeluchForm
-│   ├── blog/                  # BlogCard, BlogCarousel
-│   ├── layout/                # Header, Footer, PublicChrome, PromoBanner
-│   ├── product/               # ProductCard, ProductCarousel
-│   └── ui/                    # PageCurtain, motion
-└── lib/
-    ├── stores/                # 5 Zustand stores
-    ├── hooks/                 # 2 custom hooks
-    ├── services/              # 13 API service modules + http.ts
-    ├── i18n/                  # next-intl config
-    └── types.ts               # Shared TypeScript types
+Rutas públicas: inicio, catálogo, `/peluches/[slug]`, carrito, checkout, pago,
+confirmación, seguimiento, blog, auth, historia, contacto y términos. `/orders`
+requiere sesión y `/backoffice` concentra las vistas administrativas.
+
+Los componentes compartidos viven en `components/admin`, `blog`, `layout` y `ui`.
+`PublicChrome` coordina banner, Header y Footer. La portada compone sus secciones
+y utiliza Swiper; el catálogo renderiza sus propias tarjetas.
+
+Stores activos: `authStore`, `cartStore` y `blogStore`. Los servicios por dominio
+usan `lib/services/http.ts`. No hay selector de idioma ni provider de next-intl.
+
+```text
+Página o store
+  → servicio del dominio / http.ts
+    → API Django
+      → serializer + servicio
+        → ORM + MySQL
 ```
 
-### Request Flow
+El carrito se persiste localmente. La sesión almacena tokens en cookies; el
+interceptor HTTP gestiona el refresco y `providers.tsx` restaura el usuario.
 
-```
-Browser
-  → Next.js page component
-    → Zustand store action
-      → lib/services/<domain>Service.ts
-        → lib/services/http.ts (Axios instance)
-          → Django REST API
-            → base_feature_app service layer
-              → Django ORM → MySQL
-```
+## API por dominio
 
-### Auth Flow
+Todas las rutas se montan bajo `/api/`; los módulos de `base_feature_app/urls/`
+son la fuente de verdad de métodos y permisos.
 
-```
-Sign in → POST /api/sign_in/ → { access, refresh }
-  → store in cookies (js-cookie)
-  → Axios interceptor attaches Authorization header
-  → On 401: POST /api/token/refresh/ → new access token
-  → On refresh failure: clear cookies, redirect to home
-```
+| Dominio | Rutas representativas |
+|---|---|
+| Auth | sign_in, sign_up, google_login, verify_registration, token/refresh |
+| Catálogo | categories, sizes, colors, peluches y galerías |
+| Pedidos | orders, orders/list, orders/my, orders/track y detalle/status/tracking |
+| Pagos | payment/process, payment/status, payment/check, payment/wompi/webhook |
+| Reseñas | Listado por peluche y moderación |
+| Analytics | Pageviews, KPIs, dashboard y exportación |
+| Blog/product/sale/user | Listados y operaciones por entidad |
+| Media/content/captcha | Upload, contenido por key y verificación |
 
----
+Wompi informa el resultado por webhook. El navegador comprueba el estado al
+volver del pago; no debe introducirse polling a Wompi.
 
-## 5. API Surface (~58 endpoints across 13 modules)
+## Despliegue
 
-| Module | Key Endpoints |
-|--------|--------------|
-| auth | sign_up, sign_in, google_login, verify_registration, send/verify passcode, update_password |
-| catalog | sizes, colors, categories, peluches, featured, gallery, color-images |
-| orders | create, list, my-orders, track, detail, status |
-| payment | wompi webhook, status, process, check, PSE banks |
-| reviews | list by peluch, approve |
-| analytics | pageview, kpis, dashboard, export |
-| blog | list, detail |
-| product | list, detail |
-| sale | create, list, detail |
-| user | list, detail |
-| media | upload |
-| content | get by key |
-| captcha | site-key, verify |
+Según `vps-ops-toolkit/projects.yml`, Mimittos corre en `vps-projectapp-prod`,
+dominio `mimittos.com`, rama `main` y base MySQL `mimittos_project_db`.
 
----
+| Servicio | Función |
+|---|---|
+| `mimittos_project` | Gunicorn/Django, socket `/run/mimittos_project.sock` |
+| `mimittos-frontend` | Next.js, puerto 3002 |
+| `mimittos-huey` | Tareas asíncronas, Redis DB 10 |
 
-## 6. Deployment
+El deploy autorizado instala dependencias y construye `.next/`, ejecuta
+collectstatic y administra los servicios. El clon principal es su checkout;
+las sesiones modifican worktrees propios y no migran su base enlazada.
+`scripts/systemd/huey.service` es una plantilla con placeholders, no el inventario
+del servicio instalado.
 
-```
-Staging server: /home/ryzepeck/webapps/base_django_react_next_feature_staging
+## Pruebas y flujos
 
-Build sequence:
-  1. cd frontend && npm run build
-  2. cd backend && python manage.py collectstatic --noinput
-  3. sudo systemctl restart base_django_react_next_feature_staging
-  4. sudo systemctl restart base_django_react_next_feature-staging-huey
-```
-
-Django catch-all URL (`base_feature_project/views.py`) serves pre-rendered Next.js HTML pages — it is the **last** URL pattern in `urls.py`.
-
----
-
-## 7. E2E Test Structure
-
-```
-frontend/e2e/
-├── public/        # smoke, navigation, blogs, products
-├── app/           # user-flows, cart, checkout, complete-purchase, orders, peluch-detail
-└── auth/          # auth (sign-in, sign-up, forgot-password)
-```
-
-Flow definitions registered in `frontend/e2e/flow-definitions.json` and documented in `docs/USER_FLOW_MAP.md`.
+Jest verifica páginas, componentes, stores, hooks y servicios. Playwright organiza
+specs en `e2e/public`, `app`, `auth` y `backoffice`; CI utiliza dos shards.
+`frontend/e2e/flow-definitions.json` conserva el contrato y
+`docs/USER_FLOW_MAP.md` lo documenta. Los módulos eliminados en la limpieza de
+septiembre no eran alcanzables desde las páginas; no se retiran flujos activos.

@@ -15,16 +15,6 @@ jest.mock('@/lib/services/http', () => ({
 
 import HomePage from '../page';
 
-jest.mock('../../components/blog/BlogCarousel', () => ({
-  __esModule: true,
-  default: () => null,
-}));
-
-jest.mock('../../components/product/ProductCarousel', () => ({
-  __esModule: true,
-  default: () => null,
-}));
-
 describe('HomePage', () => {
   it('renders main heading', () => {
     render(<HomePage />);

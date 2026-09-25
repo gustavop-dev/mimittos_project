@@ -130,3 +130,12 @@ test-results/test-quality-report.json
 
 # Rotated logs (RotatingFileHandler: django.log.1, .2, ...)
 *.log.[0-9]*
+
+# Generated CI reports
+/backend/coverage-backend.json
+/backend/coverage-backend.xml
+/backend/pytest-results.xml
+/frontend/jest-results.json
+/frontend/all-blob-reports/
+/coverage-artifacts/
+/coverage-report.md
