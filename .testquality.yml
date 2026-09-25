@@ -42,3 +42,9 @@ banned_tokens:
   - "coverage"
   - "cov"
   - "deep"
+
+# Performance: catálogo público, sin ampliar el contrato HTTP.
+performance_paths:
+  - "catalog=frontend/app/catalog/page.tsx,frontend/lib/services/peluchService.ts"
+performance_budget_tests:
+  - "frontend/app/catalog/__tests__/page.test.tsx"
