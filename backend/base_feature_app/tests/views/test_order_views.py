@@ -1,6 +1,12 @@
+"""Test order API behavior."""
+
+from datetime import datetime, timedelta
+from datetime import timezone as datetime_timezone
 from unittest.mock import patch
 
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django_attachments.models import Library
 
 from base_feature_app.models import (
@@ -8,6 +14,7 @@ from base_feature_app.models import (
     GlobalColor,
     GlobalSize,
     Order,
+    OrderItem,
     Peluch,
     PeluchSizePrice,
 )
@@ -18,21 +25,25 @@ from base_feature_app.models import (
 
 @pytest.fixture
 def category(db):
+    """Provide a category fixture."""
     return Category.objects.create(name='Osos', slug='osos', is_active=True)
 
 
 @pytest.fixture
 def size(db):
+    """Provide a size fixture."""
     return GlobalSize.objects.create(label='Pequeño', slug='pequeno', cm='20cm')
 
 
 @pytest.fixture
 def color(db):
+    """Provide a color fixture."""
     return GlobalColor.objects.create(name='Rosa', slug='rosa', hex_code='#FF69B4')
 
 
 @pytest.fixture
 def peluch(db, category, color):
+    """Provide a peluch fixture."""
     library = Library.objects.create(title='Peluch Gallery')
     p = Peluch.objects.create(
         title='Osito',
@@ -48,12 +59,14 @@ def peluch(db, category, color):
 
 @pytest.fixture
 def peluch_with_price(peluch, size):
+    """Provide a priced peluch fixture."""
     PeluchSizePrice.objects.create(peluch=peluch, size=size, price=80000)
     return peluch
 
 
 @pytest.fixture
 def order_data(peluch_with_price, size, color):
+    """Provide valid order request data."""
     return {
         'customer_name': 'Ana García',
         'customer_email': 'ana@example.com',
@@ -75,8 +88,45 @@ def order_data(peluch_with_price, size, color):
     }
 
 
+def _order_with_item(customer, peluch, size, color, number, created_at=None):
+    order = Order.objects.create(
+        order_number=number,
+        customer=customer,
+        customer_email=customer.email,
+        customer_name='Cliente de pedidos',
+        address='Calle 123',
+        city='Bogotá',
+        department='Cundinamarca',
+        total_amount=80000,
+        deposit_amount=40000,
+        balance_amount=40000,
+    )
+    if created_at is not None:
+        Order.objects.filter(pk=order.pk).update(created_at=created_at)
+        order.refresh_from_db()
+    OrderItem.objects.create(
+        order=order, peluch=peluch, size=size, color=color, quantity=1, unit_price=80000,
+    )
+    return order
+
+
+def _owned_orders_with_items(customer, peluch, size, color, count, prefix):
+    return [
+        _order_with_item(customer, peluch, size, color, f'{prefix}-{index:04d}')
+        for index in range(count)
+    ]
+
+
+def _my_orders_select_count(client):
+    with CaptureQueriesContext(connection) as context:
+        response = client.get('/api/orders/my/')
+    select_count = sum(query['sql'].lstrip().upper().startswith('SELECT') for query in context.captured_queries)
+    return response, select_count
+
+
 @pytest.fixture
 def existing_order(db, existing_user):
+    """Create an existing order."""
     return Order.objects.create(
         order_number='MMT-20260420-TEST',
         customer=existing_user,
@@ -94,6 +144,7 @@ def existing_order(db, existing_user):
 
 @pytest.fixture
 def existing_user(db):
+    """Create an existing customer."""
     from django.contrib.auth import get_user_model
     User = get_user_model()
     return User.objects.create_user(email='user@example.com', password='pass')
@@ -101,6 +152,7 @@ def existing_user(db):
 
 @pytest.fixture
 def admin_user(db):
+    """Create an administrative user."""
     from django.contrib.auth import get_user_model
     User = get_user_model()
     u = User.objects.create_user(email='admin@example.com', password='pass')
@@ -111,6 +163,7 @@ def admin_user(db):
 
 @pytest.fixture
 def authenticated_client(existing_user):
+    """Provide an authenticated API client."""
     from rest_framework.test import APIClient
     client = APIClient()
     client.force_authenticate(user=existing_user)
@@ -119,6 +172,7 @@ def authenticated_client(existing_user):
 
 @pytest.fixture
 def admin_client(admin_user):
+    """Provide an administrative API client."""
     from rest_framework.test import APIClient
     client = APIClient()
     client.force_authenticate(user=admin_user)
@@ -127,6 +181,7 @@ def admin_client(admin_user):
 
 @pytest.fixture
 def anon_client():
+    """Provide an anonymous API client."""
     from rest_framework.test import APIClient
     return APIClient()
 
@@ -138,6 +193,7 @@ def anon_client():
 @pytest.mark.django_db
 @patch('base_feature_app.views.order_views.NotificationService.notify_new_order_admin', return_value=True)
 def test_create_order_returns_201_with_valid_data(mock_notify, anon_client, order_data):
+    """Verify create order returns 201 with valid data."""
     response = anon_client.post('/api/orders/', order_data, format='json')
     assert response.status_code == 201
     assert 'order_number' in response.data
@@ -146,6 +202,7 @@ def test_create_order_returns_201_with_valid_data(mock_notify, anon_client, orde
 @pytest.mark.django_db
 @patch('base_feature_app.views.order_views.NotificationService.notify_new_order_admin', return_value=True)
 def test_create_order_stores_order_in_database(mock_notify, anon_client, order_data):
+    """Verify create order stores order in database."""
     anon_client.post('/api/orders/', order_data, format='json')
     assert Order.objects.filter(customer_email='ana@example.com').exists()
 
@@ -153,6 +210,7 @@ def test_create_order_stores_order_in_database(mock_notify, anon_client, order_d
 @pytest.mark.django_db
 @patch('base_feature_app.views.order_views.NotificationService.notify_new_order_admin', return_value=True)
 def test_create_order_returns_amounts_in_response(mock_notify, anon_client, order_data):
+    """Verify create order returns amounts in response."""
     response = anon_client.post('/api/orders/', order_data, format='json')
     assert response.data['total_amount'] == 80000
     assert response.data['deposit_amount'] == 40000
@@ -161,20 +219,35 @@ def test_create_order_returns_amounts_in_response(mock_notify, anon_client, orde
 
 @pytest.mark.django_db
 def test_create_order_returns_400_for_missing_fields(anon_client):
+    """Verify create order returns 400 for missing fields."""
     response = anon_client.post('/api/orders/', {}, format='json')
     assert response.status_code == 400
 
 
 @pytest.mark.django_db
 def test_create_order_returns_400_for_empty_items(anon_client, order_data):
+    """Verify create order returns 400 for empty items."""
     order_data['items'] = []
     response = anon_client.post('/api/orders/', order_data, format='json')
     assert response.status_code == 400
 
 
 @pytest.mark.django_db
+def test_create_order_returns_item_errors_without_creating_an_order_for_object_items(anon_client, order_data):
+    """Falla si una forma JSON que no es lista escapa del ListSerializer como excepción."""
+    order_data['items'] = order_data['items'][0]
+
+    response = anon_client.post('/api/orders/', order_data, format='json')
+
+    assert response.status_code == 400
+    assert 'items' in response.data
+    assert Order.objects.count() == 0
+
+
+@pytest.mark.django_db
 @patch('base_feature_app.views.order_views.NotificationService.notify_new_order_admin', return_value=True)
 def test_create_order_returns_201_with_expected_keys(mock_notify, anon_client, order_data):
+    """Verify create order returns 201 with expected keys."""
     response = anon_client.post('/api/orders/', order_data, format='json')
     assert response.status_code == 201
     for key in ('order_number', 'deposit_amount', 'balance_amount', 'total_amount', 'is_guest'):
@@ -187,6 +260,7 @@ def test_create_order_returns_201_with_expected_keys(mock_notify, anon_client, o
 
 @pytest.mark.django_db
 def test_track_order_returns_200_for_valid_order(anon_client, existing_order):
+    """Verify track order returns 200 for valid order."""
     response = anon_client.get(f'/api/orders/track/{existing_order.order_number}/')
     assert response.status_code == 200
     assert response.data['order_number'] == existing_order.order_number
@@ -194,12 +268,14 @@ def test_track_order_returns_200_for_valid_order(anon_client, existing_order):
 
 @pytest.mark.django_db
 def test_track_order_returns_404_for_nonexistent_order(anon_client):
+    """Verify track order returns 404 for nonexistent order."""
     response = anon_client.get('/api/orders/track/MMT-NOEXISTE-0000/')
     assert response.status_code == 404
 
 
 @pytest.mark.django_db
 def test_track_order_returns_status_in_response(anon_client, existing_order):
+    """Verify track order returns status in response."""
     response = anon_client.get(f'/api/orders/track/{existing_order.order_number}/')
     assert 'status' in response.data
 
@@ -210,6 +286,7 @@ def test_track_order_returns_status_in_response(anon_client, existing_order):
 
 @pytest.mark.django_db
 def test_my_orders_returns_200_for_authenticated_user(authenticated_client, existing_order):
+    """Verify my orders returns 200 for authenticated user."""
     response = authenticated_client.get('/api/orders/my/')
     assert response.status_code == 200
     assert len(response.data) == 1
@@ -217,6 +294,7 @@ def test_my_orders_returns_200_for_authenticated_user(authenticated_client, exis
 
 @pytest.mark.django_db
 def test_my_orders_returns_401_for_anonymous(anon_client):
+    """Verify my orders returns 401 for anonymous."""
     response = anon_client.get('/api/orders/my/')
     assert response.status_code == 401
 
@@ -241,12 +319,61 @@ def test_my_orders_only_returns_own_orders(authenticated_client, db, existing_us
     assert len(response.data) == 0
 
 
+@pytest.mark.django_db
+def test_my_orders_has_constant_read_budget_for_fifty_orders_with_items(
+    authenticated_client, existing_user, admin_user, peluch_with_price, size, color,
+):
+    """Falla si Mis pedidos vuelve a precargar artículos o peluches que no expone."""
+    one_order = _owned_orders_with_items(existing_user, peluch_with_price, size, color, 1, 'MMT-ONE')
+    one_response, one_selects = _my_orders_select_count(authenticated_client)
+    from rest_framework.test import APIClient
+
+    fifty_client = APIClient()
+    fifty_client.force_authenticate(user=admin_user)
+    fifty_orders = _owned_orders_with_items(admin_user, peluch_with_price, size, color, 50, 'MMT-FIFTY')
+    fifty_response, fifty_selects = _my_orders_select_count(fifty_client)
+
+    assert one_response.status_code == 200
+    assert [row['order_number'] for row in one_response.data] == [one_order[0].order_number]
+    assert one_selects == fifty_selects
+    assert fifty_selects <= 1
+    assert {row['order_number'] for row in fifty_response.data} == {order.order_number for order in fifty_orders}
+
+
+@pytest.mark.django_db
+def test_my_orders_keeps_own_orders_in_descending_creation_order(
+    authenticated_client, existing_user, admin_user, peluch_with_price, size, color,
+):
+    """Falla si Mis pedidos pierde el filtro por cliente o el orden descendente de creación."""
+    base_time = datetime(2026, 9, 24, 12, 0, tzinfo=datetime_timezone.utc)
+    older = _order_with_item(
+        existing_user, peluch_with_price, size, color, 'MMT-OWN-OLDER', base_time - timedelta(days=2),
+    )
+    newer = _order_with_item(
+        existing_user, peluch_with_price, size, color, 'MMT-OWN-NEWER', base_time - timedelta(days=1),
+    )
+    _order_with_item(admin_user, peluch_with_price, size, color, 'MMT-OTHER-NEWER', base_time)
+
+    response = authenticated_client.get('/api/orders/my/')
+
+    assert response.status_code == 200
+    assert [row['order_number'] for row in response.data] == [newer.order_number, older.order_number]
+    assert set(response.data[0]) == {
+        'id', 'order_number', 'customer_name', 'customer_email', 'city', 'department', 'status',
+        'total_amount', 'deposit_amount', 'balance_amount', 'shipping_amount', 'discount_amount',
+        'payment_mode', 'amount_paid_now', 'created_at',
+    }
+    assert response.data[0]['customer_email'] == existing_user.email
+    assert response.data[0]['total_amount'] == 80000
+
+
 # ---------------------------------------------------------------------------
 # GET /api/orders/list/ — admin list
 # ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
 def test_orders_list_returns_200_for_admin(admin_client, existing_order):
+    """Verify orders list returns 200 for admin."""
     response = admin_client.get('/api/orders/list/')
     assert response.status_code == 200
     assert len(response.data) == 1
@@ -254,12 +381,14 @@ def test_orders_list_returns_200_for_admin(admin_client, existing_order):
 
 @pytest.mark.django_db
 def test_orders_list_returns_403_for_anonymous(anon_client):
+    """Verify orders list returns 403 for anonymous."""
     response = anon_client.get('/api/orders/list/')
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
 def test_orders_list_filters_by_status(admin_client, existing_order):
+    """Verify orders list filters by status."""
     response = admin_client.get('/api/orders/list/?status=pending_payment')
     assert response.status_code == 200
     assert len(response.data) == 1
@@ -267,6 +396,7 @@ def test_orders_list_filters_by_status(admin_client, existing_order):
 
 @pytest.mark.django_db
 def test_orders_list_filters_by_city(admin_client, existing_order):
+    """Verify orders list filters by city."""
     response = admin_client.get('/api/orders/list/?city=Bogotá')
     assert response.status_code == 200
     assert len(response.data) == 1
@@ -274,6 +404,7 @@ def test_orders_list_filters_by_city(admin_client, existing_order):
 
 @pytest.mark.django_db
 def test_orders_list_returns_empty_for_unmatched_city(admin_client, existing_order):
+    """Verify orders list returns empty for unmatched city."""
     response = admin_client.get('/api/orders/list/?city=NoExiste')
     assert response.status_code == 200
     assert len(response.data) == 0
@@ -285,6 +416,7 @@ def test_orders_list_returns_empty_for_unmatched_city(admin_client, existing_ord
 
 @pytest.mark.django_db
 def test_order_detail_returns_200_for_owner(authenticated_client, existing_order):
+    """Verify order detail returns 200 for owner."""
     response = authenticated_client.get(f'/api/orders/{existing_order.order_number}/')
     assert response.status_code == 200
     assert response.data['order_number'] == existing_order.order_number
@@ -292,12 +424,14 @@ def test_order_detail_returns_200_for_owner(authenticated_client, existing_order
 
 @pytest.mark.django_db
 def test_order_detail_returns_200_for_admin(admin_client, existing_order):
+    """Verify order detail returns 200 for admin."""
     response = admin_client.get(f'/api/orders/{existing_order.order_number}/')
     assert response.status_code == 200
 
 
 @pytest.mark.django_db
 def test_order_detail_returns_403_for_other_user(db, existing_order):
+    """Verify order detail returns 403 for other user."""
     from django.contrib.auth import get_user_model
     from rest_framework.test import APIClient
     User = get_user_model()
@@ -310,6 +444,7 @@ def test_order_detail_returns_403_for_other_user(db, existing_order):
 
 @pytest.mark.django_db
 def test_order_detail_returns_404_for_nonexistent(admin_client):
+    """Verify order detail returns 404 for nonexistent."""
     response = admin_client.get('/api/orders/MMT-NOEXISTE-0000/')
     assert response.status_code == 404
 
@@ -321,6 +456,7 @@ def test_order_detail_returns_404_for_nonexistent(admin_client):
 @pytest.mark.django_db
 @patch('base_feature_app.services.notification_service.NotificationService.notify_status_change')
 def test_update_order_status_returns_200_for_admin(mock_notify, admin_client, existing_order):
+    """Verify update order status returns 200 for admin."""
     payload = {'status': 'payment_confirmed', 'notes': 'Pago verificado'}
     response = admin_client.patch(f'/api/orders/{existing_order.order_number}/status/', payload)
     assert response.status_code == 200
@@ -330,18 +466,21 @@ def test_update_order_status_returns_200_for_admin(mock_notify, admin_client, ex
 
 @pytest.mark.django_db
 def test_update_order_status_returns_403_for_anonymous(anon_client, existing_order):
+    """Verify update order status returns 403 for anonymous."""
     response = anon_client.patch(f'/api/orders/{existing_order.order_number}/status/', {'status': 'payment_confirmed'})
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
 def test_update_order_status_returns_400_for_invalid_status(admin_client, existing_order):
+    """Verify update order status returns 400 for invalid status."""
     response = admin_client.patch(f'/api/orders/{existing_order.order_number}/status/', {'status': 'invalid_status'})
     assert response.status_code == 400
 
 
 @pytest.mark.django_db
 def test_update_order_status_returns_404_for_missing_order(admin_client):
+    """Verify update order status returns 404 for missing order."""
     response = admin_client.patch('/api/orders/MMT-NOEXISTE-0000/status/', {'status': 'payment_confirmed'})
     assert response.status_code == 404
 
@@ -352,6 +491,7 @@ def test_update_order_status_returns_404_for_missing_order(admin_client):
 
 @pytest.mark.django_db
 def test_update_order_tracking_stores_tracking_number(admin_client, existing_order):
+    """Verify update order tracking stores tracking number."""
     payload = {'tracking_number': '123456', 'shipping_carrier': 'Servientrega'}
     response = admin_client.patch(f'/api/orders/{existing_order.order_number}/tracking/', payload)
     assert response.status_code == 200
@@ -362,11 +502,13 @@ def test_update_order_tracking_stores_tracking_number(admin_client, existing_ord
 
 @pytest.mark.django_db
 def test_update_order_tracking_returns_403_for_anonymous(anon_client, existing_order):
+    """Verify update order tracking returns 403 for anonymous."""
     response = anon_client.patch(f'/api/orders/{existing_order.order_number}/tracking/', {'tracking_number': '123'})
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
 def test_update_order_tracking_returns_404_for_missing_order(admin_client):
+    """Verify update order tracking returns 404 for missing order."""
     response = admin_client.patch('/api/orders/MMT-NOEXISTE-0000/tracking/', {'tracking_number': '123'})
     assert response.status_code == 404

@@ -38,6 +38,24 @@ infraestructura, dependencias o flujos de usuario. Perfil: `vps-projectapp-prod`
 según el estándar canónico y el ledger del toolkit.
 
 
+## Rendimiento de pedidos — 2026-09-24
+
+Rama `fix/24092026-perf-order-batches`, PR #69 hacia `main`. Candidatos
+`P-backend-queries-06` y `P-backend-queries-07`: la validación del carrito comparte
+consultas por bloques internos y el servicio vuelve a cargar precios disponibles
+dentro de `atomic`; Mis pedidos deja de precargar artículos no serializados.
+Se conservan contrato, errores DRF por índice, cálculos y escrituras por artículo.
+
+QA aprobada sobre serializers, servicio y vistas de pedidos, con SQLite aislada
+como CI: presupuestos, errores, precios actualizados, media e aislamiento
+verificados; gate estricto con Ruff limpio y auditoría independiente KEEP.
+El caso es `conservative`: acotar públicamente el carrito o paginar el
+historial requiere otra decisión de contrato. La evidencia y los presupuestos
+viven en el toolkit, reportes `2026-09-24-mimittos_project-perf-order-batches.md`
+y `2026-09-24-round3-mimittos_project-qa.md`.
+Los PR #67 y #68 corresponden a rondas independientes. Esta sesión entrega PR
+abierto con CI verde; no mergea ni despliega.
+
 ## Monitoreo local — 2026-09-19
 
 Exportación semanal Silk agrupada y sin SQL/valores URL para el módulo de

@@ -1,7 +1,101 @@
-from rest_framework import serializers
+from collections.abc import Mapping
 
-from base_feature_app.models import Order, OrderItem, OrderStatusHistory, WompiTransaction
+from django.db.models import Q
+from rest_framework import serializers
+from rest_framework.utils import html
+
+from base_feature_app.models import (
+    GlobalColor, GlobalSize, Order, OrderItem, OrderStatusHistory, Peluch,
+    PeluchSizePrice, PersonalizationMedia, WompiTransaction,
+)
 from base_feature_app.serializers.catalog import GlobalSizeSerializer, GlobalColorSerializer
+
+
+ORDER_ITEM_VALIDATION_BATCH_SIZE = 100
+
+
+class _OrderItemLookups:
+    """Request-local catalog data for one bounded group of cart lines."""
+
+    def __init__(self, items):
+        self.peluches = {
+            peluch.pk: peluch
+            for peluch in Peluch.objects.filter(
+                pk__in={item.get('peluch_id') for item in items}, is_active=True,
+            ).only(
+                'id', 'title', 'discount_pct', 'has_huella', 'has_corazon',
+                'has_audio', 'huella_extra_cost', 'corazon_extra_cost', 'audio_extra_cost',
+            )
+        }
+        self.sizes = {
+            size.pk: size for size in GlobalSize.objects.filter(
+                pk__in={item.get('size_id') for item in items}, is_active=True,
+            )
+        }
+        self.colors = {
+            color.pk: color for color in GlobalColor.objects.filter(
+                pk__in={item.get('color_id') for item in items}, is_active=True,
+            )
+        }
+        color_pairs = Q(pk__in=[])
+        size_pairs = Q(pk__in=[])
+        for item in items:
+            if item.get('peluch_id') in self.peluches:
+                if item.get('color_id') in self.colors:
+                    color_pairs |= Q(peluch_id=item['peluch_id'], globalcolor_id=item['color_id'])
+                if item.get('size_id') in self.sizes:
+                    size_pairs |= Q(peluch_id=item['peluch_id'], size_id=item['size_id'])
+        self.available_colors = set(
+            Peluch.available_colors.through.objects.filter(color_pairs)
+            .values_list('peluch_id', 'globalcolor_id')
+        )
+        self.available_sizes = set(
+            PeluchSizePrice.objects.filter(size_pairs, is_available=True).order_by()
+            .values_list('peluch_id', 'size_id')
+        )
+        media_ids = {
+            item.get(field) for item in items
+            for field in ('huella_media_id', 'audio_media_id')
+        }
+        self.media = {
+            (media.pk, media.media_type): media
+            for media in PersonalizationMedia.objects.filter(pk__in=media_ids).only('id', 'media_type')
+        }
+
+
+class OrderItemCreateListSerializer(serializers.ListSerializer):
+    """Keep DRF's per-line validation/errors while sharing bounded lookups."""
+
+    def to_internal_value(self, data):
+        if html.is_html_input(data):
+            data = html.parse_html_list(data, default=[])
+        self._input_items = data if isinstance(data, list) else []
+        self._item_index = 0
+        self._item_lookups = None
+        try:
+            return super().to_internal_value(data)
+        finally:
+            self._input_items = []
+            self._item_lookups = None
+
+    def run_child_validation(self, data):
+        if self._item_index % ORDER_ITEM_VALIDATION_BATCH_SIZE == 0:
+            stop = self._item_index + ORDER_ITEM_VALIDATION_BATCH_SIZE
+            items = []
+            for raw_item in self._input_items[self._item_index:stop]:
+                item = {}
+                if isinstance(raw_item, Mapping):
+                    for name in ('peluch_id', 'size_id', 'color_id', 'huella_media_id', 'audio_media_id'):
+                        field = self.child.fields[name]
+                        try:
+                            item[name] = field.run_validation(field.get_value(raw_item))
+                        except (serializers.ValidationError, serializers.SkipField):
+                            # The normal child validation collects every error below.
+                            pass
+                items.append(item)
+            self._item_lookups = _OrderItemLookups(items)
+        self._item_index += 1
+        return super().run_child_validation(data)
 
 
 class OrderItemCreateSerializer(serializers.Serializer):
@@ -20,28 +114,30 @@ class OrderItemCreateSerializer(serializers.Serializer):
     has_audio = serializers.BooleanField(default=False)
     audio_media_id = serializers.IntegerField(required=False, allow_null=True)
 
-    def validate(self, data):
-        from base_feature_app.models import Peluch, GlobalSize, GlobalColor, PeluchSizePrice, PersonalizationMedia
+    class Meta:
+        list_serializer_class = OrderItemCreateListSerializer
 
-        try:
-            peluch = Peluch.objects.get(id=data['peluch_id'], is_active=True)
-        except Peluch.DoesNotExist:
+    def validate(self, data):
+        lookups = getattr(self.parent, '_item_lookups', None)
+        if lookups is None:
+            lookups = _OrderItemLookups([data])
+
+        peluch = lookups.peluches.get(data['peluch_id'])
+        if peluch is None:
             raise serializers.ValidationError({'peluch_id': 'Peluche no encontrado.'})
 
-        try:
-            size = GlobalSize.objects.get(id=data['size_id'], is_active=True)
-        except GlobalSize.DoesNotExist:
+        size = lookups.sizes.get(data['size_id'])
+        if size is None:
             raise serializers.ValidationError({'size_id': 'Tamaño no válido.'})
 
-        try:
-            color = GlobalColor.objects.get(id=data['color_id'], is_active=True)
-        except GlobalColor.DoesNotExist:
+        color = lookups.colors.get(data['color_id'])
+        if color is None:
             raise serializers.ValidationError({'color_id': 'Color no válido.'})
 
-        if not peluch.available_colors.filter(id=color.id).exists():
+        if (peluch.id, color.id) not in lookups.available_colors:
             raise serializers.ValidationError({'color_id': 'Este color no está disponible para este peluche.'})
 
-        if not PeluchSizePrice.objects.filter(peluch=peluch, size=size, is_available=True).exists():
+        if (peluch.id, size.id) not in lookups.available_sizes:
             raise serializers.ValidationError({'size_id': 'Este tamaño no está disponible para este peluche.'})
 
         if data.get('has_huella'):
@@ -51,12 +147,10 @@ class OrderItemCreateSerializer(serializers.Serializer):
                 media_id = data.get('huella_media_id')
                 if not media_id:
                     raise serializers.ValidationError({'huella_media_id': 'Debes subir una imagen para la huella.'})
-                try:
-                    data['huella_media'] = PersonalizationMedia.objects.get(
-                        id=media_id, media_type=PersonalizationMedia.MediaType.HUELLA_IMAGE
-                    )
-                except PersonalizationMedia.DoesNotExist:
+                media = lookups.media.get((media_id, PersonalizationMedia.MediaType.HUELLA_IMAGE))
+                if media is None:
                     raise serializers.ValidationError({'huella_media_id': 'Imagen de huella no encontrada.'})
+                data['huella_media'] = media
 
         if data.get('has_audio'):
             if not peluch.has_audio:
@@ -64,12 +158,10 @@ class OrderItemCreateSerializer(serializers.Serializer):
             media_id = data.get('audio_media_id')
             if not media_id:
                 raise serializers.ValidationError({'audio_media_id': 'Debes subir un audio.'})
-            try:
-                data['audio_media'] = PersonalizationMedia.objects.get(
-                    id=media_id, media_type=PersonalizationMedia.MediaType.AUDIO
-                )
-            except PersonalizationMedia.DoesNotExist:
+            media = lookups.media.get((media_id, PersonalizationMedia.MediaType.AUDIO))
+            if media is None:
                 raise serializers.ValidationError({'audio_media_id': 'Audio no encontrado.'})
+            data['audio_media'] = media
 
         data['peluch'] = peluch
         data['size'] = size
