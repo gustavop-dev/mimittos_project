@@ -49,8 +49,12 @@ performance_paths:
   - "analytics=backend/base_feature_app/services/analytics_service.py"
   - "reviews=backend/base_feature_app/services/review_service.py"
   - "authentication=frontend/lib/stores/authStore.ts"
+  - "orders=backend/base_feature_app/serializers/order.py,backend/base_feature_app/services/order_service.py,backend/base_feature_app/views/order_views.py"
 performance_budget_tests:
   - "frontend/app/catalog/__tests__/page.test.tsx"
   - "backend/base_feature_app/tests/services/test_analytics_service.py"
   - "backend/base_feature_app/tests/services/test_review_service.py"
   - "frontend/lib/stores/__tests__/authStore.test.ts"
+  - "backend/base_feature_app/tests/serializers/test_order_serializer.py"
+  - "backend/base_feature_app/tests/services/test_order_service.py"
+  - "backend/base_feature_app/tests/views/test_order_views.py"

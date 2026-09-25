@@ -5,7 +5,23 @@ description: Current work focus, recent changes, active decisions, and next step
 
 # Active Context — Mimittos
 
+## Rendimiento del filtro de precio — 2026-09-25
 
+Ronda `perf-catalog-requests`, PR #70. El precio mostrado se actualiza de inmediato;
+las consultas de precio se agrupan tras 300 ms de pausa. Categoría, talla, huella y
+orden consultan de inmediato con el precio vigente. La selección anterior se
+invalida antes de esperar, y sus respuestas no pueden publicar resultados ni
+finalizar la carga vigente. QA valida presupuesto de llamadas, cancelaciones y
+contratos; la prueba E2E existente usa el control accesible por teclado.
+
+El lote local pasa 32 pruebas (23 de catálogo y 9 del servicio), con el presupuesto
+de una consulta adicional para ráfagas de uno y cincuenta cambios. El spec público
+se ejecuta en el entorno aislado de CI; su resultado vigente y el cierre de entrega
+se consultan en [PR #70](https://github.com/gustavop-dev/mimittos_project/pull/70).
+
+La concurrencia de subidas queda en diagnóstico: falta un presupuesto canónico de
+trabajos activos. No se modifican uploads ni infraestructura. Evidencia operativa
+en el toolkit: `docs/audits/2026-09-25-mimittos_project-perf-catalog-requests.md`.
 
 ## Rendimiento — KPIs, reseñas y sesión (2026-09-24)
 
@@ -20,3 +36,194 @@ la escritura, sesión una validación lógica para consumidores concurrentes. QA
 verificado sobre SQLite aislada y Jest, con gate estricto limpio; sin modificaciones de base de datos,
 infraestructura, dependencias o flujos de usuario. Perfil: `vps-projectapp-prod`,
 según el estándar canónico y el ledger del toolkit.
+
+
+## Rendimiento de pedidos — 2026-09-24
+
+Rama `fix/24092026-perf-order-batches`, PR #69 hacia `main`. Candidatos
+`P-backend-queries-06` y `P-backend-queries-07`: la validación del carrito comparte
+consultas por bloques internos y el servicio vuelve a cargar precios disponibles
+dentro de `atomic`; Mis pedidos deja de precargar artículos no serializados.
+Se conservan contrato, errores DRF por índice, cálculos y escrituras por artículo.
+
+QA aprobada sobre serializers, servicio y vistas de pedidos, con SQLite aislada
+como CI: presupuestos, errores, precios actualizados, media e aislamiento
+verificados; gate estricto con Ruff limpio y auditoría independiente KEEP.
+El caso es `conservative`: acotar públicamente el carrito o paginar el
+historial requiere otra decisión de contrato. La evidencia y los presupuestos
+viven en el toolkit, reportes `2026-09-24-mimittos_project-perf-order-batches.md`
+y `2026-09-24-round3-mimittos_project-qa.md`.
+Los PR #67 y #68 corresponden a rondas independientes. Esta sesión entrega PR
+abierto con CI verde; no mergea ni despliega.
+
+## Monitoreo local — 2026-09-19
+
+Exportación semanal Silk agrupada y sin SQL/valores URL para el módulo de
+monitoreo de ProjectApp. Muestreo acotado y cuerpos HTTP deshabilitados; no se
+modificó `.env` ni se activó Silk. El rollout pertenece al deploy autorizado y
+mantiene el correo. Detalle: `docs/monitoring-export.md`.
+
+Last updated: 2026-08-26
+
+---
+
+## Dependency vulnerability remediation (2026-08-26)
+
+Branch `chore/26082026-vuln-audit`. The frontend dependency audit moved from
+10 findings (9 high, 1 low; 6 high in production dependencies) to zero after
+patch/minor updates, including Next.js 16.3.3 and Axios 1.20.0. The production
+build passes and 57 focused Jest tests cover the fixtures/mocks corrected when a
+clean build exposed pre-existing type drift.
+
+The backend audit moved from 44 findings across Django, Pillow, pip, PyJWT, and
+sqlparse to 4 findings in sqlparse 0.5.5 only. Django 6.0.8, Pillow 12.3.0, and
+PyJWT 2.13.0 contain the applicable fixes. sqlparse 0.6.0 remains a separately
+reviewed major transition under the project's 0.x policy; there is no direct
+sqlparse import in application code. Backend verification used an isolated
+Python 3.12 venv and SQLite: 0 Django check issues, 502 tests collected, and the
+8-test smoke slice passed. Full evidence and deferred majors are recorded in
+`audit-report.md`.
+
+---
+
+## GTM global + catalog pagination (2026-06-10)
+
+Branch `feat/10062026-gtm-catalog-pagination`. Two changes: (1) Google Tag Manager
+(`GTM-K88JC5VS`) added globally in `frontend/app/layout.tsx` — inline script via
+`next/script` (`strategy="afterInteractive"`) plus the `<noscript>` iframe right after
+`<body>`, so it loads on every route. (2) Client-side pagination on `/catalog`: page
+size is responsive via `matchMedia('(min-width: 1024px)')` — 16 products per page on
+desktop, 12 on mobile — with Anterior/Siguiente + numbered page controls below the
+grid. Changing any filter or sort resets to page 1; page changes scroll back to top.
+Flow `catalog-pagination` registered in `docs/USER_FLOW_MAP.md` and
+`frontend/e2e/flow-definitions.json` (E2E spec pending — needs seed data with >12
+products to be deterministic). Unit tests added in
+`frontend/app/catalog/__tests__/page.test.tsx` (10 passing).
+
+---
+
+## Incremental color image upload — draft model (2026-05-21)
+
+Branch `feat/21052026-incremental-color-image-upload`. La creación de peluches en el
+backoffice ya no acumula las fotos por color en memoria para subirlas al hacer "Crear":
+ahora, al seleccionar la primera foto de un color, se crea de inmediato un peluche
+**borrador** (`is_active=false`) vía `peluchAdminService.create`, y desde ahí el formulario
+se comporta como modo edición. Cada imagen se sube de a una con estado por imagen
+(subiendo / ✓ / ✗ con reintento) y auto-retry de fallos transitorios; el botón "Guardar"
+se bloquea mientras haya subidas pendientes o fallidas. "Cancelar" ofrece descartar el
+borrador (lo borra vía API). La compresión cliente (`lib/utils/imageCompressor.ts`)
+garantiza que cada imagen quede bajo un límite de bytes antes de subir. El listado del
+backoffice marca los peluches inactivos con un badge "Borrador". Piezas nuevas:
+`lib/utils/imageCompressor.ts` (reescrito), `lib/services/colorImageUpload.ts` (retry),
+`lib/hooks/useColorImageUpload.ts` (hook de subida incremental). Cambio de backend
+necesario: `is_active` se agregó a `PeluchListSerializer.fields` para que el badge
+funcione end-to-end. Spec/plan:
+`docs/superpowers/specs/2026-05-21-incremental-color-image-upload.md`,
+`docs/superpowers/plans/2026-05-21-incremental-color-image-upload.md`.
+
+---
+
+## Cascade color/size deletion (2026-05-21)
+
+Admins can now hard-delete a global color or size from `PeluchForm`. `PeluchSizePrice.size` is
+`CASCADE` and `OrderItem.size/color` are `SET_NULL` (migration `0013`), so deletion is unblocked
+and cascades to the catalog while order history survives via `OrderItem.configuration_snapshot`
+(`size_label`/`color_name` already stored there). New admin endpoints `GET /colors|sizes/<id>/usage/`
+feed real impact counts into a branded SweetAlert2 dialog (`lib/utils/confirmDelete.ts`) that gates
+the delete button on typing the exact preset name. Order views fall back to the snapshot via
+`lib/utils/orderItemDisplay.ts` when the FK is null. Spec/plan:
+`docs/superpowers/specs/2026-05-21-cascade-color-size-deletion-design.md`,
+`docs/superpowers/plans/2026-05-21-cascade-color-size-deletion.md`.
+
+---
+
+## Branch `fix/peluche-size-deselection-not-persisting` (2026-05-21)
+
+Fixed the product-detail color/photo mismatch (see `error-documentation.md` ERROR-001). The peluch
+serializers (`PeluchListSerializer`, `PeluchDetailSerializer`) no longer emit a separate
+`color_images_meta` array — each entry of `available_colors` now carries its own `preview_url`,
+`image_count`, and (detail only) `images`. List endpoints omit the full `images` array to keep the
+catalog payload light. The lazy per-color `getColorImages` fetch was removed; the detail payload
+ships all per-color images at once. Purchase flow untouched: cart/checkout still read the
+`CartItem.gallery_urls` snapshot, whose shape is unchanged.
+
+---
+
+## Branch `feat/per-size-pricing` (2026-05-12)
+
+Moved the per-product pricing knobs onto `PeluchSizePrice` so each size is configured independently:
+`deposit_percentage`, `full_payment_discount_pct`, `free_shipping`, `shipping_cost` now live on `PeluchSizePrice`
+(alongside `price`), not on `Peluch`. `discount_pct` (general always-on discount) stays on `Peluch`.
+Migration `0012_per_size_pricing_config` copies each peluche's old values onto all of its size rows, then drops
+the four columns from `Peluch`. `OrderService.create_order` reads deposit/discount/shipping per matched size;
+everything downstream (`Order` snapshot fields, `WompiTransaction.amount_in_cents`, `wompi_service.py`,
+`/payment/*`) is unchanged. Frontend: product detail snapshots the selected size's config onto the `CartItem`
+(shape unchanged) and shows that size's "Abono X%"; the backoffice `PeluchForm` edits the four fields per size
+row instead of in a global "Pagos y envíos" section. Spec/plan: `docs/superpowers/specs/2026-05-12-per-size-pricing-config-design.md`,
+`docs/superpowers/plans/2026-05-12-per-size-pricing-config.md`.
+
+Note: dev DB is now MySQL (`.env`); the `mimittos` user can't create the pytest `test_*` DB, so run backend
+tests with `DJANGO_DB_ENGINE=django.db.backends.sqlite3 pytest ...` (the project's original SQLite test setup).
+
+---
+
+## Current Focus
+
+Stabilizing CI on branch `double-check-30042026`. The 1 failing E2E (`auth-login-invalid`) is fixed and the CI matrix now exercises all 20 e2e spec files — projected 61/61 flow coverage on next CI run.
+
+Pending product decisions from flow audit (2026-05-01) before registering 4 new flows in `flow-definitions.json` / `USER_FLOW_MAP.md`.
+
+---
+
+## Recent Changes (this branch)
+
+| Commit | Change |
+|--------|--------|
+| `9598e89` | ci(e2e): expand matrix from 4 → 6 shards, every spec file runs |
+| `701e083` | fix: http.ts 401 interceptor was refreshing tokens on unauthenticated requests, causing sign-in failures to redirect to home |
+| `fdfb66e` | test(e2e): mock `sign_in/` to force deterministic 401 path |
+| `5526eb7` | test(e2e): assert non-redirect invariant for invalid credentials |
+| `b62eed4` | chore: gitignore coverage artifact files |
+| `8e35d85` | ci(quality-gate): trigger on every PR/push, drop paths filter |
+| `b05e492` | ci: adopt blob+merge-reports pattern with custom matrix |
+
+---
+
+## Active Decisions
+
+- **Spanish locale is canonical for tests**: All E2E and unit tests assert Spanish-language strings. English translations exist in code but tests don't cover them separately.
+- **Wompi uses `id` field**: Wompi transaction responses return `id`, not `transaction_id`. Tests and serializers align with this.
+- **E2E flow definitions are the contract**: Every navigable user flow must be registered in `frontend/e2e/flow-definitions.json` and documented in `docs/USER_FLOW_MAP.md` before writing E2E tests.
+- **401 interceptor only refreshes when Authorization header was on the request** (`frontend/lib/services/http.ts`) — public endpoints returning 401 (sign_in, sign_up, google_login) reject directly so the page can render the error message.
+- **CI E2E matrix is explicit, not glob-based** — each spec file is listed by name in `.github/workflows/ci.yml` to avoid double-runs and to keep shard balance visible.
+
+---
+
+## Architecture State
+
+| Layer | Count |
+|-------|-------|
+| Backend models | 19 |
+| View files (FBV organized by domain) | 16 |
+| Service modules | 7 |
+| Serializer files | 18 |
+| Migrations | 10 |
+| Management commands | 13 |
+| URL modules | 13 (~60+ paths) |
+| Frontend pages (App Router) | 27 |
+| Frontend components | 20 |
+| Zustand stores | 10 |
+| Frontend services (axios + helpers) | 13 |
+
+---
+
+## Next Steps
+
+1. Wait for CI to confirm 61/61 flow coverage on `9598e89`.
+2. Get product decisions on flow-audit findings (see `tasks_plan.md` "Flow Audit Findings"):
+   - Whether to wire a backend handler for the contact form (or remove the form).
+   - Whether to build backoffice blog management UI (or remove the unused endpoints).
+   - Whether to register `app-dashboard-access` rename.
+3. After decisions: register the 4 new flows in `flow-definitions.json` + `USER_FLOW_MAP.md` and add specs.
+4. Expand the 6 partial-coverage specs (CRUD/submit assertions, not just page-render).
+5. Merge `double-check-30042026` → `main`.
