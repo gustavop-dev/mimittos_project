@@ -5,7 +5,35 @@ description: Task backlog, feature completion status, known issues, and test cov
 
 # Tasks Plan — Mimittos
 
-Last updated: 2026-05-01
+## Ronda de rendimiento — 2026-09-25
+
+- [x] P-frontend-views-01: agrupar solicitudes de precio y proteger la selección vigente.
+- [x] P-frontend-components-01: diagnosticar carga masiva; propuesta de cola pendiente de presupuesto canónico, sin cambios al uploader.
+- [x] QA: cubrir presupuesto, respuestas fuera de orden y compatibilidad con pruebas unitarias; adaptar el E2E del filtro a navegación y teclado reales.
+- Entrega y ejecución E2E: [PR #70](https://github.com/gustavop-dev/mimittos_project/pull/70); el estado de CI se verifica en sus checks. Cierre de sesión con PR abierto y CI verde, sin merge.
+
+## Ronda de rendimiento — 2026-09-24
+
+PR #68: `P-backend-queries-04` (KPIs), `P-backend-queries-05` (reseñas) y
+`P-frontend-stores-01` (sesión). Implementación y QA local completos; entrega mediante PR abierto con CI verde.
+Los presupuestos y tests se declaran en `.testquality.yml`. Los siguientes
+candidatos del scout (creación de pedidos y precarga de Mis pedidos) quedan en
+el ledger del toolkit para otra ronda.
+
+
+Última actualización: 2026-09-24 (ronda de rendimiento de pedidos).
+
+## Trabajo actual — rendimiento de pedidos
+
+- [x] Agrupar las lecturas de validación y precios de creación de pedidos sin
+  modificar reglas ni contrato (`P-backend-queries-06`).
+- [x] Retirar la precarga no utilizada por Mis pedidos (`P-backend-queries-07`).
+- [x] Completar QA de presupuestos, errores, precios actualizados y aislamiento.
+- [x] Abrir PR #69 para entrega; el CI vigente se consulta en GitHub y se verifica
+  sobre el último commit antes del cierre de la sesión.
+
+El filtro de precio del catálogo queda registrado como candidato futuro en el
+ledger del toolkit. No ampliar esta ronda a cargas de imágenes ni paginación.
 
 ---
 
@@ -61,7 +89,7 @@ Last updated: 2026-05-01
 
 ---
 
-## Current Work
+## Historical Work — 2026-05-01
 
 **Branch**: `double-check-30042026`
 **Status**: Stabilizing CI before merge to main

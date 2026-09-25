@@ -53,7 +53,7 @@ def create_order(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_orders(request):
-    orders = Order.objects.filter(customer=request.user).prefetch_related('items__peluch')
+    orders = Order.objects.filter(customer=request.user)
     serializer = OrderListSerializer(orders, many=True)
     return Response(serializer.data)
 

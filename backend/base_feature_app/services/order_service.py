@@ -1,12 +1,16 @@
 import uuid
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from base_feature_app.models import (
     Order, OrderItem, OrderStatusHistory, WompiTransaction,
     PeluchSizePrice, PersonalizationMedia,
 )
+
+
+ORDER_PRICE_BATCH_SIZE = 100
 
 
 def _round_to_100(value: float) -> int:
@@ -33,13 +37,8 @@ class OrderService:
         return _round_to_100(total * percentage / 100)
 
     @staticmethod
-    def _item_subtotal(item: dict, peluch):
+    def _item_subtotal(item: dict, peluch, size_price):
         """Return (size_price, unit_price, personalization_cost, line_subtotal) for a cart item dict."""
-        size_price = PeluchSizePrice.objects.get(
-            peluch=peluch,
-            size=item['size'],
-            is_available=True,
-        )
         personalization_cost = sum([
             peluch.huella_extra_cost if item.get('has_huella') else 0,
             peluch.corazon_extra_cost if item.get('has_corazon') else 0,
@@ -49,6 +48,25 @@ class OrderService:
         unit_price = round(size_price.price * (100 - discount) / 100)
         line_subtotal = (unit_price + personalization_cost) * item['quantity']
         return size_price, unit_price, personalization_cost, line_subtotal
+
+    @staticmethod
+    def _priced_items(items):
+        """Read current prices inside create_order's transaction, in bounded groups."""
+        for start in range(0, len(items), ORDER_PRICE_BATCH_SIZE):
+            group = items[start:start + ORDER_PRICE_BATCH_SIZE]
+            pairs = {(item['peluch'].pk, item['size'].pk) for item in group}
+            price_filter = Q(pk__in=[])
+            for peluch_id, size_id in pairs:
+                price_filter |= Q(peluch_id=peluch_id, size_id=size_id)
+            prices = {
+                (price.peluch_id, price.size_id): price
+                for price in PeluchSizePrice.objects.filter(price_filter, is_available=True).order_by()
+            }
+            for item in group:
+                price = prices.get((item['peluch'].pk, item['size'].pk))
+                if price is None:
+                    raise PeluchSizePrice.DoesNotExist('PeluchSizePrice matching query does not exist.')
+                yield item, price
 
     @staticmethod
     @transaction.atomic
@@ -61,9 +79,11 @@ class OrderService:
         weighted_full_discount_raw = 0.0
         shipping_total = 0
 
-        for item in items_data:
+        for item, size_price in OrderService._priced_items(items_data):
             peluch = item['peluch']
-            size_price, unit_price, personalization_cost, line_subtotal = OrderService._item_subtotal(item, peluch)
+            size_price, unit_price, personalization_cost, line_subtotal = OrderService._item_subtotal(
+                item, peluch, size_price,
+            )
             item['unit_price'] = unit_price
             item['personalization_cost'] = personalization_cost
             item['_line_subtotal'] = line_subtotal

@@ -1289,7 +1289,7 @@ User toggles a size pill in the `/catalog` sidebar. The active size becomes part
 | **Frontend route** | `/catalog` |
 | **API endpoints** | `GET /api/peluches/?max_price=<n>` |
 
-User drags the max-price slider on `/catalog` (range 60k–250k COP). When the value drops below the maximum, the list re-fetches with `?max_price` and excludes peluches whose minimum price exceeds the threshold. Slider above 250k results in no `max_price` param being sent.
+User drags the max-price slider on `/catalog` (range 60k–250k COP). The displayed price updates immediately and the list re-fetches after the final value settles, excluding peluches whose minimum price exceeds the threshold. At the maximum 250000 COP, no `max_price` param is sent.
 
 ### catalog-filter-personalization
 

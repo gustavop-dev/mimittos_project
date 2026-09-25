@@ -98,30 +98,32 @@ test(
 );
 
 test(
-  'should narrow product list when max-price slider drops below the highest price',
+  'should show the last selected price range after keyboard filtering',
   { tag: [...CATALOG_FILTER_BY_PRICE, '@outcome:display'] },
   async ({ page }) => {
-    // quality: allow-no-interaction (the slider IS moved below via a native input-event
-    // dispatch — Playwright cannot drag a range input reliably — and the test asserts the
-    // list narrows; the detector's verb list just does not recognize evaluate/dispatchEvent)
+    // Catches a debounce that drops the last public slider value or fetches a different price.
     await mockCatalogWithFilters(page);
 
-    await page.goto('/catalog');
+    await page.goto('/');
+    await page.getByRole('banner').getByRole('link', { name: 'Catálogo', exact: true }).click();
+    await expect(page).toHaveURL('/catalog');
     await waitForPageLoad(page);
 
     await expect(page.getByRole('link', { name: /Oso Grande/i })).toBeVisible();
 
     const priceRequest = page.waitForResponse(
-      (resp) => resp.url().includes('/api/peluches/') && resp.url().includes('max_price='),
+      (resp) => {
+        const url = new URL(resp.url());
+        return url.pathname === '/api/peluches/' && url.searchParams.get('max_price') === '100000';
+      },
     );
 
-    const slider = page.locator('input[type="range"]');
-    await slider.evaluate((el: HTMLInputElement) => {
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
-      setter.call(el, '100000');
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    const slider = page.getByRole('slider', { name: 'Precio máximo' });
+    await slider.press('Home');
+    await slider.press('ArrowRight');
+    await slider.press('ArrowRight');
+    await slider.press('ArrowRight');
+    await slider.press('ArrowRight');
 
     await priceRequest;
 
