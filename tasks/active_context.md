@@ -5,6 +5,24 @@ description: Current work focus, recent changes, active decisions, and next step
 
 # Active Context — Mimittos
 
+## Rendimiento del filtro de precio — 2026-09-25
+
+Ronda `perf-catalog-requests`, PR #70. El precio mostrado se actualiza de inmediato;
+las consultas de precio se agrupan tras 300 ms de pausa. Categoría, talla, huella y
+orden consultan de inmediato con el precio vigente. La selección anterior se
+invalida antes de esperar, y sus respuestas no pueden publicar resultados ni
+finalizar la carga vigente. QA valida presupuesto de llamadas, cancelaciones y
+contratos; la prueba E2E existente usa el control accesible por teclado.
+
+El lote local pasa 32 pruebas (23 de catálogo y 9 del servicio), con el presupuesto
+de una consulta adicional para ráfagas de uno y cincuenta cambios. El spec público
+se ejecuta en el entorno aislado de CI; su resultado vigente y el cierre de entrega
+se consultan en [PR #70](https://github.com/gustavop-dev/mimittos_project/pull/70).
+
+La concurrencia de subidas queda en diagnóstico: falta un presupuesto canónico de
+trabajos activos. No se modifican uploads ni infraestructura. Evidencia operativa
+en el toolkit: `docs/audits/2026-09-25-mimittos_project-perf-catalog-requests.md`.
+
 ## Monitoreo local — 2026-09-19
 
 Exportación semanal Silk agrupada y sin SQL/valores URL para el módulo de

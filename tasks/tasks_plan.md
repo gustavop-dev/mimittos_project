@@ -5,6 +5,13 @@ description: Task backlog, feature completion status, known issues, and test cov
 
 # Tasks Plan — Mimittos
 
+## Ronda de rendimiento — 2026-09-25
+
+- [x] P-frontend-views-01: agrupar solicitudes de precio y proteger la selección vigente.
+- [x] P-frontend-components-01: diagnosticar carga masiva; propuesta de cola pendiente de presupuesto canónico, sin cambios al uploader.
+- [x] QA: cubrir presupuesto, respuestas fuera de orden y compatibilidad con pruebas unitarias; adaptar el E2E del filtro a navegación y teclado reales.
+- Entrega y ejecución E2E: [PR #70](https://github.com/gustavop-dev/mimittos_project/pull/70); el estado de CI se verifica en sus checks. Cierre de sesión con PR abierto y CI verde, sin merge.
+
 Last updated: 2026-05-01
 
 ---
