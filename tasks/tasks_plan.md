@@ -12,6 +12,15 @@ description: Task backlog, feature completion status, known issues, and test cov
 - [x] QA: cubrir presupuesto, respuestas fuera de orden y compatibilidad con pruebas unitarias; adaptar el E2E del filtro a navegación y teclado reales.
 - Entrega y ejecución E2E: [PR #70](https://github.com/gustavop-dev/mimittos_project/pull/70); el estado de CI se verifica en sus checks. Cierre de sesión con PR abierto y CI verde, sin merge.
 
+## Ronda de rendimiento — 2026-09-24
+
+PR #68: `P-backend-queries-04` (KPIs), `P-backend-queries-05` (reseñas) y
+`P-frontend-stores-01` (sesión). Implementación y QA local completos; entrega mediante PR abierto con CI verde.
+Los presupuestos y tests se declaran en `.testquality.yml`. Los siguientes
+candidatos del scout (creación de pedidos y precarga de Mis pedidos) quedan en
+el ledger del toolkit para otra ronda.
+
+
 Last updated: 2026-05-01
 
 ---

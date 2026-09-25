@@ -1,4 +1,4 @@
-from django.db.models import Avg
+from django.db.models import Avg, Count
 from django.core.exceptions import ValidationError
 
 from base_feature_app.models import Review, Peluch, Order
@@ -32,11 +32,10 @@ class ReviewService:
     @staticmethod
     def update_peluch_rating(peluch: Peluch) -> None:
         approved_reviews = Review.objects.filter(peluch=peluch, is_approved=True)
-        agg = approved_reviews.aggregate(avg=Avg('rating'))
+        agg = approved_reviews.aggregate(avg=Avg('rating'), count=Count('pk'))
         avg_rating = agg['avg'] or 0.00
-        count = approved_reviews.count()
 
         Peluch.objects.filter(pk=peluch.pk).update(
             average_rating=round(avg_rating, 2),
-            review_count=count,
+            review_count=agg['count'],
         )
